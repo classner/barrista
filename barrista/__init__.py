@@ -1,0 +1,1 @@
+"""The barrista main module."""
