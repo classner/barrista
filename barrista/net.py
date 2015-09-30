@@ -27,6 +27,11 @@ _LOGGER = _logging.getLogger(__name__)
 #: are available.
 _Phase = _pbufToPyEnum(_caffe_pb2.Phase)
 
+#: Set CPU processing mode.
+set_mode_cpu = _caffe.set_mode_cpu()
+#: Set GPU processing mode.
+set_mode_gpu = _caffe.set_mode_gpu()
+
 
 class Net(_caffe.Net):
 

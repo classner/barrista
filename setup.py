@@ -14,5 +14,6 @@ setup(name='barrista',
           'progressbar',
           'scikit-learn',
           'scikit-image',
-          'scipy'
+          'scipy',
+          'sphinx'
       ])

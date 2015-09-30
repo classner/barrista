@@ -32,9 +32,9 @@ netspec = design.NetSpecification([[10, 3, 51, 51], [10]],
 # This is a VGG like convolutional network. This could now even be created
 # procedural!
 layers = []
-conv_params = {'Convolution_kernel_size': [3],
+conv_params = {'Convolution_kernel_size': 3,
                'Convolution_num_output': 32,
-               'Convolution_pad': [1]}
+               'Convolution_pad': 1}
 
 layers.append(ConvolutionLayer(**conv_params))
 layers.append(ReLULayer())

@@ -662,6 +662,7 @@ for _layerkey in _LAYER_TYPES.keys():
                                     _fieldname))
     if _layer_error:
         continue
+    # Analyzed the layers. Generating layer objects...
     _layer_prefix = _layerkey
     _func_spec = 'def {_layer_prefix}Layer('.format(**locals())
     for _ptpl in _parameters:
@@ -688,13 +689,24 @@ for _layerkey in _LAYER_TYPES.keys():
         assert _detected, ('The parameter name of the layer property {0} ' +
                            'could not be found!').format(_param_obj)
         _func_spec += '    _ret_obj._additional_parameters.append("{_propname}")'.format(**locals()) + _os.linesep  # noqa
+        _func_spec += '    {_propname}_dummy = _caffe_pb2.{_param_obj}()'.format(**locals()) + _os.linesep  # noqa
         _func_spec += '    {_propname}_kwargs = dict()'.format(**locals()) + _os.linesep  # noqa
         for _ptpl in _parameters:
             if _ptpl[2] == _param_obj:
-                _func_spec += ('    if {_ptpl[0]} is not None:{_os.linesep}' +
-                               '        {_propname}_kwargs["{_ptpl[3]}"] = {_ptpl[0]}{_os.linesep}').format(**locals())  # noqa
+                # Stay compatible with older caffe version where some fields
+                # were scalars that are now repeated fields.
+                _func_spec += (r'''    if {_ptpl[0]} is not None:
+        try:
+            _ = {_ptpl[0]} + 1  # Python version independent integer check
+            if (hasattr(getattr({_propname}_dummy, '{_ptpl[3]}'), 'append')):
+                # The attribute is list typed now, so convert.
+                {_ptpl[0]} = [{_ptpl[0]}]
+        except:
+            # Nothing to do here.
+            pass
+        {_propname}_kwargs["{_ptpl[3]}"] = {_ptpl[0]}{_os.linesep}''').format(**locals())  # noqa
         _func_spec += '    _ret_obj.{_propname} = _caffe_pb2.{_param_obj}(**{_propname}_kwargs){_os.linesep}'.format(**locals())  # noqa
-    _func_spec += '    _ret_obj.type = "{0}"'.format(_layerkey) + _os.linesep
+    _func_spec += '    _ret_obj.type = "{}"'.format(_layerkey) + _os.linesep
     _func_spec += '    return _ret_obj'
     _LOGGER.debug(_func_spec)
     exec(_func_spec)  # pylint: disable=W0122
