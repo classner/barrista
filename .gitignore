@@ -1,4 +1,5 @@
 *.pyc
+.nfs*
 
 # The setuptools temp-folders.
 *.egg-info
