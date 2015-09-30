@@ -178,6 +178,7 @@ pseudoxml:
 
 gh-pages:
 	git checkout gh-pages
+	rm -rf *
 	git checkout $(GH_PAGES_BUILD_BRANCH) $(GH_PAGES_SOURCES)
 	git reset HEAD
 	mkdir -p documentation
