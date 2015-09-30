@@ -1,4 +1,5 @@
 GH_PAGES_SOURCES = barrista documentation Makefile
+GH_PAGES_BUILD_BRANCH = unstable
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
@@ -177,11 +178,11 @@ pseudoxml:
 
 gh-pages:
 	git checkout gh-pages
-	git checkout unstable $(GH_PAGES_SOURCES)
+	git checkout $(GH_PAGES_BUILD_BRANCH) $(GH_PAGES_SOURCES)
 	git reset HEAD
 	mkdir -p documentation
 	make html
 	mv -fv documentation/_build/html/* ./
 	rm -rf $(GH_PAGES_SOURCES)
 	git add -A
-	git commit -m "Generated gh-pages for `git log master -1 --pretty=short --abbrev-commit`" && git push origin gh-pages ; git checkout master
+	git commit -m "Generated gh-pages for `git log master -1 --pretty=short --abbrev-commit`" && git push origin gh-pages ; git checkout $(GH_PAGES_BUILD_BRANCH)
