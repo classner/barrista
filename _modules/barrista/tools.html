@@ -1,0 +1,357 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>barrista.tools &mdash; barrista  documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="author" title="About these documents"
+              href="../../about.html"/>
+    <link rel="top" title="barrista  documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> barrista
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../setup.html">Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Using <cite>barrista</cite></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../barrista.html">API documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../about.html">About</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../index.html">barrista</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      
+    <li>barrista.tools</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for barrista.tools</h1><div class="highlight"><pre>
+<span class="c"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;Implements some useful tools.&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">warnings</span> <span class="kn">as</span> <span class="nn">_warnings</span>
+<span class="kn">import</span> <span class="nn">os</span> <span class="kn">as</span> <span class="nn">_os</span>
+<span class="kn">import</span> <span class="nn">sys</span> <span class="kn">as</span> <span class="nn">_sys</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">tempfile</span> <span class="kn">import</span> <span class="n">mkdtemp</span>
+
+
+<div class="viewcode-block" id="pbufToPyEnum"><a class="viewcode-back" href="../../barrista.html#barrista.design.pbufToPyEnum">[docs]</a><span class="k">def</span> <span class="nf">pbufToPyEnum</span><span class="p">(</span><span class="n">pbufenum</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;Helper function to create a Python enum out of a protobuf one.&quot;&quot;&quot;</span>
+    <span class="n">enums</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">pbufenum</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+    <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="s">&#39;Enum&#39;</span><span class="p">,</span> <span class="p">(),</span> <span class="n">enums</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="chunks"><a class="viewcode-back" href="../../barrista.html#barrista.design.chunks">[docs]</a><span class="k">def</span> <span class="nf">chunks</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Create chunks of ``size`` of ``seq``.</span>
+
+<span class="sd">    See http://stackoverflow.com/questions/434287/what-is-the-most-pythonic-way-to-iterate-over-a-list-in-chunks.  # noqa</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">seq</span><span class="p">[</span><span class="n">pos</span><span class="p">:</span><span class="n">pos</span> <span class="o">+</span> <span class="n">size</span><span class="p">]</span> <span class="k">for</span> <span class="n">pos</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq</span><span class="p">),</span> <span class="n">size</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="pad"><a class="viewcode-back" href="../../barrista.html#barrista.design.pad">[docs]</a><span class="k">def</span> <span class="nf">pad</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">input_dims</span><span class="p">,</span> <span class="n">get_padding</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Pad an image with given scale to the appropriate dimensions.</span>
+
+<span class="sd">    The scaled image must fit into the input_dims, otherwise an exception is</span>
+<span class="sd">    thrown!</span>
+
+<span class="sd">    :param image: 3D numpy array.</span>
+<span class="sd">      The image to pad, as (C, H, W).</span>
+
+<span class="sd">    :param input_dims: tuple(int).</span>
+<span class="sd">      A two-tuple of ints with the first value specifying height, the second</span>
+<span class="sd">      width.</span>
+
+<span class="sd">    :param get_padding: bool.</span>
+<span class="sd">      If set to True, returns a second value, which is a tuple of two-tuples,</span>
+<span class="sd">      where each tuple contains the two values for left-right paddings for</span>
+<span class="sd">      one of the image dimensions.</span>
+
+<span class="sd">    :param val: float.</span>
+<span class="sd">      The value to pad with.</span>
+
+<span class="sd">    :returns: 3D array, padded or, if ``get_padding``,</span>
+<span class="sd">      (3D array, tuple(two-tuples)).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_dims</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+    <span class="k">assert</span> <span class="n">image</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span>
+    <span class="n">IMAGE_DIMS</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+    <span class="n">SCALED_DIMS</span> <span class="o">=</span> <span class="n">IMAGE_DIMS</span><span class="p">[:]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s">&#39;int&#39;</span><span class="p">)</span>
+    <span class="n">WORK_SCALE_IMAGE</span> <span class="o">=</span> <span class="n">image</span>
+    <span class="n">PAD_WIDTH</span> <span class="o">=</span> <span class="p">(</span><span class="n">input_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">SCALED_DIMS</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="mf">2.0</span>
+    <span class="n">PAD_HEIGHT</span> <span class="o">=</span> <span class="p">(</span><span class="n">input_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">SCALED_DIMS</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="mf">2.0</span>
+    <span class="k">assert</span> <span class="n">PAD_WIDTH</span> <span class="o">&gt;=</span> <span class="mf">0.</span> <span class="ow">and</span> <span class="n">PAD_HEIGHT</span> <span class="o">&gt;=</span> <span class="mf">0.</span>
+    <span class="c"># Padding is done, e.g., in deeplab, first with the mean values,</span>
+    <span class="c"># only to subtract the mean of the entire image, resulting in</span>
+    <span class="c"># 0. values in the padded areas. We&#39;re doing that here directly.</span>
+    <span class="n">padding</span> <span class="o">=</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+               <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">PAD_HEIGHT</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">PAD_HEIGHT</span><span class="p">)),</span>
+               <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">PAD_WIDTH</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">PAD_WIDTH</span><span class="p">)))</span>
+    <span class="n">padded</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">WORK_SCALE_IMAGE</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="s">&#39;constant&#39;</span><span class="p">,</span> <span class="n">constant_values</span><span class="o">=</span><span class="n">val</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">get_padding</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">padded</span><span class="p">,</span> <span class="n">padding</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">padded</span>
+
+</div>
+<div class="viewcode-block" id="TemporaryDirectory"><a class="viewcode-back" href="../../barrista.html#barrista.design.TemporaryDirectory">[docs]</a><span class="k">class</span> <span class="nc">TemporaryDirectory</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Create and return a temporary directory.</span>
+
+<span class="sd">    This has the same behavior as mkdtemp but can be used as a context manager.</span>
+<span class="sd">    For example:</span>
+
+<span class="sd">        with TemporaryDirectory() as tmpdir:</span>
+<span class="sd">            ...</span>
+
+<span class="sd">    Upon exiting the context, the directory and everything contained</span>
+<span class="sd">    in it are removed.</span>
+
+<span class="sd">    Source:</span>
+<span class="sd">    http://stackoverflow.com/questions/19296146/tempfile-temporarydirectory-context-manager-in-python-2-7  # noqa</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># pylint: disable=W0622</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s">&quot;&quot;</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="s">&quot;tmp&quot;</span><span class="p">,</span> <span class="nb">dir</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Same parameters as ``mkdtemp``.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_closed</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="bp">None</span>  <span class="c"># Handle mkdtemp raising an exception</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">mkdtemp</span><span class="p">(</span><span class="n">suffix</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="nb">dir</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Plain string representation.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s">&quot;&lt;{} {!r}&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__class__</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;When entering the context.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+
+<div class="viewcode-block" id="TemporaryDirectory.cleanup"><a class="viewcode-back" href="../../barrista.html#barrista.design.TemporaryDirectory.cleanup">[docs]</a>    <span class="k">def</span> <span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_warn</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Guarantee a cleaned up state.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_closed</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_rmtree</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">AttributeError</span><span class="p">)</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+                <span class="c"># Issue #10188: Emit a warning on stderr</span>
+                <span class="c"># if the directory could not be cleaned</span>
+                <span class="c"># up due to missing globals</span>
+                <span class="k">if</span> <span class="s">&quot;None&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">ex</span><span class="p">):</span>
+                    <span class="k">raise</span>
+                <span class="k">print</span><span class="p">(</span><span class="s">&quot;ERROR: {!r} while cleaning up {!r}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ex</span><span class="p">,</span> <span class="bp">self</span><span class="p">,),</span>
+                      <span class="nb">file</span><span class="o">=</span><span class="n">_sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+                <span class="k">return</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_closed</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="k">if</span> <span class="n">_warn</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_warn</span><span class="p">(</span><span class="s">&quot;Implicitly cleaning up {!r}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">_warn</span><span class="o">.</span><span class="n">ResourceWarning</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">tb</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;On leaving the context.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cleanup</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;On deleting the context.&quot;&quot;&quot;</span>
+        <span class="c"># Issue a ResourceWarning if implicit cleanup needed.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cleanup</span><span class="p">(</span><span class="n">_warn</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+    <span class="c"># The following code attempts to make</span>
+    <span class="c"># this class tolerant of the module nulling out process</span>
+    <span class="c"># that happens during CPython interpreter shutdown</span>
+    <span class="c"># Alas, it doesn&#39;t actually manage it. See issue #10188.</span>
+    <span class="n">_listdir</span> <span class="o">=</span> <span class="nb">staticmethod</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">listdir</span><span class="p">)</span>
+    <span class="n">_path_join</span> <span class="o">=</span> <span class="nb">staticmethod</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">)</span>
+    <span class="n">_isdir</span> <span class="o">=</span> <span class="nb">staticmethod</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">)</span>
+    <span class="n">_islink</span> <span class="o">=</span> <span class="nb">staticmethod</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">islink</span><span class="p">)</span>
+    <span class="n">_remove</span> <span class="o">=</span> <span class="nb">staticmethod</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">remove</span><span class="p">)</span>
+    <span class="n">_rmdir</span> <span class="o">=</span> <span class="nb">staticmethod</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">rmdir</span><span class="p">)</span>
+    <span class="n">_warn</span> <span class="o">=</span> <span class="n">_warnings</span><span class="o">.</span><span class="n">warn</span>
+
+    <span class="k">def</span> <span class="nf">_rmtree</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="c"># Essentially a stripped down version of shutil.rmtree.  We can&#39;t</span>
+        <span class="c"># use globals because they may be None&#39;ed out at shutdown.</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_listdir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+            <span class="n">fullname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_path_join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">isdir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_isdir</span><span class="p">(</span><span class="n">fullname</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_islink</span><span class="p">(</span><span class="n">fullname</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+                <span class="n">isdir</span> <span class="o">=</span> <span class="bp">False</span>
+            <span class="k">if</span> <span class="n">isdir</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_rmtree</span><span class="p">(</span><span class="n">fullname</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_remove</span><span class="p">(</span><span class="n">fullname</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+                    <span class="k">pass</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_rmdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+            <span class="k">pass</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, The barrista authors.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

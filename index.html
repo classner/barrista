@@ -1,1 +1,268 @@
-First commit.
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Welcome to barrista’s documentation! &mdash; barrista  documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="author" title="About these documents"
+              href="about.html"/>
+    <link rel="top" title="barrista  documentation" href="#"/>
+        <link rel="next" title="Setup" href="setup.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="#" class="icon icon-home"> barrista
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="setup.html">Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Using <cite>barrista</cite></a></li>
+<li class="toctree-l1"><a class="reference internal" href="barrista.html">API documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="about.html">About</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="#">barrista</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="#">Docs</a> &raquo;</li>
+      
+    <li>Welcome to barrista&#8217;s documentation!</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/index.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="welcome-to-barrista-s-documentation">
+<h1>Welcome to barrista&#8217;s documentation!<a class="headerlink" href="#welcome-to-barrista-s-documentation" title="Permalink to this headline">¶</a></h1>
+<p>Barrista will serve you your <a class="reference external" href="https://github.com/BVLC/caffe">caffe</a>
+right! It is a Python library that offers comparable access
+to <cite>caffe</cite> as <a class="reference external" href="http://keras.io">keras</a> or
+<a class="reference external" href="http://deeplearning.net/software/theano/">Theano</a>.</p>
+<p>Design your nets with the full power of <cite>caffe</cite> (and guaranteed correctness and
+completeness) while not using any <cite>.prototxt</cite> files and not messing with
+configurations; and use the flexibility and convenience of Python
+by using Callbacks for properly controlling and monitoring
+your training procedure!
+We achieve this by inspecting the protobuf objects that are used to configure
+caffe, and exposing their functionality (and some convenient additions)
+nicely. And the best: there is full compatibility to import and export
+<cite>.prototxt</cite> files so you can start working with your specified DCNNs right
+away or get some from the
+<a class="reference external" href="http://caffe.berkeleyvision.org/model_zoo.html">model zoo</a>!
+It runs on every platform caffe runs on, and can be used with Python 2 and 3.</p>
+<div class="figure align-right" id="id1">
+<a class="reference internal image-reference" href="_images/barrista.jpg"><img alt="map to buried treasure" src="_images/barrista.jpg" style="width: 333.5px; height: 500.0px;" /></a>
+<p class="caption"><span class="caption-text">Photo by Liz Clayton, <a class="reference external" href="http://creativecommons.org/licenses/by/4.0/">CC</a>.</span></p>
+</div>
+<p>Contents:</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="setup.html">Setup</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="setup.html#requirements">Requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="setup.html#caffe-modifications">Caffe modifications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="setup.html#configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="setup.html#testing">Testing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="setup.html#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="setup.html#registering-additional-layers">Registering additional layers</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Using <cite>barrista</cite></a><ul>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#importing-and-configuring-barrista">Importing and configuring barrista</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#creating-a-network-specification">Creating a network specification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#visualizing-a-network">Visualizing a network</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#importing-a-network-specification">Importing a network specification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#using-a-network">Using a network</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="usage.html#loading-parameters">Loading parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usage.html#training-a-network">Training a network</a></li>
+<li class="toctree-l3"><a class="reference internal" href="usage.html#getting-predictions">Getting predictions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="usage.html#using-different-architectures-to-fit-and-predict">Using different architectures to <code class="docutils literal"><span class="pre">fit</span></code> and <code class="docutils literal"><span class="pre">predict</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="barrista.html">API documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="barrista.html#module-barrista.config">barrista.config module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="barrista.html#module-barrista.design">barrista.design module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="barrista.html#module-barrista.initialization">barrista.initialization module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="barrista.html#module-barrista.monitoring">barrista.monitoring module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="barrista.html#module-barrista.net">barrista.net module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="barrista.html#module-barrista.tools">barrista.tools module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="barrista.html#module-barrista">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="about.html">About</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><span>Index</span></a></li>
+<li><a class="reference internal" href="py-modindex.html"><span>Module Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span>Search Page</span></a></li>
+</ul>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="setup.html" class="btn btn-neutral float-right" title="Setup" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, The barrista authors.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

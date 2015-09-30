@@ -1,0 +1,443 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>barrista.monitoring &mdash; barrista  documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="author" title="About these documents"
+              href="../../about.html"/>
+    <link rel="top" title="barrista  documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> barrista
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../setup.html">Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Using <cite>barrista</cite></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../barrista.html">API documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../about.html">About</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../index.html">barrista</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      
+    <li>barrista.monitoring</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for barrista.monitoring</h1><div class="highlight"><pre>
+<span class="c"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;Defines several tools for monitoring net activity.&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">logging</span> <span class="kn">as</span> <span class="nn">_logging</span>
+<span class="kn">import</span> <span class="nn">os</span> <span class="kn">as</span> <span class="nn">_os</span>
+<span class="n">_LOGGER</span> <span class="o">=</span> <span class="n">_logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Monitor"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.Monitor">[docs]</a><span class="k">class</span> <span class="nc">Monitor</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The monitor interface.</span>
+
+<span class="sd">    Should be implemented by any monitor class. The method</span>
+<span class="sd">    :py:func:`barrista.monitoring.Monitor.__call__` must be specified,</span>
+<span class="sd">    the function :py:func:`barrista.monitoring.Monitor.finalize` may</span>
+<span class="sd">    optionally be specified.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The call implementation.</span>
+
+<span class="sd">        For available keyword arguments, see the documentation of</span>
+<span class="sd">        :py:class:`barrista.net.Net.fit`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Monitor.finalize"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.Monitor.finalize">[docs]</a>    <span class="k">def</span> <span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Will be called at the end of a training/fitting process.&quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+
+</div></div>
+<span class="k">class</span> <span class="nc">_LossIndicator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    A plugin indicator for the ``progressbar`` package.</span>
+
+<span class="sd">    This must be used in conjunction with the</span>
+<span class="sd">    :py:class:`barrista.monitoring.ProgressIndicator`. If available, it</span>
+<span class="sd">    outputs current loss, accuracy, test loss and test accuracy.</span>
+
+<span class="sd">    :param progress_indicator:</span>
+<span class="sd">      :py:class:`barrista.monitoring.ProgressIndicator`. The information</span>
+<span class="sd">      source to use.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">progress_indicator</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">progress_indicator</span> <span class="o">=</span> <span class="n">progress_indicator</span>
+
+    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pbar</span><span class="p">):</span>  <span class="c"># pylint: disable=W0613</span>
+        <span class="sd">&quot;&quot;&quot;The update method to implement by the ``progressbar`` interface.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">progress_indicator</span><span class="o">.</span><span class="n">loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">ret_val</span> <span class="o">=</span> <span class="s">&#39;Loss: {0:.4f}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">progress_indicator</span><span class="o">.</span><span class="n">loss</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ret_val</span> <span class="o">=</span> <span class="s">&#39;Loss: -----&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">progress_indicator</span><span class="o">.</span><span class="n">accuracy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">ret_val</span> <span class="o">+=</span> <span class="s">&#39;|Accy: {0:.4f}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">progress_indicator</span><span class="o">.</span><span class="n">accuracy</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">progress_indicator</span><span class="o">.</span><span class="n">test_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">ret_val</span> <span class="o">+=</span> <span class="s">&#39;|TLoss: {0:.4f}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">progress_indicator</span><span class="o">.</span><span class="n">test_loss</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">progress_indicator</span><span class="o">.</span><span class="n">test_accuracy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">ret_val</span> <span class="o">+=</span> <span class="s">&#39;|TAccy: {0:.4f}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">progress_indicator</span><span class="o">.</span><span class="n">test_accuracy</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ret_val</span>
+
+
+<div class="viewcode-block" id="ProgressIndicator"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.ProgressIndicator">[docs]</a><span class="k">class</span> <span class="nc">ProgressIndicator</span><span class="p">(</span><span class="n">Monitor</span><span class="p">):</span>
+
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Generates a progress bar with current information about the process.</span>
+
+<span class="sd">    The progress bar always displays completion percentag and ETA. If</span>
+<span class="sd">    available, it also displays loss, accuracy, test loss and test accuracy.</span>
+
+<span class="sd">    It makes use of the following keyword arguments (\* indicates required):</span>
+
+<span class="sd">    * ``iter``\*,</span>
+<span class="sd">    * ``max_iter``\*,</span>
+<span class="sd">    * ``loss``,</span>
+<span class="sd">    * ``test_loss``,</span>
+<span class="sd">    * ``accuracy``,</span>
+<span class="sd">    * ``test_accuracy``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;See class documentation.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_loss</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">accuracy</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_accuracy</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="kn">from</span> <span class="nn">progressbar</span> <span class="kn">import</span> <span class="n">ETA</span><span class="p">,</span> <span class="n">Percentage</span><span class="p">,</span> <span class="n">Bar</span><span class="p">,</span> <span class="n">ProgressBar</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">widgets</span> <span class="o">=</span> <span class="p">[</span><span class="n">Bar</span><span class="p">(),</span> <span class="n">Percentage</span><span class="p">(),</span> <span class="s">&#39; &#39;</span><span class="p">,</span> <span class="n">ETA</span><span class="p">()]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pbarclass</span> <span class="o">=</span> <span class="n">ProgressBar</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pbar</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Callback implementation.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pbar</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s">&#39;loss&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">widgets</span> <span class="o">=</span> <span class="p">[</span><span class="n">_LossIndicator</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">widgets</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">widgets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">widgets</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pbar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pbarclass</span><span class="p">(</span><span class="n">maxval</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;max_iter&#39;</span><span class="p">],</span>
+                                       <span class="n">widgets</span><span class="o">=</span><span class="n">widgets</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pbar</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="k">if</span> <span class="s">&#39;loss&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;loss&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s">&#39;test_loss&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">test_loss</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;test_loss&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s">&#39;accuracy&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">accuracy</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;accuracy&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s">&#39;test_accuracy&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">test_accuracy</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;test_accuracy&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pbar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">])</span>
+
+<div class="viewcode-block" id="ProgressIndicator.finalize"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.ProgressIndicator.finalize">[docs]</a>    <span class="k">def</span> <span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pylint: disable=W0613</span>
+        <span class="sd">&quot;&quot;&quot;Call ``progressbar.finish()``.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pbar</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pbar</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span>
+
+</div></div>
+<div class="viewcode-block" id="JSONLogger"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.JSONLogger">[docs]</a><span class="k">class</span> <span class="nc">JSONLogger</span><span class="p">(</span><span class="n">Monitor</span><span class="p">):</span>
+
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Logs available information to a JSON file.</span>
+
+<span class="sd">    The information is stored in a dictionary of lists. The lists contain</span>
+<span class="sd">    score information and the iteration at which it was obtained. The</span>
+<span class="sd">    currently logged scores are loss, accuracy, test loss and test accuracy.</span>
+
+<span class="sd">    The logger makes use of the following keyword arguments</span>
+<span class="sd">    (\* indicates required):</span>
+
+<span class="sd">    * ``iter``\*,</span>
+<span class="sd">    * ``loss``,</span>
+<span class="sd">    * ``test_loss``,</span>
+<span class="sd">    * ``accuracy``,</span>
+<span class="sd">    * ``test_accuracy``.</span>
+
+<span class="sd">    :param path: string.</span>
+<span class="sd">      The path to store the file in.</span>
+
+<span class="sd">    :param name: string.</span>
+<span class="sd">      The filename. Will be prefixed with `barrista_` and `.json` will be</span>
+<span class="sd">      appended.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;See class documentation.&quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">json</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">json_package</span> <span class="o">=</span> <span class="n">json</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">json_filename</span> <span class="o">=</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s">&#39;barrista_&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s">&#39;.json&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">losses</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loss_iters</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">accys</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">accys_iters</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_losses</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_loss_iters</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_accys</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_accy_iters</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dict</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;train&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s">&#39;test&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s">&#39;barrista_produced&#39;</span><span class="p">:</span> <span class="bp">True</span><span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Callback implementation.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s">&#39;loss&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;loss&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">loss_iters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="s">&#39;train&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s">&#39;NumIters&#39;</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">],</span>
+                                       <span class="s">&#39;loss&#39;</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;loss&#39;</span><span class="p">]})</span>
+        <span class="k">if</span> <span class="s">&#39;accuracy&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">accys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;accuracy&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">accys_iters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="s">&#39;train&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s">&#39;NumIters&#39;</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">],</span>
+                                       <span class="s">&#39;accuracy&#39;</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;accuracy&#39;</span><span class="p">]})</span>
+        <span class="k">if</span> <span class="s">&#39;test_loss&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">test_losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;test_loss&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">test_loss_iters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="s">&#39;test&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s">&#39;NumIters&#39;</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">],</span>
+                                      <span class="s">&#39;loss&#39;</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;test_loss&#39;</span><span class="p">]})</span>
+        <span class="k">if</span> <span class="s">&#39;test_accuracy&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">test_accys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;test_accuracy&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">test_accy_iters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="s">&#39;test&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s">&#39;NumIters&#39;</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">],</span>
+                                      <span class="s">&#39;accuracy&#39;</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;test_accuracy&#39;</span><span class="p">]})</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">json_filename</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outf</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">json_package</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">,</span> <span class="n">outf</span><span class="p">)</span>
+
+<div class="viewcode-block" id="JSONLogger.finalize"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.JSONLogger.finalize">[docs]</a>    <span class="k">def</span> <span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pylint: disable=W0613</span>
+        <span class="sd">&quot;&quot;&quot;Write the json file.&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">json_filename</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outf</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">json_package</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">,</span> <span class="n">outf</span><span class="p">)</span>
+
+</div></div>
+<div class="viewcode-block" id="Checkpointer"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.Checkpointer">[docs]</a><span class="k">class</span> <span class="nc">Checkpointer</span><span class="p">(</span><span class="n">Monitor</span><span class="p">):</span>
+
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Writes the network blobs to disk at certain iteration intervals.</span>
+
+<span class="sd">    The logger makes use of the following keyword arguments</span>
+<span class="sd">    (\* indicates required):</span>
+
+<span class="sd">    * ``iter``\*,</span>
+<span class="sd">    * ``net``\*,</span>
+<span class="sd">    * ``batch_size``\*.</span>
+
+<span class="sd">    :param name_prefix: string.</span>
+<span class="sd">      The first part of the output filenames to generate. The current</span>
+<span class="sd">      iteration is added, as well as &#39;.caffemodel&#39;.</span>
+
+<span class="sd">    :param iterations: int &gt; 0.</span>
+<span class="sd">      Always if the current number of iterations is divisible by iterations,</span>
+<span class="sd">      the network blobs are written to disk. Hence, this value must be a</span>
+<span class="sd">      multiple of the batch size!</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">name_prefix</span><span class="p">,</span>
+                 <span class="n">iterations</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;See class documentation.&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">iterations</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="n">_LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Setting up checkpointing with name prefix </span><span class="si">%s</span><span class="s"> every &#39;</span> <span class="o">+</span>
+                     <span class="s">&#39;</span><span class="si">%d</span><span class="s"> iterations.&#39;</span><span class="p">,</span> <span class="n">name_prefix</span><span class="p">,</span> <span class="n">iterations</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name_prefix</span> <span class="o">=</span> <span class="n">name_prefix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span> <span class="o">=</span> <span class="n">iterations</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Callback implementation.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span> <span class="o">%</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">print</span><span class="p">(</span><span class="s">&#39;monitoring&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">iterations</span><span class="p">,</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">])</span>
+            <span class="kn">import</span> <span class="nn">sys</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">checkpoint_filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name_prefix</span> <span class="o">+</span>\
+                <span class="nb">str</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">])</span> <span class="o">+</span>\
+                <span class="s">&#39;.caffemodel&#39;</span>
+            <span class="n">_LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Writing checkpoint to file &#39;</span><span class="si">%s</span><span class="s">&#39;.&quot;</span><span class="p">,</span> <span class="n">checkpoint_filename</span><span class="p">)</span>  <span class="c"># noqa</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">checkpoint_filename</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Checkpointer.finalize"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.Checkpointer.finalize">[docs]</a>    <span class="k">def</span> <span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Write a final checkpoint.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">checkpoint_filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name_prefix</span> <span class="o">+</span>\
+                <span class="nb">str</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">])</span> <span class="o">+</span>\
+                <span class="s">&#39;.caffemodel&#39;</span>
+            <span class="n">_LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Writing checkpoint to file &#39;</span><span class="si">%s</span><span class="s">&#39;.&quot;</span><span class="p">,</span> <span class="n">checkpoint_filename</span><span class="p">)</span>  <span class="c"># noqa</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">checkpoint_filename</span><span class="p">)</span>
+
+</div></div>
+<span class="k">class</span> <span class="nc">__dummy</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">pass</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, The barrista authors.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
