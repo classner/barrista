@@ -6,10 +6,10 @@
 Welcome to barrista's documentation!
 ====================================
 
-Barrista will serve you your `caffe <https://github.com/BVLC/caffe>`_
-right! It is a Python library that offers comparable access
-to `caffe` as `keras <http://keras.io>`_ or
-`Theano <http://deeplearning.net/software/theano/>`_.
+Barrista will serve your `caffe <https://github.com/BVLC/caffe>`_
+right! It is a Python library that offers a comparable `keras <http://keras.io>`_
+and `Theano <http://deeplearning.net/software/theano/>`_, but using
+standard `caffe`.
 
 Design your nets with the full power of `caffe` (and guaranteed correctness and
 completeness) while not using any `.prototxt` files and not messing with
@@ -19,10 +19,10 @@ your training procedure!
 We achieve this by inspecting the protobuf objects that are used to configure
 caffe, and exposing their functionality (and some convenient additions)
 nicely. And the best: there is full compatibility to import and export
-`.prototxt` files so you can start working with your specified DCNNs right
+`.prototxt` files so you can start working with your own DCNNs right
 away or get some from the
 `model zoo <http://caffe.berkeleyvision.org/model_zoo.html>`_!
-It runs on every platform caffe runs on, and can be used with Python 2 and 3.
+It runs on every platform `caffe` runs on, and can be used with Python 2 and 3.
 
 .. figure:: _static/barrista.jpg
    :scale: 50 %
@@ -49,4 +49,3 @@ Indices and tables
 
 * :ref:`genindex`
 * :ref:`modindex`
-* :ref:`search`
