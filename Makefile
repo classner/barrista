@@ -49,9 +49,7 @@ clean:
 	rm -rf $(BUILDDIR)/*
 
 html:
-	cd documentation
-	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
-	cd ..
+	cd documentation && $(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
