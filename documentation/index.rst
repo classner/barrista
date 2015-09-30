@@ -7,7 +7,7 @@ Welcome to barrista's documentation!
 ====================================
 
 Barrista will serve your `caffe <https://github.com/BVLC/caffe>`_
-right! It is a Python library that offers a comparable interface as
+right! It is a Python library that offers a comparable interface to
 `keras <http://keras.io>`_
 and `Theano <http://deeplearning.net/software/theano/>`_, but using
 standard `caffe`.
