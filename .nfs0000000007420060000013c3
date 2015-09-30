@@ -147,8 +147,7 @@ away or get some from the
 It runs on every platform caffe runs on, and can be used with Python 2 and 3.</p>
 <div class="figure align-right" id="id1">
 <a class="reference internal image-reference" href="_images/barrista.jpg"><img alt="map to buried treasure" src="_images/barrista.jpg" style="width: 333.5px; height: 500.0px;" /></a>
-<p class="caption"><span class="caption-text"><a class="reference external" href="https://commons.wikimedia.org/wiki/File:Gwilym_Davies.jpg">Photo by Liz Clayton</a>,
-<a class="reference external" href="http://creativecommons.org/licenses/by/3.0/">CC</a>.</span></p>
+<p class="caption"><span class="caption-text">Photo by Liz Clayton, <a class="reference external" href="http://creativecommons.org/licenses/by/4.0/">CC</a>.</span></p>
 </div>
 <p>Contents:</p>
 <div class="toctree-wrapper compound">
@@ -178,10 +177,10 @@ It runs on every platform caffe runs on, and can be used with Python 2 and 3.</p
 </li>
 <li class="toctree-l1"><a class="reference internal" href="barrista.html">API documentation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="barrista.html#module-barrista.config">barrista.config module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="barrista.html#barrista-design-module">barrista.design module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="barrista.html#barrista-initialization-module">barrista.initialization module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="barrista.html#module-barrista.design">barrista.design module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="barrista.html#module-barrista.initialization">barrista.initialization module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="barrista.html#module-barrista.monitoring">barrista.monitoring module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="barrista.html#barrista-net-module">barrista.net module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="barrista.html#module-barrista.net">barrista.net module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="barrista.html#module-barrista.tools">barrista.tools module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="barrista.html#module-barrista">Module contents</a></li>
 </ul>

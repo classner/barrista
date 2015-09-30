@@ -140,13 +140,13 @@
 <span class="kn">from</span> <span class="nn">tempfile</span> <span class="kn">import</span> <span class="n">mkdtemp</span>
 
 
-<div class="viewcode-block" id="pbufToPyEnum"><a class="viewcode-back" href="../../barrista.html#barrista.design.pbufToPyEnum">[docs]</a><span class="k">def</span> <span class="nf">pbufToPyEnum</span><span class="p">(</span><span class="n">pbufenum</span><span class="p">):</span>
+<div class="viewcode-block" id="pbufToPyEnum"><a class="viewcode-back" href="../../barrista.html#barrista.tools.pbufToPyEnum">[docs]</a><span class="k">def</span> <span class="nf">pbufToPyEnum</span><span class="p">(</span><span class="n">pbufenum</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot;Helper function to create a Python enum out of a protobuf one.&quot;&quot;&quot;</span>
     <span class="n">enums</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">pbufenum</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
     <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="s">&#39;Enum&#39;</span><span class="p">,</span> <span class="p">(),</span> <span class="n">enums</span><span class="p">)</span>
 
 </div>
-<div class="viewcode-block" id="chunks"><a class="viewcode-back" href="../../barrista.html#barrista.design.chunks">[docs]</a><span class="k">def</span> <span class="nf">chunks</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
+<div class="viewcode-block" id="chunks"><a class="viewcode-back" href="../../barrista.html#barrista.tools.chunks">[docs]</a><span class="k">def</span> <span class="nf">chunks</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">    Create chunks of ``size`` of ``seq``.</span>
 
@@ -155,7 +155,7 @@
     <span class="k">return</span> <span class="p">(</span><span class="n">seq</span><span class="p">[</span><span class="n">pos</span><span class="p">:</span><span class="n">pos</span> <span class="o">+</span> <span class="n">size</span><span class="p">]</span> <span class="k">for</span> <span class="n">pos</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq</span><span class="p">),</span> <span class="n">size</span><span class="p">))</span>
 
 </div>
-<div class="viewcode-block" id="pad"><a class="viewcode-back" href="../../barrista.html#barrista.design.pad">[docs]</a><span class="k">def</span> <span class="nf">pad</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">input_dims</span><span class="p">,</span> <span class="n">get_padding</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="pad"><a class="viewcode-back" href="../../barrista.html#barrista.tools.pad">[docs]</a><span class="k">def</span> <span class="nf">pad</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">input_dims</span><span class="p">,</span> <span class="n">get_padding</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">    Pad an image with given scale to the appropriate dimensions.</span>
 
@@ -201,7 +201,7 @@
         <span class="k">return</span> <span class="n">padded</span>
 
 </div>
-<div class="viewcode-block" id="TemporaryDirectory"><a class="viewcode-back" href="../../barrista.html#barrista.design.TemporaryDirectory">[docs]</a><span class="k">class</span> <span class="nc">TemporaryDirectory</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="TemporaryDirectory"><a class="viewcode-back" href="../../barrista.html#barrista.tools.TemporaryDirectory">[docs]</a><span class="k">class</span> <span class="nc">TemporaryDirectory</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
     <span class="sd">&quot;&quot;&quot;Create and return a temporary directory.</span>
 
@@ -233,7 +233,7 @@
         <span class="sd">&quot;&quot;&quot;When entering the context.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
 
-<div class="viewcode-block" id="TemporaryDirectory.cleanup"><a class="viewcode-back" href="../../barrista.html#barrista.design.TemporaryDirectory.cleanup">[docs]</a>    <span class="k">def</span> <span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_warn</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+<div class="viewcode-block" id="TemporaryDirectory.cleanup"><a class="viewcode-back" href="../../barrista.html#barrista.tools.TemporaryDirectory.cleanup">[docs]</a>    <span class="k">def</span> <span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_warn</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Guarantee a cleaned up state.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_closed</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>

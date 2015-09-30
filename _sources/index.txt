@@ -29,7 +29,8 @@ It runs on every platform caffe runs on, and can be used with Python 2 and 3.
    :alt: map to buried treasure
    :align: right
 
-   Photo by Liz Clayton, `CC <http://creativecommons.org/licenses/by/4.0/>`_.
+   `Photo by Liz Clayton <https://commons.wikimedia.org/wiki/File:Gwilym_Davies.jpg>`_,
+   `CC <http://creativecommons.org/licenses/by/3.0/>`_.
 
 
 Contents:

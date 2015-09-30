@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Overview: module code &mdash; barrista  documentation</title>
+  <title>About &mdash; barrista  documentation</title>
   
 
   
@@ -24,18 +24,19 @@
 
   
   
-    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   
 
   
 
   
         <link rel="author" title="About these documents"
-              href="../about.html"/>
-    <link rel="top" title="barrista  documentation" href="../index.html"/> 
+              href="#"/>
+    <link rel="top" title="barrista  documentation" href="index.html"/>
+        <link rel="prev" title="API documentation" href="barrista.html"/> 
 
   
-  <script src="../_static/js/modernizr.min.js"></script>
+  <script src="_static/js/modernizr.min.js"></script>
 
 </head>
 
@@ -50,7 +51,7 @@
           
 
           
-            <a href="../index.html" class="icon icon-home"> barrista
+            <a href="index.html" class="icon icon-home"> barrista
           
 
           
@@ -63,7 +64,7 @@
 
           
 <div role="search">
-  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
@@ -77,11 +78,11 @@
           
             
             
-                <ul>
-<li class="toctree-l1"><a class="reference internal" href="../setup.html">Setup</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../usage.html">Using <cite>barrista</cite></a></li>
-<li class="toctree-l1"><a class="reference internal" href="../barrista.html">API documentation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
+                <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="setup.html">Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Using <cite>barrista</cite></a></li>
+<li class="toctree-l1"><a class="reference internal" href="barrista.html">API documentation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">About</a></li>
 </ul>
 
             
@@ -95,7 +96,7 @@
       
       <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
         <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="../index.html">barrista</a>
+        <a href="index.html">barrista</a>
       </nav>
 
 
@@ -110,11 +111,13 @@
 
 <div role="navigation" aria-label="breadcrumbs navigation">
   <ul class="wy-breadcrumbs">
-    <li><a href="../index.html">Docs</a> &raquo;</li>
+    <li><a href="index.html">Docs</a> &raquo;</li>
       
-    <li>Overview: module code</li>
+    <li>About</li>
       <li class="wy-breadcrumbs-aside">
         
+          
+            <a href="_sources/about.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -124,14 +127,32 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <h1>All modules for which code is available</h1>
-<ul><li><a href="barrista/monitoring.html">barrista.monitoring</a></li>
-<li><a href="barrista/tools.html">barrista.tools</a></li>
+  <div class="section" id="about">
+<h1>About<a class="headerlink" href="#about" title="Permalink to this headline">¶</a></h1>
+<p>This software was created at the <a class="reference external" href="http://www.bccn-tuebingen.de">BCCN</a> and
+the <a class="reference external" href="http://www.is.mpg.de">Max Planck Institute for Intelligent Systems</a>
+Tübingen. The main contributors are:</p>
+<ul class="simple">
+<li>Christoph Lassner,</li>
+<li>Daniel Kappler,</li>
+<li>Martin Kiefel and</li>
+<li>Peter Gehler.</li>
 </ul>
+<p>We thank Yangqing Jia and the BVLC vision group for creating the great
+<cite>caffe</cite> package!</p>
+</div>
+
 
            </div>
           </div>
           <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="barrista.html" class="btn btn-neutral" title="API documentation" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
   
 
   <hr/>
@@ -159,23 +180,23 @@
 
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'../',
+            URL_ROOT:'./',
             VERSION:'',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true
         };
     </script>
-      <script type="text/javascript" src="../_static/jquery.js"></script>
-      <script type="text/javascript" src="../_static/underscore.js"></script>
-      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
       <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
 
   
 
   
   
-    <script type="text/javascript" src="../_static/js/theme.js"></script>
+    <script type="text/javascript" src="_static/js/theme.js"></script>
   
 
   

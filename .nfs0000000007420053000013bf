@@ -166,7 +166,7 @@ to use a specific <cite>caffe</cite> version on the fly as follows:</p>
 </div>
 <div class="section" id="creating-a-network-specification">
 <h2>Creating a network specification<a class="headerlink" href="#creating-a-network-specification" title="Permalink to this headline">¶</a></h2>
-<p>The module <code class="xref py py-mod docutils literal"><span class="pre">barrista.design</span></code> contains methods and classes to
+<p>The module <a class="reference internal" href="barrista.html#module-barrista.design" title="barrista.design"><code class="xref py py-mod docutils literal"><span class="pre">barrista.design</span></code></a> contains methods and classes to
 design <cite>caffe</cite> models. We will use it in the following example to create
 a simple, <cite>VGG</cite>-like model:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">barrista.design</span> <span class="kn">as</span> <span class="nn">design</span>
@@ -213,10 +213,10 @@ a simple, <cite>VGG</cite>-like model:</p>
 parameters for a layer can be set by using it&#8217;s constructor or later be set
 as it&#8217;s object property. If you have to use sub-objects (or rather messages,
 in prototxt-speak), they are all available from the object
-<code class="xref py py-data docutils literal"><span class="pre">barrista.design.PROTODETAIL</span></code>.</p>
+<a class="reference internal" href="barrista.html#barrista.design.PROTODETAIL" title="barrista.design.PROTODETAIL"><code class="xref py py-data docutils literal"><span class="pre">barrista.design.PROTODETAIL</span></code></a>.</p>
 <p>You can now inspect the specification and programatically change its parameters.
 To get the prototxt representation, use the method
-<code class="xref py py-func docutils literal"><span class="pre">barrista.design.NetSpecification.to_prototxt()</span></code>:</p>
+<a class="reference internal" href="barrista.html#barrista.design.NetSpecification.to_prototxt" title="barrista.design.NetSpecification.to_prototxt"><code class="xref py py-func docutils literal"><span class="pre">barrista.design.NetSpecification.to_prototxt()</span></code></a>:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="k">print</span><span class="p">(</span><span class="n">netspec</span><span class="o">.</span><span class="n">to_prototxt</span><span class="p">())</span>
 </pre></div>
 </div>
@@ -229,8 +229,8 @@ directly create prototxt files:</p>
 <div class="section" id="visualizing-a-network">
 <h2>Visualizing a network<a class="headerlink" href="#visualizing-a-network" title="Permalink to this headline">¶</a></h2>
 <p>It is possible to visualize a network specification or an instantiated
-network by calling its <code class="xref py py-func docutils literal"><span class="pre">barrista.design.NetSpecification.visualize()</span></code>
-or <code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.visualize()</span></code> function. It is possible to directly
+network by calling its <a class="reference internal" href="barrista.html#barrista.design.NetSpecification.visualize" title="barrista.design.NetSpecification.visualize"><code class="xref py py-func docutils literal"><span class="pre">barrista.design.NetSpecification.visualize()</span></code></a>
+or <a class="reference internal" href="barrista.html#barrista.net.Net.visualize" title="barrista.net.Net.visualize"><code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.visualize()</span></code></a> function. It is possible to directly
 display it or write it to a file:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="c"># Create the visualization and display it.</span>
 <span class="n">viz</span> <span class="o">=</span> <span class="n">netspec</span><span class="o">.</span><span class="n">visualize</span><span class="p">(</span><span class="n">display</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
@@ -243,7 +243,7 @@ display it or write it to a file:</p>
 <div class="section" id="importing-a-network-specification">
 <h2>Importing a network specification<a class="headerlink" href="#importing-a-network-specification" title="Permalink to this headline">¶</a></h2>
 <p>You can work with all your already prepared prototxt files as well! Use the
-method <code class="xref py py-func docutils literal"><span class="pre">barrista.design.NetSpecification.from_prototxt()</span></code> to load
+method <a class="reference internal" href="barrista.html#barrista.design.NetSpecification.from_prototxt" title="barrista.design.NetSpecification.from_prototxt"><code class="xref py py-func docutils literal"><span class="pre">barrista.design.NetSpecification.from_prototxt()</span></code></a> to load
 any valid caffe model (of any version!) and inspect and modify it in this
 framework:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">netspec_reloaded</span> <span class="o">=</span> <span class="n">design</span><span class="o">.</span><span class="n">NetSpecification</span><span class="o">.</span><span class="n">from_prototxt</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s">&#39;test.prototxt&#39;</span><span class="p">)</span>
@@ -261,8 +261,8 @@ Simply run:</p>
 <p>to get a fully working network object. It is subclassed from the
 <code class="docutils literal"><span class="pre">caffe.Net</span></code>, so it comes with all the methods you are familiar with. But
 be prepared for some more convenience! You can set cpu or gpu mode by
-using <code class="xref py py-func docutils literal"><span class="pre">barrista.net.set_mode_cpu()</span></code> and
-<code class="xref py py-func docutils literal"><span class="pre">barrista.net.set_mode_gpu()</span></code>.</p>
+using <a class="reference internal" href="barrista.html#barrista.net.set_mode_cpu" title="barrista.net.set_mode_cpu"><code class="xref py py-func docutils literal"><span class="pre">barrista.net.set_mode_cpu()</span></code></a> and
+<a class="reference internal" href="barrista.html#barrista.net.set_mode_gpu" title="barrista.net.set_mode_gpu"><code class="xref py py-func docutils literal"><span class="pre">barrista.net.set_mode_gpu()</span></code></a>.</p>
 <div class="section" id="loading-parameters">
 <h3>Loading parameters<a class="headerlink" href="#loading-parameters" title="Permalink to this headline">¶</a></h3>
 <p>With this, the blobs can be loaded as:</p>
@@ -277,7 +277,7 @@ blobs, but be careful when remaining your layers!</p>
 <div class="section" id="training-a-network">
 <h3>Training a network<a class="headerlink" href="#training-a-network" title="Permalink to this headline">¶</a></h3>
 <p>To train a network, you can use the <cite>scikit-learn</cite> like method
-<code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.fit()</span></code>. It is very powerful and can be used in many
+<a class="reference internal" href="barrista.html#barrista.net.Net.fit" title="barrista.net.Net.fit"><code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.fit()</span></code></a>. It is very powerful and can be used in many
 different ways! While maintaining nearly all configurability of the caffe
 solvers, it adds powerful callback functionality and is a lot easier to use.</p>
 <p>The only required method parameter is the number of iterations that you want
@@ -322,7 +322,7 @@ currently no monitor implemented to store the solverstate.</p>
 <div class="section" id="getting-predictions">
 <h3>Getting predictions<a class="headerlink" href="#getting-predictions" title="Permalink to this headline">¶</a></h3>
 <p>In the spirit of the <cite>scikit-learn</cite> library, we added the method
-<code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.predict()</span></code> to get predictions for you, while
+<a class="reference internal" href="barrista.html#barrista.net.Net.predict" title="barrista.net.Net.predict"><code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.predict()</span></code></a> to get predictions for you, while
 maintaining a clear separation of data preprocessing:</p>
 <ul class="simple">
 <li>It is YOUR responsibility to prepare the data in an iterable object
@@ -364,9 +364,9 @@ between different architectures for &#8216;fit&#8217; and &#8216;predict&#8217;.
 <code class="docutils literal"><span class="pre">predict_inputs</span></code> and <code class="docutils literal"><span class="pre">predict_input_shapes</span></code>. If you do so, when
 instantiating the net, a second version of the net with the stages set only
 to <code class="docutils literal"><span class="pre">predict</span></code> is created (with shared weights with the main network) and
-automatically used when calling the <code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.predict()</span></code>
+automatically used when calling the <a class="reference internal" href="barrista.html#barrista.net.Net.predict" title="barrista.net.Net.predict"><code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.predict()</span></code></a>
 method (for an illustration of this behavior, see also the documentation for
-<code class="xref py py-class docutils literal"><span class="pre">barrista.design.NetSpecification</span></code>).
+<a class="reference internal" href="barrista.html#barrista.design.NetSpecification" title="barrista.design.NetSpecification"><code class="xref py py-class docutils literal"><span class="pre">barrista.design.NetSpecification</span></code></a>).
 This is a very convenient way of using your networks comfortably and
 just as expected, while maintaining a high level of convenience:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">netspec</span> <span class="o">=</span> <span class="n">design</span><span class="o">.</span><span class="n">NetSpecification</span><span class="p">([[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">51</span><span class="p">,</span> <span class="mi">51</span><span class="p">],</span> <span class="p">[</span><span class="mi">10</span><span class="p">]],</span>
@@ -392,9 +392,9 @@ just as expected, while maintaining a high level of convenience:</p>
 <p>Remember that you can additionally use any other conditional criteria such as
 <code class="docutils literal"><span class="pre">phase</span></code> and <code class="docutils literal"><span class="pre">level</span></code> to further customize the net.</p>
 <p>Once instantiated, this net will output loss and accuracy when it&#8217;s
-<code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.fit()</span></code>
+<a class="reference internal" href="barrista.html#barrista.net.Net.fit" title="barrista.net.Net.fit"><code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.fit()</span></code></a>
 method is called, and output softmaxed values when it&#8217;s
-<code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.predict()</span></code> method is called. You can find an example
+<a class="reference internal" href="barrista.html#barrista.net.Net.predict" title="barrista.net.Net.predict"><code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.predict()</span></code></a> method is called. You can find an example
 for this in the file <code class="docutils literal"><span class="pre">barrista/example.py</span></code>.</p>
 </div>
 </div>
