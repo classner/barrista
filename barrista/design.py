@@ -15,7 +15,6 @@ import itertools as _itertools
 from tempfile import NamedTemporaryFile as _NamedTemporaryFile
 import os as _os
 from operator import itemgetter as _itemgetter
-import cv2 as _cv2
 import google.protobuf.text_format as _gprototext
 
 # CAREFUL! This must be imported before any caffe-related import!
@@ -27,8 +26,10 @@ from .tools import chunks as _chunks, pbufToPyEnum as _pbufToPyEnum
 import caffe.proto.caffe_pb2 as _caffe_pb2
 try:
     import caffe.draw as _draw
+    import cv2 as _cv2
 except ImportError:
     _draw = None
+    _cv2 = None
 from .net import Net as _Net
 
 
@@ -45,7 +46,7 @@ _HAS_BLOB_SHAPE = hasattr(_caffe_pb2, 'BlobShape')
 _init()
 _LOGGER = _logging.getLogger(__name__)
 if _draw is None:
-    _LOGGER.warn('Could not import caffe.draw! Drawing is not available. ' +
+    _LOGGER.warn('Could not import caffe.draw or cv2! Drawing is not available. ' +
                  'Probably this is due to the package pydot not being ' +
                  'available.')
 
@@ -362,7 +363,7 @@ class NetSpecification(object):
         :returns: 3D numpy array.
           Graphic of the visualization as (H, W, C) image in BGR format.
         """
-        if _draw is None:
+        if _draw is None or _cv2 is None:
             raise Exception('Drawing is not available!')
         with _NamedTemporaryFile(mode='w+b', suffix='.png') as tmpfile:
             _draw.draw_net_to_file(self.to_pbuf_message(),

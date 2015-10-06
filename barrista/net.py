@@ -7,7 +7,6 @@ import time as _time
 import logging as _logging
 
 import numpy as _np
-import cv2 as _cv2
 from sklearn.feature_extraction.image import extract_patches as _extract_patches
 
 from .tools import chunks as _chunks, pad as _pad
@@ -16,9 +15,23 @@ from .tools import chunks as _chunks, pad as _pad
 from .initialization import init as _init
 
 import caffe as _caffe
+try:
+    import cv2 as _cv2
+    _cv2INTER_CUBIC = _cv2.INTER_CUBIC
+    _cv2INTER_LINEAR = _cv2.INTER_LINEAR
+    _cv2INTER_NEAREST = _cv2.INTER_NEAREST
+    _cv2resize = _cv2.resize
+except ImportError:
+    _cv2 = None
+    _cv2INTER_CUBIC = None
+    _cv2INTER_LINEAR = None
+    _cv2INTER_NEAREST = None
+    _cv2resize = None
 
 _init()
 _LOGGER = _logging.getLogger(__name__)
+if _cv2 is None:
+    _LOGGER.warn('Could not import cv2! Resizing is not available!')
 
 
 #: Set CPU processing mode.
@@ -78,7 +91,7 @@ class Net(_caffe.Net):
                                oversample=False,
                                extraction_step=(1, 1),
                                account_for_step=True,
-                               interpolation_method=_cv2.INTER_NEAREST,
+                               interpolation_method=_cv2INTER_NEAREST,
                                pad_border=True):
         """
         Get predictions for all images in a sliding window manner.
@@ -204,7 +217,7 @@ class Net(_caffe.Net):
                         -int(_np.ceil(input_image_dims[0] / 2.))+1,
                         int(_np.ceil(input_image_dims[1] / 2.))-1:
                         -int(_np.ceil(input_image_dims[1] / 2.))+1]
-                    layer_area[...] = _cv2.resize(
+                    layer_area[...] = _cv2resize(
                         collected[layer_idx],
                         (layer_area.shape[1],
                          layer_area.shape[0]),
@@ -430,11 +443,11 @@ class Net(_caffe.Net):
                 for idx, im in enumerate(im_chunk):
                     if oversample:
                         if before_oversample_resize_to is not None:
-                            oversampling_prep = _cv2.resize(
+                            oversampling_prep = _cv2resize(
                                 _np.transpose(im, (1, 2, 0)),
                                 (before_oversample_resize_to[1],
                                  before_oversample_resize_to[0]),
-                                interpolation=_cv2.INTER_LINEAR)
+                                interpolation=_cv2INTER_LINEAR)
                         else:
                             oversampling_prep = _np.transpose(im, (1, 2, 0))
                         prednet.blobs[inp_name].data[idx * 10:(idx+1) * 10] =\
@@ -454,11 +467,11 @@ class Net(_caffe.Net):
                                 prednet.blobs[inp_name].data.shape[2:4])
                         elif input_processing_flags[inp_name].lower() == 'r':
                             prednet.blobs[inp_name].data[idx] = _np.transpose(
-                                _cv2.resize(
+                                _cv2resize(
                                     _np.transpose(im, (1, 2, 0)),
                                     (prednet.blobs[inp_name].data.shape[3],
                                      prednet.blobs[inp_name].data.shape[2]),
-                                    interpolation=_cv2.INTER_CUBIC),
+                                    interpolation=_cv2INTER_CUBIC),
                                 (2, 0, 1))
                         else:
                             # The only remaining case is
@@ -553,10 +566,10 @@ class Net(_caffe.Net):
                                                    target_output_width))
                         for layer_idx, layer in enumerate(outim):
                             outim_resized[layer_idx] = \
-                                _cv2.resize(layer,
-                                            (int(target_output_width),
-                                             int(target_output_height)),
-                                            interpolation=_cv2.INTER_CUBIC)
+                                _cv2resize(layer,
+                                           (int(target_output_width),
+                                            int(target_output_height)),
+                                           interpolation=_cv2INTER_CUBIC)
                     else:
                         outim_resized = outim
                     if output_processing_flags[blob_name].lower().startswith('p') \

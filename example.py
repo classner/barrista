@@ -3,7 +3,6 @@
 # pylint: disable=F0401, C0103, E1101, no-name-in-module
 import os
 import sys
-import cv2
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 import numpy as np  # noqa
 
@@ -118,6 +117,7 @@ with TemporaryDirectory() as tmpdir:
     # pylint: disable=W0212
     if design._draw is not None:
         viz = netspec.visualize()
+        import cv2
         cv2.imwrite(os.path.join(tmpdir, 'test.png'), viz)
 
     # Going back to medieval age:

@@ -6,6 +6,12 @@ import unittest
 import logging
 logging.basicConfig(level=logging.INFO)
 
+try:
+    import cv2  # pylint: disable=W0611
+    CV2_AVAILABLE = True
+except ImportError:
+    CV2_AVAILABLE = False
+
 
 class NetSpecificationTestCase(unittest.TestCase):
 
@@ -481,10 +487,11 @@ class NetTestCase(unittest.TestCase):
 				X)
         accy = net.predict(X)['accuracy'][0]
         self.assertEqual(accy, 1.0)
-        accy = net.predict(X,
-                           input_processing_flags={'data': 'r',
-                                                   'annotations': 'n'})['accuracy'][0]
-        self.assertEqual(accy, 1.0)
+        if CV2_AVAILABLE:
+            accy = net.predict(X,
+                               input_processing_flags={'data': 'r',
+                                                       'annotations': 'n'})['accuracy'][0]
+            self.assertEqual(accy, 1.0)
         accy = net.predict(X, input_processing_flags={'data': 'p',
                                                       'annotations': 'n'})['accuracy'][0]
         self.assertEqual(accy, 1.0)
@@ -544,6 +551,8 @@ class NetTestCase(unittest.TestCase):
 
     def test_predict_sliding_window(self):
         """Test the ``predict_sliding_window`` method."""
+        if not CV2_AVAILABLE:
+            return
         import numpy as np
         import barrista.design as design
         from barrista.design import (ConvolutionLayer, InnerProductLayer,
@@ -633,11 +642,12 @@ class NetTestCase(unittest.TestCase):
         net.fit(20,
                 solver,
                 X)
-        # Rescaling.
-        predictions = np.array(net.predict(np.zeros((10, 3, 1, 1)),
-                               input_processing_flags={'data': 'r'}))
-        predictions = np.argmax(predictions, axis=1)
-        self.assertEqual(np.sum(predictions == 1), 10)
+        if CV2_AVAILABLE:
+            # Rescaling.
+            predictions = np.array(net.predict(np.zeros((10, 3, 1, 1)),
+                                   input_processing_flags={'data': 'r'}))
+            predictions = np.argmax(predictions, axis=1)
+            self.assertEqual(np.sum(predictions == 1), 10)
         # Padding.
         predictions_padded = np.array(net.predict(np.zeros((10, 3, 1, 1)),
                                                   input_processing_flags={'data': 'p'}))
@@ -653,10 +663,11 @@ class NetTestCase(unittest.TestCase):
         predictions = np.array(net.predict(np.zeros((10, 3, 1, 1)),
                                            oversample=True))
         np.testing.assert_allclose(predictions, predictions_padded, rtol=1e-05)
-        predictions = np.array(net.predict(np.zeros((10, 3, 1, 1)),
-                                           oversample=True,
-                                           before_oversample_resize_to=(5, 5)))
-        np.testing.assert_allclose(predictions, predictions_padded, rtol=1e-05)
+        if CV2_AVAILABLE:
+            predictions = np.array(net.predict(np.zeros((10, 3, 1, 1)),
+                                               oversample=True,
+                                               before_oversample_resize_to=(5, 5)))
+            np.testing.assert_allclose(predictions, predictions_padded, rtol=1e-05)
 
     def test_visualize(self):
         """Test the ``visualize`` function."""
