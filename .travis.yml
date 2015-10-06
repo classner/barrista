@@ -29,7 +29,7 @@ install:
 before_script:
   - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/usr/local/cuda/lib64:$CONDA_DIR/lib
   - export PATH=$CONDA_DIR/bin:$PATH
-  - sudo -E conda install opencv progressbar scikit-image scikit-learn
+  - sudo -E $CONDA_DIR/bin/conda install opencv progressbar scikit-image scikit-learn
   - $SCRIPTS/travis_setup_makefile_config.sh
   - export CPU_ONLY=1
   - export USE_LMDB=1
