@@ -1,3 +1,4 @@
+# Use caffe and test barrista.
 env:
   matrix:
     - WITH_CUDA=false WITH_CMAKE=false WITH_IO=true PYTHON_VERSION=2
