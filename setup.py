@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+"""Barrista setup script."""
+# pylint: disable=C0103
 import os
 from setuptools import setup
 
