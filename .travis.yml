@@ -18,7 +18,10 @@ compiler: gcc
 before_install:
   - git clone https://github.com/BVLC/caffe.git
   - cd caffe
-  - pwd
+  - export CAFFE_PYTHON_FOLDER=${pwd}/python
+  - export CAFFE_BIN_FOLDER=${pwd}/build_release/tools
+  - echo $CAFFE_PYTHON_FOLDER
+  - echo $CAFFE_BIN_FOLDER
   - git checkout 6eae122a8eb84f8371dde815986cd7524fc4cbaa
   - export NUM_THREADS=2
   - export SCRIPTS=./scripts/travis
@@ -39,8 +42,6 @@ before_script:
   - export USE_LMDB=1
   - export USE_LEVELDB=1
   - export USE_OPENCV=1
-  - export CAFFE_PYTHON_FOLDER=/home/travis/caffe/python
-  - export CAFFE_BIN_FOLDER=/home/travis/caffe/build_release/tools
 
 script:
   - make --jobs=$NUM_THREADS --keep-going all pycaffe
