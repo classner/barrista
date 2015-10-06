@@ -11,7 +11,7 @@ import os as _os
 
 #: This folder must contain the ``caffe`` module and is added to the python
 #: path after the first inclusion of the `initialization` module.
-if 'CAFFE_PYTHON_FOLDER' in _os.environ.keys():
+if 'CAFFE_PYTHON_FOLDER' in list(_os.environ.keys()):
     CAFFE_PYTHON_FOLDER = _os.environ['CAFFE_PYTHON_FOLDER']
 else:
     CAFFE_PYTHON_FOLDER = _os.path.abspath(
@@ -19,7 +19,7 @@ else:
             _os.path.dirname(__file__), '..', '..'))
 
 #: This folder contains the file ``upgrade_net_proto_text``.
-if 'CAFFE_BIN_FOLDER' in _os.environ.keys():
+if 'CAFFE_BIN_FOLDER' in list(_os.environ.keys()):
     CAFFE_BIN_FOLDER = _os.environ['CAFFE_BIN_FOLDER']
 else:
     CAFFE_BIN_FOLDER = _os.path.join(CAFFE_PYTHON_FOLDER,
@@ -77,5 +77,4 @@ LAYER_TYPES = {'AbsVal': [],
                'TanH': ['TanHParameter'],
                'Threshold': ['ThresholdParameter'],
                'VariableHingeLoss': ['LossParameter'],
-               'WindowData': ['WindowDataParameter']
-               }
+               'WindowData': ['WindowDataParameter']}

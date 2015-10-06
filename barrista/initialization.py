@@ -6,6 +6,7 @@ Adds caffe to the pythonpath when imported. Any changes of :mod:`config`
 objects must be done before the import. Any imports of caffe related objects
 may only be done after.
 """
+# pylint: disable=E0611, F0401
 
 from .config import CAFFE_PYTHON_FOLDER as _PYCAFFE_FOLDER
 import os as _os

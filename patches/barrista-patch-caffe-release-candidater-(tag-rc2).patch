@@ -1,0 +1,172 @@
+From 46fe85e02ef6975b2e6076fafebec6261306eb63 Mon Sep 17 00:00:00 2001
+Message-Id: <46fe85e02ef6975b2e6076fafebec6261306eb63.1444017656.git.mail@christophlassner.de>
+From: Christoph Lassner <mail@christophlassner.de>
+Date: Mon, 5 Oct 2015 06:00:41 +0200
+Subject: [PATCH] Barrista compatibility patch.
+
+---
+ include/caffe/solver.hpp | 13 +++++++++++++
+ python/caffe/__init__.py |  2 +-
+ python/caffe/_caffe.cpp  | 18 +++++++++++++++---
+ python/caffe/pycaffe.py  |  2 +-
+ src/caffe/solver.cpp     | 28 ++++++++++++++++++++++++++++
+ 5 files changed, 58 insertions(+), 5 deletions(-)
+
+diff --git a/include/caffe/solver.hpp b/include/caffe/solver.hpp
+index 2510de7..2be4be1 100644
+--- a/include/caffe/solver.hpp
++++ b/include/caffe/solver.hpp
+@@ -19,7 +19,11 @@ class Solver {
+  public:
+   explicit Solver(const SolverParameter& param);
+   explicit Solver(const string& param_file);
++  Solver(const string& param_file,
++         shared_ptr<Net<Dtype> > &net);
+   void Init(const SolverParameter& param);
++  void InitForNet(const SolverParameter& param,
++                    shared_ptr<Net<Dtype> > &net);
+   void InitTrainNet();
+   void InitTestNets();
+   // The main entry of the solver function. In default, iter will be zero. Pass
+@@ -74,6 +78,9 @@ class SGDSolver : public Solver<Dtype> {
+       : Solver<Dtype>(param) { PreSolve(); }
+   explicit SGDSolver(const string& param_file)
+       : Solver<Dtype>(param_file) { PreSolve(); }
++  SGDSolver(const string &param_file,
++            shared_ptr<Net<Dtype> > net)
++      : Solver<Dtype>(param_file, net) { PreSolve(); }
+ 
+   const vector<shared_ptr<Blob<Dtype> > >& history() { return history_; }
+ 
+@@ -100,6 +107,9 @@ class NesterovSolver : public SGDSolver<Dtype> {
+       : SGDSolver<Dtype>(param) {}
+   explicit NesterovSolver(const string& param_file)
+       : SGDSolver<Dtype>(param_file) {}
++  NesterovSolver(const string &param_file,
++                 shared_ptr<Net<Dtype> > net)
++        : SGDSolver<Dtype>(param_file, net) {}
+ 
+  protected:
+   virtual void ComputeUpdateValue();
+@@ -114,6 +124,9 @@ class AdaGradSolver : public SGDSolver<Dtype> {
+       : SGDSolver<Dtype>(param) { constructor_sanity_check(); }
+   explicit AdaGradSolver(const string& param_file)
+       : SGDSolver<Dtype>(param_file) { constructor_sanity_check(); }
++  AdaGradSolver(const string &param_file,
++                shared_ptr<Net<Dtype> > net)
++        : SGDSolver<Dtype>(param_file, net) { constructor_sanity_check(); }
+ 
+  protected:
+   virtual void ComputeUpdateValue();
+diff --git a/python/caffe/__init__.py b/python/caffe/__init__.py
+index 37e8956..b191e0a 100644
+--- a/python/caffe/__init__.py
++++ b/python/caffe/__init__.py
+@@ -1,4 +1,4 @@
+-from .pycaffe import Net, SGDSolver
++from .pycaffe import Net, SGDSolver, AdaGradSolver, NesterovSolver
+ from ._caffe import set_mode_cpu, set_mode_gpu, set_device, Layer, get_solver
+ from .proto.caffe_pb2 import TRAIN, TEST
+ from .classifier import Classifier
+diff --git a/python/caffe/_caffe.cpp b/python/caffe/_caffe.cpp
+index a5d0e64..1d94bb8 100644
+--- a/python/caffe/_caffe.cpp
++++ b/python/caffe/_caffe.cpp
+@@ -92,6 +92,11 @@ shared_ptr<Net<Dtype> > Net_Init_Load(
+   return net;
+ }
+ 
++void Net_load_blobs_from(Net<Dtype>& net, string filename) {
++  CheckFile(filename);
++  net.CopyTrainedLayersFrom(filename);
++}
++
+ void Net_Save(const Net<Dtype>& net, string filename) {
+   NetParameter net_param;
+   net.ToProto(&net_param, false);
+@@ -191,6 +196,7 @@ BOOST_PYTHON_MODULE(_caffe) {
+     .def("_forward", &Net<Dtype>::ForwardFromTo)
+     .def("_backward", &Net<Dtype>::BackwardFromTo)
+     .def("reshape", &Net<Dtype>::Reshape)
++    .def("load_blobs_from", &Net_load_blobs_from)
+     // The cast is to select a particular overload.
+     .def("copy_from", static_cast<void (Net<Dtype>::*)(const string)>(
+         &Net<Dtype>::CopyTrainedLayersFrom))
+@@ -248,13 +254,19 @@ BOOST_PYTHON_MODULE(_caffe) {
+ 
+   bp::class_<SGDSolver<Dtype>, bp::bases<Solver<Dtype> >,
+     shared_ptr<SGDSolver<Dtype> >, boost::noncopyable>(
+-        "SGDSolver", bp::init<string>());
++        "SGDSolver", bp::no_init)
++    .def(bp::init<string>())
++    .def(bp::init<string, shared_ptr<Net<Dtype> > >());
+   bp::class_<NesterovSolver<Dtype>, bp::bases<Solver<Dtype> >,
+     shared_ptr<NesterovSolver<Dtype> >, boost::noncopyable>(
+-        "NesterovSolver", bp::init<string>());
++        "NesterovSolver", bp::no_init)
++    .def(bp::init<string>())
++    .def(bp::init<string, shared_ptr<Net<Dtype> > >());
+   bp::class_<AdaGradSolver<Dtype>, bp::bases<Solver<Dtype> >,
+     shared_ptr<AdaGradSolver<Dtype> >, boost::noncopyable>(
+-        "AdaGradSolver", bp::init<string>());
++        "AdaGradSolver", bp::no_init)
++    .def(bp::init<string>())
++    .def(bp::init<string, shared_ptr<Net<Dtype> > >());
+ 
+   bp::def("get_solver", &GetSolverFromFile,
+       bp::return_value_policy<bp::manage_new_object>());
+diff --git a/python/caffe/pycaffe.py b/python/caffe/pycaffe.py
+index 31c145d..59f7287 100644
+--- a/python/caffe/pycaffe.py
++++ b/python/caffe/pycaffe.py
+@@ -7,7 +7,7 @@ from collections import OrderedDict
+ from itertools import izip_longest
+ import numpy as np
+ 
+-from ._caffe import Net, SGDSolver
++from ._caffe import Net, SGDSolver, AdaGradSolver, NesterovSolver
+ import caffe.io
+ 
+ # We directly update methods from Net here (rather than using composition or
+diff --git a/src/caffe/solver.cpp b/src/caffe/solver.cpp
+index 8ed8aec..5e2f656 100644
+--- a/src/caffe/solver.cpp
++++ b/src/caffe/solver.cpp
+@@ -28,6 +28,34 @@ Solver<Dtype>::Solver(const string& param_file)
+ }
+ 
+ template <typename Dtype>
++void Solver<Dtype>::InitForNet(const SolverParameter& param,
++                               shared_ptr<Net<Dtype> > &net) {
++  LOG(INFO) << "Initializing solver from parameters: " << std::endl
++            << param.DebugString();
++  param_ = param;
++  CHECK_GE(param_.average_loss(), 1) << "average_loss should be non-negative.";
++  if (param_.random_seed() >= 0) {
++    Caffe::set_random_seed(param_.random_seed());
++  }
++  LOG(INFO) << "Solver scaffolding done.";
++  iter_ = 0;
++  current_step_ = 0;
++  // This assumes that the net is configured for training. This method
++  // is intended to be used with the Barrista package, and additional
++  // checks are performed in the barrista.Net.fit method.
++  net_ = net;
++}
++
++template <typename Dtype>
++Solver<Dtype>::Solver(const string& param_file,
++                      shared_ptr<Net<Dtype> > &net)
++    : net_() {
++  SolverParameter param;
++  ReadProtoFromTextFileOrDie(param_file, &param);
++  InitForNet(param, net);
++}
++
++template <typename Dtype>
+ void Solver<Dtype>::Init(const SolverParameter& param) {
+   LOG(INFO) << "Initializing solver from parameters: " << std::endl
+             << param.DebugString();
+-- 
+1.9.1
+

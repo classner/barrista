@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """Implements some useful tools."""
+# pylint: disable=C0103
 from __future__ import print_function
+
 
 import warnings as _warnings
 import os as _os
@@ -12,7 +14,7 @@ from tempfile import mkdtemp
 
 def pbufToPyEnum(pbufenum):
     r"""Helper function to create a Python enum out of a protobuf one."""
-    enums = dict(pbufenum.items())
+    enums = dict(list(pbufenum.items()))
     return type('Enum', (), enums)
 
 
@@ -20,9 +22,10 @@ def chunks(seq, size):
     r"""
     Create chunks of ``size`` of ``seq``.
 
-    See http://stackoverflow.com/questions/434287/what-is-the-most-pythonic-way-to-iterate-over-a-list-in-chunks.  # noqa
+    See http://stackoverflow.com/questions/434287/
+    what-is-the-most-pythonic-way-to-iterate-over-a-list-in-chunks.
     """
-    return (seq[pos:pos + size] for pos in xrange(0, len(seq), size))
+    return (seq[pos:pos + size] for pos in range(0, len(seq), size))
 
 
 def pad(image, input_dims, get_padding=False, val=0):
@@ -71,7 +74,7 @@ def pad(image, input_dims, get_padding=False, val=0):
         return padded
 
 
-class TemporaryDirectory(object):
+class TemporaryDirectory(object):  # pylint: disable=R0903
 
     """Create and return a temporary directory.
 
@@ -85,7 +88,8 @@ class TemporaryDirectory(object):
     in it are removed.
 
     Source:
-    http://stackoverflow.com/questions/19296146/tempfile-temporarydirectory-context-manager-in-python-2-7  # noqa
+    http://stackoverflow.com/questions/19296146/
+    tempfile-temporarydirectory-context-manager-in-python-2-7.
     """
 
     # pylint: disable=W0622
@@ -144,8 +148,11 @@ class TemporaryDirectory(object):
     _warn = _warnings.warn
 
     def _rmtree(self, path):
-        # Essentially a stripped down version of shutil.rmtree.  We can't
-        # use globals because they may be None'ed out at shutdown.
+        """
+        Essentially a stripped down version of shutil.rmtree.
+
+        We can't use globals because they may be None'ed out at shutdown.
+        """
         for name in self._listdir(path):
             fullname = self._path_join(path, name)
             try:

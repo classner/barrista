@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=F0401, E0611, C0103, R0902, R0913, R0914, E1101
 """
 This module contains classes and functions to design networks with caffe.
 
 For the layer constructing functions, ``None`` is used to mark a parameter
 as unset (this is important in protobuf)!
 """
-from __future__ import print_function
 
 import copy as _copy
 import inspect as _inspect
 import logging as _logging
 import subprocess as _subprocess
+import itertools as _itertools
 from tempfile import NamedTemporaryFile as _NamedTemporaryFile
 import os as _os
 from operator import itemgetter as _itemgetter
@@ -18,22 +19,28 @@ import cv2 as _cv2
 import google.protobuf.text_format as _gprototext
 
 # CAREFUL! This must be imported before any caffe-related import!
-from initialization import init as _init
-from config import LAYER_TYPES as _LAYER_TYPES
-from config import CAFFE_BIN_FOLDER as _CAFFE_BIN_FOLDER
-from tools import chunks as _chunks, pbufToPyEnum as _pbufToPyEnum
+from .initialization import init as _init
+from .config import LAYER_TYPES as _LAYER_TYPES
+from .config import CAFFE_BIN_FOLDER as _CAFFE_BIN_FOLDER
+from .tools import chunks as _chunks, pbufToPyEnum as _pbufToPyEnum
 
 import caffe.proto.caffe_pb2 as _caffe_pb2
 try:
     import caffe.draw as _draw
 except ImportError:
     _draw = None
-from net import Net as _Net
+from .net import Net as _Net
 
 
 #: Expose all detailed properties from the caffe prototxt for
 #: in-Python usage.
 PROTODETAIL = _caffe_pb2
+
+#: Whether this caffe version supports the `propagate_down` layer property.
+_HAS_PROPAGATE_DOWN = hasattr(_caffe_pb2.LayerParameter,
+                              'propagate_down')
+#: Whether this caffe version supports 'BlobShape'.
+_HAS_BLOB_SHAPE = hasattr(_caffe_pb2, 'BlobShape')
 
 _init()
 _LOGGER = _logging.getLogger(__name__)
@@ -199,15 +206,29 @@ class NetSpecification(object):
         pbstate = _caffe_pb2.NetState(phase=self.phase,
                                       level=self.level,
                                       stage=self.stages)
-        pbinput_shape = [_caffe_pb2.BlobShape(dim=dims)
-                         for dims in self.input_shape]
-        netmessage = _caffe_pb2.NetParameter(name=self.name,
-                                             input=self.inputs,
-                                             input_shape=pbinput_shape,
-                                             layer=pblayers,
-                                             force_backward=self.force_backward,  # noqa
-                                             state=pbstate,
-                                             debug_info=self.debug_info)
+        if _HAS_BLOB_SHAPE:
+            pbinput_shape = [_caffe_pb2.BlobShape(dim=dims)
+                             for dims in self.input_shape]
+            netmessage = _caffe_pb2.NetParameter(name=self.name,
+                                                 input=self.inputs,
+                                                 input_shape=pbinput_shape,
+                                                 layer=pblayers,
+                                                 force_backward=self.force_backward,  # noqa
+                                                 state=pbstate,
+                                                 debug_info=self.debug_info)
+        else:
+            shapes_to_use = []
+            for shape in self.input_shape:
+                if len(shape) != 4:
+                    shape += [1] * (4 - len(shape))
+                shapes_to_use.append(shape)
+            netmessage = _caffe_pb2.NetParameter(name=self.name,
+                                                 input=self.inputs,
+                                                 input_dim=_itertools.chain(*self.input_shape),
+                                                 layer=pblayers,
+                                                 force_backward=self.force_backward,  # noqa
+                                                 state=pbstate,
+                                                 debug_info=self.debug_info)
         assert netmessage.IsInitialized()
         return netmessage
 
@@ -278,7 +299,8 @@ class NetSpecification(object):
         if len(message.input_dim) > 0:
             _LOGGER.warn('The loaded prototxt contains `input_dim` fields. '
                          'They are deprecated! Use `input_shape` instead.')
-            assert len(message.input_shape) == 0
+            if _HAS_BLOB_SHAPE:
+                assert len(message.input_shape) == 0
             assert len(message.input_dim) % 4 == 0
             input_shape = _copy.deepcopy(list(_chunks(message.input_dim, 4)))
         else:
@@ -393,7 +415,8 @@ class LayerSpecification(object):
     :param propagate_down: list(bool) or None.
       Specifies on which bottoms the backpropagation should be skipped.
       Must be either 0 or equal to the number of bottoms. If ``None`` is
-      specified, this is initialized as ``[]``.
+      specified, this is initialized as ``[]``. Not available in all
+      caffe versions!
 
     :param loss_param: :py:data:`barrista.design.LossParameter` or None.
       Specifies optional ignore labels and normalization for the loss.
@@ -428,6 +451,10 @@ class LayerSpecification(object):
         self.params = params
         if propagate_down is None:
             propagate_down = []
+        else:
+            if not _HAS_PROPAGATE_DOWN:
+                raise Exception("This caffe version does not support the "
+                                "`propagate_down` layer property!")
         self.propagate_down = propagate_down
         self.loss_param = loss_param
         if loss_weights is None:
@@ -487,7 +514,10 @@ class LayerSpecification(object):
             message.phase)
         params = None if 'param' not in fieldnames else _copy.deepcopy(
             message.param)
-        propagate_down = _copy.deepcopy(message.propagate_down)
+        if _HAS_PROPAGATE_DOWN:
+            propagate_down = _copy.deepcopy(message.propagate_down)
+        else:
+            propagate_down = None
         loss_param = (None if 'loss_param' not in fieldnames else
                       _copy.deepcopy(message.loss_param))
         loss_weights = _copy.deepcopy(message.loss_weight)
@@ -522,7 +552,7 @@ class LayerSpecification(object):
                 spec._additional_parameters.append(fielddesc.name)
         return spec
 
-    def to_pbuf_message(self,
+    def to_pbuf_message(self,  # pylint: disable=R0912, R0915
                         layerindex,
                         preceeding_layer,
                         net_input):
@@ -610,7 +640,8 @@ class LayerSpecification(object):
         kwargs['type'] = self.type
         if self.params is not None:
             kwargs['param'] = self.params
-        kwargs['propagate_down'] = self.propagate_down
+        if _HAS_PROPAGATE_DOWN:
+            kwargs['propagate_down'] = self.propagate_down
         if self.loss_param is not None:
             kwargs['loss_param'] = self.loss_param
         kwargs['loss_weight'] = self.loss_weights
@@ -622,7 +653,7 @@ class LayerSpecification(object):
 
 
 # Generate the layers.
-for _layerkey in _LAYER_TYPES.keys():
+for _layerkey in list(_LAYER_TYPES.keys()):
     # Construct the layer constructor.
     _parameters = []
     # Get the parameters for the standard layer function.
@@ -647,14 +678,13 @@ for _layerkey in _LAYER_TYPES.keys():
         except AttributeError as nfe:
             print(("[WARNING] Parameter {} not found in caffe proto "
                    "configuration of {}! Adjust your barrista.config! "
-                   "Skipping layer!").
-                   format(_param_obj, _layerkey))
+                   "Skipping layer!").format(_param_obj, _layerkey))
             _layer_error = True
             break
         # This is guaranteed to work, because the additional parameter objects
         # for caffe MUST only have optional parameters.
         exec('_obj_instance = _obj_type()')  # pylint: disable=W0122
-        for _fieldname in _obj_type.__dict__.keys():
+        for _fieldname in list(_obj_type.__dict__.keys()):
             if isinstance(_obj_type.__dict__[_fieldname], property):
                 _parameters.append((_param_obj[:-9] + '_' + _fieldname,
                                     True,
@@ -679,13 +709,11 @@ for _layerkey in _LAYER_TYPES.keys():
         exec('_obj_type = _caffe_pb2.' + _param_obj)  # pylint: disable=W0122
         # identify the property name for this parameter.
         _detected = False
-        for _propname in _caffe_pb2.LayerParameter.__dict__.keys():
-            try:
-                if isinstance(getattr(_caffe_pb2.LayerParameter(), _propname), _obj_type):  # noqa
-                    _detected = True
-                    break
-            except:
-                print(_propname)
+        for _propname in list(_caffe_pb2.LayerParameter.__dict__.keys()):
+            if isinstance(getattr(_caffe_pb2.LayerParameter(), _propname),
+                          _obj_type):
+                _detected = True
+                break
         assert _detected, ('The parameter name of the layer property {0} ' +
                            'could not be found!').format(_param_obj)
         _func_spec += '    _ret_obj._additional_parameters.append("{_propname}")'.format(**locals()) + _os.linesep  # noqa
@@ -704,8 +732,11 @@ for _layerkey in _LAYER_TYPES.keys():
         except:
             # Nothing to do here.
             pass
-        {_propname}_kwargs["{_ptpl[3]}"] = {_ptpl[0]}{_os.linesep}''').format(**locals())  # noqa
-        _func_spec += '    _ret_obj.{_propname} = _caffe_pb2.{_param_obj}(**{_propname}_kwargs){_os.linesep}'.format(**locals())  # noqa
+        {_propname}_kwargs["{_ptpl[3]}"] = {_ptpl[0]}{_os.linesep}''')\
+            .format(**locals())
+        _func_spec += (
+            '    _ret_obj.{_propname} = _caffe_pb2.{_param_obj}(**{_propname}_kwargs){_os.linesep}'
+            ).format(**locals())  # noqa
     _func_spec += '    _ret_obj.type = "{}"'.format(_layerkey) + _os.linesep
     _func_spec += '    return _ret_obj'
     _LOGGER.debug(_func_spec)

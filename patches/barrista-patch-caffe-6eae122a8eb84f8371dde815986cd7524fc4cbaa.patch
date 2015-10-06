@@ -1,0 +1,196 @@
+From e4304745ef9b42914d669884b7a55766ec804b48 Mon Sep 17 00:00:00 2001
+Message-Id: <e4304745ef9b42914d669884b7a55766ec804b48.1444017713.git.mail@christophlassner.de>
+From: Christoph Lassner <mail@christophlassner.de>
+Date: Mon, 5 Oct 2015 06:01:44 +0200
+Subject: [PATCH] Barrista compatibility patch.
+
+---
+ include/caffe/solver.hpp | 23 +++++++++++++++++++++++
+ python/caffe/_caffe.cpp  | 30 ++++++++++++++++++++++++------
+ src/caffe/solver.cpp     | 28 ++++++++++++++++++++++++++++
+ 3 files changed, 75 insertions(+), 6 deletions(-)
+
+diff --git a/include/caffe/solver.hpp b/include/caffe/solver.hpp
+index 2ecf539..796b761 100644
+--- a/include/caffe/solver.hpp
++++ b/include/caffe/solver.hpp
+@@ -42,7 +42,11 @@ class Solver {
+   explicit Solver(const SolverParameter& param,
+       const Solver* root_solver = NULL);
+   explicit Solver(const string& param_file, const Solver* root_solver = NULL);
++  Solver(const string& param_file,
++         shared_ptr<Net<Dtype> > &net);
+   void Init(const SolverParameter& param);
++  void InitForNet(const SolverParameter& param,
++                    shared_ptr<Net<Dtype> > &net);
+   void InitTrainNet();
+   void InitTestNets();
+ 
+@@ -159,6 +163,9 @@ class SGDSolver : public Solver<Dtype> {
+       : Solver<Dtype>(param) { PreSolve(); }
+   explicit SGDSolver(const string& param_file)
+       : Solver<Dtype>(param_file) { PreSolve(); }
++  SGDSolver(const string &param_file,
++            shared_ptr<Net<Dtype> > net)
++      : Solver<Dtype>(param_file, net) { PreSolve(); }
+ 
+   const vector<shared_ptr<Blob<Dtype> > >& history() { return history_; }
+ 
+@@ -191,6 +198,9 @@ class NesterovSolver : public SGDSolver<Dtype> {
+       : SGDSolver<Dtype>(param) {}
+   explicit NesterovSolver(const string& param_file)
+       : SGDSolver<Dtype>(param_file) {}
++  NesterovSolver(const string &param_file,
++                 shared_ptr<Net<Dtype> > net)
++        : SGDSolver<Dtype>(param_file, net) {}
+ 
+  protected:
+   virtual void ComputeUpdateValue(int param_id, Dtype rate);
+@@ -205,6 +215,9 @@ class AdaGradSolver : public SGDSolver<Dtype> {
+       : SGDSolver<Dtype>(param) { constructor_sanity_check(); }
+   explicit AdaGradSolver(const string& param_file)
+       : SGDSolver<Dtype>(param_file) { constructor_sanity_check(); }
++  AdaGradSolver(const string &param_file,
++                shared_ptr<Net<Dtype> > net)
++        : SGDSolver<Dtype>(param_file, net) { constructor_sanity_check(); }
+ 
+  protected:
+   virtual void ComputeUpdateValue(int param_id, Dtype rate);
+@@ -224,6 +237,10 @@ class RMSPropSolver : public SGDSolver<Dtype> {
+       : SGDSolver<Dtype>(param) { constructor_sanity_check(); }
+   explicit RMSPropSolver(const string& param_file)
+       : SGDSolver<Dtype>(param_file) { constructor_sanity_check(); }
++  explicit RMSPropSolver(const string& param_file,
++						 shared_ptr<Net<Dtype> > net)
++      : SGDSolver<Dtype>(param_file, net) { constructor_sanity_check(); }
++
+ 
+  protected:
+   virtual void ComputeUpdateValue(int param_id, Dtype rate);
+@@ -246,6 +263,9 @@ class AdaDeltaSolver : public SGDSolver<Dtype> {
+       : SGDSolver<Dtype>(param) { AdaDeltaPreSolve(); }
+   explicit AdaDeltaSolver(const string& param_file)
+       : SGDSolver<Dtype>(param_file) { AdaDeltaPreSolve(); }
++  explicit AdaDeltaSolver(const string& param_file,
++						  shared_ptr<Net<Dtype> > net)
++      : SGDSolver<Dtype>(param_file, net) { AdaDeltaPreSolve(); }
+ 
+  protected:
+   void AdaDeltaPreSolve();
+@@ -269,6 +289,9 @@ class AdamSolver : public SGDSolver<Dtype> {
+       : SGDSolver<Dtype>(param) { AdamPreSolve();}
+   explicit AdamSolver(const string& param_file)
+       : SGDSolver<Dtype>(param_file) { AdamPreSolve(); }
++  explicit AdamSolver(const string& param_file,
++					  shared_ptr<Net<Dtype> > net)
++      : SGDSolver<Dtype>(param_file, net) { AdamPreSolve(); }
+ 
+  protected:
+   void AdamPreSolve();
+diff --git a/python/caffe/_caffe.cpp b/python/caffe/_caffe.cpp
+index ccd5776..4075c16 100644
+--- a/python/caffe/_caffe.cpp
++++ b/python/caffe/_caffe.cpp
+@@ -93,6 +93,11 @@ shared_ptr<Net<Dtype> > Net_Init_Load(
+   return net;
+ }
+ 
++void Net_load_blobs_from(Net<Dtype>& net, string filename) {
++  CheckFile(filename);
++  net.CopyTrainedLayersFrom(filename);
++}
++
+ void Net_Save(const Net<Dtype>& net, string filename) {
+   NetParameter net_param;
+   net.ToProto(&net_param, false);
+@@ -224,6 +229,7 @@ BOOST_PYTHON_MODULE(_caffe) {
+     .def("_forward", &Net<Dtype>::ForwardFromTo)
+     .def("_backward", &Net<Dtype>::BackwardFromTo)
+     .def("reshape", &Net<Dtype>::Reshape)
++    .def("load_blobs_from", &Net_load_blobs_from)
+     // The cast is to select a particular overload.
+     .def("copy_from", static_cast<void (Net<Dtype>::*)(const string)>(
+         &Net<Dtype>::CopyTrainedLayersFrom))
+@@ -290,22 +296,34 @@ BOOST_PYTHON_MODULE(_caffe) {
+ 
+   bp::class_<SGDSolver<Dtype>, bp::bases<Solver<Dtype> >,
+     shared_ptr<SGDSolver<Dtype> >, boost::noncopyable>(
+-        "SGDSolver", bp::init<string>());
++        "SGDSolver", bp::no_init)
++    .def(bp::init<string>())
++    .def(bp::init<string, shared_ptr<Net<Dtype> > >());
+   bp::class_<NesterovSolver<Dtype>, bp::bases<Solver<Dtype> >,
+     shared_ptr<NesterovSolver<Dtype> >, boost::noncopyable>(
+-        "NesterovSolver", bp::init<string>());
++        "NesterovSolver", bp::no_init)
++    .def(bp::init<string>())
++    .def(bp::init<string, shared_ptr<Net<Dtype> > >());
+   bp::class_<AdaGradSolver<Dtype>, bp::bases<Solver<Dtype> >,
+     shared_ptr<AdaGradSolver<Dtype> >, boost::noncopyable>(
+-        "AdaGradSolver", bp::init<string>());
++        "AdaGradSolver", bp::no_init)
++    .def(bp::init<string>())
++    .def(bp::init<string, shared_ptr<Net<Dtype> > >());
+   bp::class_<RMSPropSolver<Dtype>, bp::bases<Solver<Dtype> >,
+     shared_ptr<RMSPropSolver<Dtype> >, boost::noncopyable>(
+-        "RMSPropSolver", bp::init<string>());
++        "RMSPropSolver", bp::no_init)
++    .def(bp::init<string>())
++    .def(bp::init<string, shared_ptr<Net<Dtype> > >());
+   bp::class_<AdaDeltaSolver<Dtype>, bp::bases<Solver<Dtype> >,
+     shared_ptr<AdaDeltaSolver<Dtype> >, boost::noncopyable>(
+-        "AdaDeltaSolver", bp::init<string>());
++        "AdaDeltaSolver", bp::no_init)
++    .def(bp::init<string>())
++    .def(bp::init<string, shared_ptr<Net<Dtype> > >());
+   bp::class_<AdamSolver<Dtype>, bp::bases<Solver<Dtype> >,
+     shared_ptr<AdamSolver<Dtype> >, boost::noncopyable>(
+-        "AdamSolver", bp::init<string>());
++        "AdamSolver", bp::no_init)
++    .def(bp::init<string>())
++    .def(bp::init<string, shared_ptr<Net<Dtype> > >());
+ 
+   bp::def("get_solver", &GetSolverFromFile,
+       bp::return_value_policy<bp::manage_new_object>());
+diff --git a/src/caffe/solver.cpp b/src/caffe/solver.cpp
+index 12c13dd..3eaf4be 100644
+--- a/src/caffe/solver.cpp
++++ b/src/caffe/solver.cpp
+@@ -70,6 +70,34 @@ void Solver<Dtype>::Init(const SolverParameter& param) {
+ }
+ 
+ template <typename Dtype>
++Solver<Dtype>::Solver(const string& param_file,
++                      shared_ptr<Net<Dtype> > &net)
++    : net_(), root_solver_(NULL) {
++  SolverParameter param;
++  ReadProtoFromTextFileOrDie(param_file, &param);
++  InitForNet(param, net);
++}
++
++template <typename Dtype>
++void Solver<Dtype>::InitForNet(const SolverParameter& param,
++                               shared_ptr<Net<Dtype> > &net) {
++  LOG(INFO) << "Initializing solver from parameters: " << std::endl
++            << param.DebugString();
++  param_ = param;
++  CHECK_GE(param_.average_loss(), 1) << "average_loss should be non-negative.";
++  if (param_.random_seed() >= 0) {
++    Caffe::set_random_seed(param_.random_seed());
++  }
++  LOG(INFO) << "Solver scaffolding done.";
++  iter_ = 0;
++  current_step_ = 0;
++  // This assumes that the net is configured for training. This method
++  // is intended to be used with the Barrista package, and additional
++  // checks are performed in the barrista.Net.fit method.
++  net_ = net;
++}
++
++template <typename Dtype>
+ void Solver<Dtype>::InitTrainNet() {
+   const int num_train_nets = param_.has_net() + param_.has_net_param() +
+       param_.has_train_net() + param_.has_train_net_param();
+-- 
+1.9.1
+

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """An illustrative example of the usage of `barrista`."""
-from __future__ import print_function
-
+# pylint: disable=F0401, C0103, E1101
 import os
 import sys
 import cv2
@@ -17,7 +16,8 @@ from barrista.design import (ConvolutionLayer, ReLULayer, PoolingLayer,
 from barrista.tools import TemporaryDirectory  # noqa
 # The monitoring module comes with helpful tools to monitor progress and
 # performance.
-from barrista.monitoring import ProgressIndicator, Checkpointer, JSONLogger  # noqa
+from barrista.monitoring import (ProgressIndicator, Checkpointer,
+                                 JSONLogger)
 
 from barrista import solver as _solver
 
@@ -61,7 +61,8 @@ layers.append(InnerProductLayer(tops=['net_out'], InnerProduct_num_output=10))
 layers.append(SoftmaxLayer(tops=['out'], include_stages=['predict']))
 
 # Output layers for stage `fit`.
-layers.append(SoftmaxWithLossLayer(bottoms=['net_out', 'annotations'],
+layers.append(SoftmaxWithLossLayer(name='loss',
+                                   bottoms=['net_out', 'annotations'],
                                    include_stages=['fit']))
 layers.append(AccuracyLayer(name='accuracy',
                             bottoms=['net_out', 'annotations'],
@@ -75,25 +76,31 @@ net = netspec.instantiate()
 # Let's do some training (the data does absolutely make no sense and this is
 # done solely for illustrative purposes). Note that the amount of inputs may
 # be arbitrary, and batching, etc. is automatically taken care of!
-X = np.zeros((11, 3, 51, 51), dtype='float32')
-Y = np.ones((11, 1), dtype='float32')
+X = {'data': np.zeros((11, 3, 51, 51), dtype='float32'),
+     'annotations': np.ones((11, 1), dtype='float32')}
 
 with TemporaryDirectory() as tmpdir:
     # Configure our monitors
     # .
     progress = ProgressIndicator()
-    perforce = JSONLogger(tmpdir, 'test')
+    perforce = JSONLogger(tmpdir,
+                          'test',
+                          {'test': ['test_loss',
+                                    'test_accuracy'],
+                           'train': ['train_loss',
+                                     'train_accuracy']})
     checkptr = Checkpointer(os.path.join(tmpdir, 'test_net_'), 50)
     # Run the training.
-    solver = _solver.SGDSolver(
-        base_lr=0.01)
     net.fit(100,
-            solver,
-            X, Y,
+            _solver.SGDSolver(base_lr=0.01),
+            X,
             test_interval=50,  # optional
-            X_val=X, Y_val=Y,  # optional
-            after_batch_callbacks=[progress, perforce, checkptr],
-            after_test_callbacks=[progress, perforce])
+            X_val=X,  # optional
+            train_callbacks=[progress,
+                             perforce,
+                             checkptr],
+            test_callbacks=[progress,
+                            perforce])
     # Note the flexibility you have with the monitors: they may be used for any
     # task! By using a different JSON logger for batch- and test-callbacks, you
     # can collect the performance in different logs.
@@ -101,7 +108,7 @@ with TemporaryDirectory() as tmpdir:
     # Predict some new data. Note, that this is automatically using the weights
     # of the trained net, but in the `predict` layout.
     results = net.predict(np.zeros((30, 3, 51, 51), dtype='float32'),
-                          after_batch_callbacks=[ProgressIndicator()])
+                          post_batch_callbacks=[ProgressIndicator()])
 
     # Reloading a model.
     net.load_blobs_from(os.path.join(tmpdir, 'test_net_50.caffemodel'))

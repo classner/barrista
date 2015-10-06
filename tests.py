@@ -1,5 +1,6 @@
 """Unittests for the barrista project."""
-from __future__ import print_function
+# pylint: disable=F0401, C0330, C0302, C0103, R0201, R0914, R0915
+
 import unittest
 import logging
 logging.basicConfig(level=logging.INFO)
@@ -75,9 +76,10 @@ class NetSpecificationTestCase(unittest.TestCase):
         netspec_msg = netspec.to_pbuf_message()
         self.assertEqual(netspec_msg.IsInitialized(), True)
         self.assertEqual(netspec_msg.input, netspec.inputs)
-        for msgshape, specshape in zip(netspec_msg.input_shape,
-                                       netspec.input_shape):
-            self.assertEqual(list(msgshape.dim), specshape)
+        if hasattr(netspec_msg, 'input_shape'):
+            for msgshape, specshape in zip(netspec_msg.input_shape,
+                                           netspec.input_shape):
+                self.assertEqual(list(msgshape.dim), specshape)
         self.assertEqual(len(netspec_msg.layer), len(netspec.layers))
         self.assertEqual(netspec_msg.state.phase, netspec.phase)
         self.assertEqual(netspec_msg.state.level, netspec.level)
@@ -250,16 +252,20 @@ class MonitoringTestCase(unittest.TestCase):
         fitpi = ProgressIndicator()
         solver = _solver.SGDSolver(
             base_lr=0.01)
+
+        X = {'data': np.zeros((10, 3, 3, 3), dtype='float32'),
+             'annotations': np.ones((10, 1), dtype='float32')}
+
         net.fit(10,
                 solver,
-                np.zeros((10, 3, 3, 3)),
-                np.ones((10,)),
-                after_batch_callbacks=[fitpi])
+                X,
+                train_callbacks=[
+                    fitpi])
         self.assertEqual(fitpi.pbar.finished, True)
         # For predict.
         predpi = ProgressIndicator()
         net.predict(np.zeros((10, 3, 3, 3)),
-                    after_batch_callbacks=[predpi])
+                    post_batch_callbacks=[predpi])
         self.assertEqual(predpi.pbar.finished, True)
 
     def test_JSONLogger(self):
@@ -284,7 +290,9 @@ class MonitoringTestCase(unittest.TestCase):
         layers.append(ConvolutionLayer(**conv_params))
         layers.append(InnerProductLayer(InnerProduct_num_output=2,
                                         tops=['out']))
-        layers.append(SoftmaxWithLossLayer(bottoms=['out', 'annotations']))
+        layers.append(SoftmaxWithLossLayer(
+            name='loss',
+            bottoms=['out', 'annotations']))
         layers.append(AccuracyLayer(name='accuracy',
                                     bottoms=['out', 'annotations']))
         netspec.layers.extend(layers)
@@ -292,24 +300,30 @@ class MonitoringTestCase(unittest.TestCase):
 
         dirpath = tempfile.mkdtemp()
         # For fit.
-        fitlog = JSONLogger(dirpath, 'tmp')
+        fitlog = JSONLogger(dirpath,
+                            'tmp',
+                            {'test': ['test_loss',
+                                      'test_accuracy'],
+                             'train': ['train_loss',
+                                       'train_accuracy']})
+
+        X = {'data': np.zeros((10, 3, 3, 3), dtype='float32'),
+             'annotations': np.ones((10, 1), dtype='float32')}
         solver = _solver.SGDSolver(
             base_lr=0.01)
         net.fit(20,
                 solver,
-                np.zeros((10, 3, 3, 3)),
-                np.ones((10,)),
-                X_val=np.zeros((10, 3, 3, 3)),
-                Y_val=np.ones((10,)),
+                X=X,
+                X_val=X,
                 test_initialization=True,
                 test_interval=10,
-                after_batch_callbacks=[fitlog],
-                after_test_callbacks=[fitlog])
+                train_callbacks=[fitlog],
+                test_callbacks=[fitlog])
         with open(os.path.join(dirpath, 'barrista_tmp.json'), 'r') as inf:
             json_load = json.load(inf)
-        self.assertIn('train', json_load.keys())
-        self.assertIn('test', json_load.keys())
-        self.assertEqual(len(json_load['train']), 5)
+        self.assertIn('train', list(json_load.keys()))
+        self.assertIn('test', list(json_load.keys()))
+        self.assertEqual(len(json_load['train']), 6)
         self.assertEqual(len(json_load['test']), 6)
         shutil.rmtree(dirpath)
 
@@ -340,13 +354,15 @@ class MonitoringTestCase(unittest.TestCase):
 
         dirpath = tempfile.mkdtemp()
         chckptr = Checkpointer(dirpath + os.sep, 10)
+        X = {'data': np.zeros((10, 3, 3, 3), dtype='float32'),
+             'annotations': np.ones((10, 1), dtype='float32')}
+
         solver = _solver.SGDSolver(
             base_lr=0.01)
         net.fit(20,
                 solver,
-                np.zeros((10, 3, 3, 3)),
-                np.ones((10,)),
-                after_batch_callbacks=[chckptr])
+                X=X,
+                train_callbacks=[chckptr])
         dircontents = os.listdir(dirpath)
         self.assertIn('10.caffemodel', dircontents)
         self.assertIn('20.caffemodel', dircontents)
@@ -382,38 +398,8 @@ class NetTestCase(unittest.TestCase):
             net = Net(tmpfile.name)
         self.assertEqual(len(net.layers), 2)
         self.assertEqual(net.blobs[net.inputs[0]].data.shape, (10, 3, 3, 3))
-        self.assertEqual(net.blobs[net.inputs[1]].data.shape, (10,))
-
-    def test_fit(self):
-        """Test the fit function."""
-        import numpy as np
-        import barrista.design as design
-        from barrista.design import (ConvolutionLayer, InnerProductLayer,
-                                     SoftmaxWithLossLayer, AccuracyLayer)
-        from barrista import solver as _solver
-        netspec = design.NetSpecification([[10, 3, 3, 3], [10]],
-                                          inputs=['data', 'annotations'])
-        layers = []
-        conv_params = {'Convolution_kernel_size': 3,
-                       'Convolution_num_output': 3,
-                       'Convolution_pad': 1}
-
-        layers.append(ConvolutionLayer(**conv_params))
-        layers.append(InnerProductLayer(InnerProduct_num_output=2,
-                                        tops=['out']))
-        layers.append(SoftmaxWithLossLayer(bottoms=['out', 'annotations']))
-        layers.append(AccuracyLayer(name='accuracy',
-                                    bottoms=['out', 'annotations']))
-        netspec.layers.extend(layers)
-        net = netspec.instantiate()
-        solver = _solver.SGDSolver(
-            base_lr=0.01)
-        net.fit(20,
-                solver,
-                np.zeros((10, 3, 3, 3)),
-                np.ones((10,)))
-        _, accy = net.predict(np.zeros((10, 3, 3, 3)))[0]
-        self.assertEqual(accy, 1.0)
+        self.assertTrue(net.blobs[net.inputs[1]].data.shape == (10,) or
+                        net.blobs[net.inputs[1]].data.shape == (10, 1, 1, 1))
 
     def test_dual_net_use(self):
         """Test the specification of a prediction net."""
@@ -446,19 +432,114 @@ class NetTestCase(unittest.TestCase):
         netspec.layers.extend(layers)
         net = netspec.instantiate()
 
+        X = {'data': np.zeros((10, 3, 3, 3), dtype='float32'),
+             'annotations': np.ones((10, 1), dtype='float32')}
+
         solver = _solver.SGDSolver(
             base_lr=0.01)
         net.fit(20,
                 solver,
-                np.zeros((10, 3, 3, 3)),
-                np.ones((10,)))
+                X)
         predictions = np.array(net.predict(np.zeros((10, 3, 3, 3))))
         predictions = np.argmax(predictions, axis=1)
         self.assertEqual(np.sum(predictions == 1), 10)
         # Force to use the fit network.
-        _, accy = np.array(net.predict(np.zeros((10, 3, 3, 3)),
-                                       use_fit_network=True))[0]
+        accy = net.predict(X, use_fit_network=True)['accuracy'][0]
         self.assertEqual(accy, 1.0)
+
+    def test_multiinput(self):
+        """Test multiinput prediction."""
+        import numpy as np
+        import barrista.design as design
+        from barrista.design import (ConvolutionLayer, InnerProductLayer,
+                                     SoftmaxWithLossLayer, AccuracyLayer)
+        from barrista import solver as _solver
+        netspec = design.NetSpecification([[10, 3, 3, 3], [10]],
+                                          inputs=['data', 'annotations'])
+        layers = []
+        conv_params = {'Convolution_kernel_size': 3,
+                       'Convolution_num_output': 3,
+                       'Convolution_pad': 1}
+
+        layers.append(ConvolutionLayer(**conv_params))
+        layers.append(InnerProductLayer(InnerProduct_num_output=2,
+                                        tops=['out']))
+        layers.append(SoftmaxWithLossLayer(bottoms=['out', 'annotations']))
+        layers.append(AccuracyLayer(name='accuracy',
+                                    bottoms=['out', 'annotations']))
+        netspec.layers.extend(layers)
+        net = netspec.instantiate()
+
+        X = {'data': np.zeros((10, 3, 3, 3), dtype='float32'),
+             'annotations': np.ones((10, 1), dtype='float32')}
+
+        solver = _solver.SGDSolver(
+            base_lr=0.01)
+        net.fit(20,
+                solver,
+				X)
+        accy = net.predict(X)['accuracy'][0]
+        self.assertEqual(accy, 1.0)
+        accy = net.predict(X,
+                           input_processing_flags={'data': 'r',
+                                                   'annotations': 'n'})['accuracy'][0]
+        self.assertEqual(accy, 1.0)
+        accy = net.predict(X, input_processing_flags={'data': 'p',
+                                                      'annotations': 'n'})['accuracy'][0]
+        self.assertEqual(accy, 1.0)
+
+    def test_multioutput(self):
+        """Test multioutput prediction."""
+        import numpy as np
+        import barrista.design as design
+        from barrista.design import (ConvolutionLayer, EuclideanLossLayer)
+        from barrista import solver as _solver
+        netspec = design.NetSpecification([[10, 3, 7, 7], [10, 1, 7, 7]],
+                                          inputs=['data', 'annotations'],
+                                          predict_inputs=['data'],
+                                          predict_input_shapes=[[10, 3, 7, 7]])
+        layers = []
+
+        layers.append(ConvolutionLayer(Convolution_kernel_size=3,
+                                       Convolution_num_output=1,
+                                       Convolution_pad=1,
+                                       name='conv1',
+                                       tops=['conv1_out']))
+        layers.append(ConvolutionLayer(Convolution_kernel_size=3,
+                                       Convolution_num_output=1,
+                                       Convolution_pad=1,
+                                       name='conv2',
+                                       tops=['conv2_out'],
+                                       bottoms=['data']))
+        layers.append(EuclideanLossLayer(name='loss1',
+                                         bottoms=['conv1_out', 'annotations'],
+                                         include_stages=['fit']))
+        layers.append(EuclideanLossLayer(name='loss2',
+                                         bottoms=['conv2_out', 'annotations'],
+                                         include_stages=['fit']))
+        netspec.layers.extend(layers)
+        net = netspec.instantiate()
+
+        X = {'data': np.zeros((10, 3, 7, 7), dtype='float32'),
+             'annotations': np.ones((10, 1, 7, 7), dtype='float32')}
+
+        solver = _solver.SGDSolver(
+            base_lr=0.01)
+        net.fit(20,
+                solver,
+				X)
+        pred = net.predict([np.zeros((3, 3, 3))],
+                            input_processing_flags={'data': 'p'},
+                            output_processing_flags={'conv1_out': 'p0',
+                                                     'conv2_out': 'n'})
+        assert pred['conv1_out'][0].shape == (1, 3, 3)
+        assert pred['conv2_out'][0].shape == (1, 7, 7)
+        pred = net.predict([np.zeros((3, 3, 3))],
+                           input_processing_flags={'data': 'p'},
+                           output_processing_flags={'conv1_out': 'n',
+                                                    'conv2_out': 'p0'})
+        assert pred['conv1_out'][0].shape == (1, 7, 7)
+        assert pred['conv2_out'][0].shape == (1, 3, 3)
 
     def test_predict_sliding_window(self):
         """Test the ``predict_sliding_window`` method."""
@@ -485,12 +566,14 @@ class NetTestCase(unittest.TestCase):
         netspec.layers.extend(layers)
         net = netspec.instantiate()
 
+        X = {'data': np.zeros((10, 3, 3, 3), dtype='float32'),
+             'annotations': np.ones((10, 1), dtype='float32')}
+
         solver = _solver.SGDSolver(
             base_lr=0.01)
         net.fit(20,
                 solver,
-                np.zeros((10, 3, 3, 3)),
-                np.ones((10,)))
+                X)
         # Rescaling.
         predictions = np.array(net.predict_sliding_window(
             np.zeros((10, 3, 5, 5))))
@@ -542,33 +625,34 @@ class NetTestCase(unittest.TestCase):
 
         solver = _solver.SGDSolver(
             base_lr=0.01)
+
+        X = {'data': np.zeros((10, 3, 3, 3), dtype='float32'),
+             'annotations': np.ones((10, 1), dtype='float32')}
+
         net.fit(20,
                 solver,
-                np.zeros((10, 3, 3, 3)),
-                np.ones((10,)))
+                X)
         # Rescaling.
         predictions = np.array(net.predict(np.zeros((10, 3, 1, 1)),
-                               pad_instead_of_rescale=False))
+                               input_processing_flags={'data': 'r'}))
         predictions = np.argmax(predictions, axis=1)
         self.assertEqual(np.sum(predictions == 1), 10)
         # Padding.
         predictions_padded = np.array(net.predict(np.zeros((10, 3, 1, 1)),
-                                                  pad_instead_of_rescale=True))
+                                                  input_processing_flags={'data': 'p'}))
         predictions = np.argmax(predictions_padded, axis=1)
         self.assertEqual(np.sum(predictions == 1), 10)
         # out_layer_names.
         predictions = np.array(net.predict(np.zeros((10, 3, 1, 1)),
-                                           pad_instead_of_rescale=True,
-                                           out_layer_names=['out']))
+                                           input_processing_flags={'data': 'p'},
+                                           out_blob_names=['out']))
         predictions = np.argmax(predictions, axis=1)
         self.assertEqual(np.sum(predictions == 1), 10)
         # Oversample.
         predictions = np.array(net.predict(np.zeros((10, 3, 1, 1)),
-                                           pad_instead_of_rescale=True,
                                            oversample=True))
         np.testing.assert_allclose(predictions, predictions_padded, rtol=1e-05)
         predictions = np.array(net.predict(np.zeros((10, 3, 1, 1)),
-                                           pad_instead_of_rescale=True,
                                            oversample=True,
                                            before_oversample_resize_to=(5, 5)))
         np.testing.assert_allclose(predictions, predictions_padded, rtol=1e-05)
@@ -633,24 +717,73 @@ class SolverTestCase(unittest.TestCase):
 
     """Test the tools module."""
 
-    def test_sgd(self):
+    def test_fit(self):
+        """Test the fit function."""
+        import numpy as np
         import barrista.design as design
-        from barrista.design import ConvolutionLayer
-
+        from barrista.design import (ConvolutionLayer, InnerProductLayer,
+                                     SoftmaxWithLossLayer, AccuracyLayer)
+        from barrista import solver as _solver
         netspec = design.NetSpecification([[10, 3, 3, 3], [10]],
-                                          inputs=['data', 'annotations'],
-                                          predict_inputs=['data'],
-                                          predict_input_shapes=[[10, 3, 3, 3]])
+                                          inputs=['data', 'annotations'])
         layers = []
         conv_params = {'Convolution_kernel_size': 3,
                        'Convolution_num_output': 3,
                        'Convolution_pad': 1}
 
         layers.append(ConvolutionLayer(**conv_params))
+        layers.append(InnerProductLayer(InnerProduct_num_output=2,
+                                        tops=['out']))
+        layers.append(SoftmaxWithLossLayer(bottoms=['out', 'annotations']))
+        layers.append(AccuracyLayer(name='accuracy',
+                                    bottoms=['out', 'annotations']))
         netspec.layers.extend(layers)
         net = netspec.instantiate()
 
-        """Test the sgd solver."""
+        X = {'data': np.zeros((10, 3, 3, 3), dtype='float32'),
+             'annotations': np.ones((10, 1), dtype='float32')}
+
+        solver = _solver.SGDSolver(base_lr=0.01)
+        solver.fit(20,
+                   net=net,
+                   X=X)
+        accy = net.predict(X)['accuracy'][0]
+        self.assertEqual(accy, 1.0)
+
+        new_net = netspec.instantiate()
+        new_solver = _solver.SGDSolver(net=new_net,
+                                       base_lr=0.01)
+        new_solver.fit(20,
+                       X)
+        accy = new_net.predict(X)['accuracy'][0]
+        self.assertEqual(accy, 1.0)
+
+    def test_sgd(self):
+        """Test the stochastic gradient descent."""
+        import numpy as np
+        import barrista.design as design
+        from barrista.design import (ConvolutionLayer, InnerProductLayer,
+                                     SoftmaxWithLossLayer, AccuracyLayer)
+
+        netspec = design.NetSpecification([[10, 3, 3, 3], [10]],
+                                          inputs=['data', 'annotations'])
+        layers = []
+        conv_params = {'Convolution_kernel_size': 3,
+                       'Convolution_num_output': 3,
+                       'Convolution_pad': 1}
+
+        layers.append(ConvolutionLayer(**conv_params))
+        layers.append(InnerProductLayer(InnerProduct_num_output=2,
+                                        tops=['out']))
+        layers.append(SoftmaxWithLossLayer(bottoms=['out', 'annotations']))
+        layers.append(AccuracyLayer(name='accuracy',
+                                    bottoms=['out', 'annotations']))
+        netspec.layers.extend(layers)
+        net = netspec.instantiate()
+
+        #######################################################################
+        # test sgd solver
+        #######################################################################
         from barrista import solver as _solver
         tmp = _solver.Get_solver_class('sgd')
         self.assertTrue(issubclass(tmp, _solver.SGDSolver))
@@ -668,41 +801,40 @@ class SolverTestCase(unittest.TestCase):
         tmp_instance = tmp(base_lr=2)
         solver_parameter_dict = tmp_instance.Get_parameter_dict()
         self.assertEqual(solver_parameter_dict['base_lr'], 2)
-        self.assertEqual(solver_parameter_dict['iter_size'], 1)
+        if 'iter_size' in solver_parameter_dict.keys():
+            self.assertEqual(solver_parameter_dict['iter_size'], 1)
         self.assertEqual(solver_parameter_dict['lr_policy'], 'fixed')
         self.assertEqual(solver_parameter_dict['regularization_type'], 'L2')
-        self.assertNotIn('weight_decay', solver_parameter_dict.keys())
-        self.assertNotIn('power', solver_parameter_dict.keys())
-
-        tmp_instance = tmp(net=net,
-                           base_lr=2,
-                           iter_size=2)
+        self.assertNotIn('weight_decay', list(solver_parameter_dict.keys()))
+        self.assertNotIn('power', list(solver_parameter_dict.keys()))
+        params = {'net': net, 'base_lr': 2}
+        if 'iter_size' in solver_parameter_dict.keys():
+            params['iter_size'] = 2
+        tmp_instance = tmp(**params)
         solver_parameter_dict = tmp_instance.Get_parameter_dict()
         self.assertEqual(solver_parameter_dict['base_lr'], 2)
-        self.assertEqual(solver_parameter_dict['iter_size'], 2)
+        if 'iter_size' in solver_parameter_dict.keys():
+            self.assertEqual(solver_parameter_dict['iter_size'], 2)
         self.assertEqual(solver_parameter_dict['lr_policy'], 'fixed')
         self.assertEqual(solver_parameter_dict['regularization_type'], 'L2')
-        self.assertNotIn('weight_decay', solver_parameter_dict.keys())
-        self.assertNotIn('power', solver_parameter_dict.keys())
-
-        tmp_instance = tmp(net=net,
-                           base_lr=2,
-                           iter_size=2,
-                           regularization_type='L1')
+        self.assertNotIn('weight_decay', list(solver_parameter_dict.keys()))
+        self.assertNotIn('power', list(solver_parameter_dict.keys()))
+        params['regularization_type'] = 'L1'
+        tmp_instance = tmp(**params)
         solver_parameter_dict = tmp_instance.Get_parameter_dict()
         self.assertEqual(solver_parameter_dict['base_lr'], 2)
-        self.assertEqual(solver_parameter_dict['iter_size'], 2)
+        if 'iter_size' in solver_parameter_dict.keys():
+            self.assertEqual(solver_parameter_dict['iter_size'], 2)
         self.assertEqual(solver_parameter_dict['lr_policy'], 'fixed')
         self.assertEqual(solver_parameter_dict['regularization_type'], 'L1')
-        self.assertNotIn('weight_decay', solver_parameter_dict.keys())
-        self.assertNotIn('power', solver_parameter_dict.keys())
-
+        self.assertNotIn('weight_decay', list(solver_parameter_dict.keys()))
+        self.assertNotIn('power', list(solver_parameter_dict.keys()))
+        if 'iter_size' in solver_parameter_dict.keys():
+            params['iter_size'] = 3
+        params['regularization_type'] = '--'
         with self.assertRaises(AssertionError):
-            _ = tmp(net=net,
-                    base_lr=2,
-                    iter_size=3,
-                    regularization_type='--').Get_parameter_dict()
-            
+            _ = tmp(**params).Get_parameter_dict()
+
         with self.assertRaises(AssertionError):
             _ = tmp(net=net,
                     base_lr=2,
@@ -731,12 +863,498 @@ class SolverTestCase(unittest.TestCase):
             _ = tmp(net=net,   # noqa
                     base_lr=2,
                     lr_policy='sigmoid').Get_parameter_dict()
-        
-        xx = tmp(net=net,
-                 base_lr=2,
-                 lr_policy='sigmoid',
-                 stepsize=2)
-        xx.Get_parameter_dict()
+
+        X = {'data': np.zeros((10, 3, 3, 3), dtype='float32'),
+             'annotations': np.ones((10, 1), dtype='float32')}
+
+        solver = tmp(base_lr=0.01)
+        solver.fit(20,
+                   X,
+                   net=net)
+        accy = net.predict(X)['accuracy'][0]
+        self.assertEqual(accy, 1.0)
+
+        solver = tmp(net=net,
+                     base_lr=0.01)
+
+        X = {'data': np.zeros((10, 3, 3, 3), dtype='float32'),
+             'annotations': np.ones((10, 1), dtype='float32')}
+
+        net.fit(20,
+                solver,
+                X)
+        accy = net.predict(X)['accuracy'][0]
+        self.assertEqual(accy, 1.0)
+
+    def test_nesterov(self):
+        """Test the nesterov solver."""
+        import numpy as np
+        import barrista.design as design
+        from barrista.design import (ConvolutionLayer, InnerProductLayer,
+                                     SoftmaxWithLossLayer, AccuracyLayer)
+
+        netspec = design.NetSpecification([[10, 3, 3, 3], [10]],
+                                          inputs=['data', 'annotations'])
+        layers = []
+        conv_params = {'Convolution_kernel_size': 3,
+                       'Convolution_num_output': 3,
+                       'Convolution_pad': 1}
+
+        layers.append(ConvolutionLayer(**conv_params))
+        layers.append(InnerProductLayer(InnerProduct_num_output=2,
+                                        tops=['out']))
+        layers.append(SoftmaxWithLossLayer(bottoms=['out', 'annotations']))
+        layers.append(AccuracyLayer(name='accuracy',
+                                    bottoms=['out', 'annotations']))
+        netspec.layers.extend(layers)
+        net = netspec.instantiate()
+
+        #######################################################################
+        # test nesterov solver
+        #######################################################################
+        from barrista import solver as _solver
+        tmp = _solver.Get_solver_class('nesterov')
+        self.assertTrue(issubclass(tmp, _solver.NesterovSolver))
+        tmp = _solver.Get_caffe_solver_class(_solver.SolverType.NESTEROV)
+        self.assertTrue(issubclass(tmp, _solver.NesterovSolver))
+
+        with self.assertRaises(TypeError):
+            tmp(2)
+
+        with self.assertRaises(Exception):
+            tmp(iter_size=2)
+
+        tmp_instance = tmp(base_lr=2)
+        solver_parameter_dict = tmp_instance.Get_parameter_dict()
+        self.assertEqual(solver_parameter_dict['base_lr'], 2)
+        if 'iter_size' in solver_parameter_dict.keys():
+            self.assertEqual(solver_parameter_dict['iter_size'], 1)
+        self.assertEqual(solver_parameter_dict['lr_policy'], 'fixed')
+        self.assertEqual(solver_parameter_dict['regularization_type'], 'L2')
+        self.assertEqual(solver_parameter_dict['momentum'], 0.0)
+        self.assertNotIn('weight_decay', list(solver_parameter_dict.keys()))
+        self.assertNotIn('power', list(solver_parameter_dict.keys()))
+
+        params = {'net': net, 'base_lr': 2}
+        if 'iter_size' in solver_parameter_dict.keys():
+            params['iter_size'] = 2
+        tmp_instance = tmp(**params)
+        solver_parameter_dict = tmp_instance.Get_parameter_dict()
+        self.assertEqual(solver_parameter_dict['base_lr'], 2)
+        if 'iter_size' in solver_parameter_dict.keys():
+            self.assertEqual(solver_parameter_dict['iter_size'], 2)
+        self.assertEqual(solver_parameter_dict['lr_policy'], 'fixed')
+        self.assertEqual(solver_parameter_dict['regularization_type'], 'L2')
+        self.assertEqual(solver_parameter_dict['momentum'], 0.0)
+        self.assertNotIn('weight_decay', list(solver_parameter_dict.keys()))
+        self.assertNotIn('power', list(solver_parameter_dict.keys()))
+
+        params['regularization_type'] = 'L1'
+        tmp_instance = tmp(**params)
+        solver_parameter_dict = tmp_instance.Get_parameter_dict()
+        self.assertEqual(solver_parameter_dict['base_lr'], 2)
+        if 'iter_size' in solver_parameter_dict.keys():
+            self.assertEqual(solver_parameter_dict['iter_size'], 2)
+        self.assertEqual(solver_parameter_dict['lr_policy'], 'fixed')
+        self.assertEqual(solver_parameter_dict['regularization_type'], 'L1')
+        self.assertEqual(solver_parameter_dict['momentum'], 0.0)
+        self.assertNotIn('weight_decay', list(solver_parameter_dict.keys()))
+        self.assertNotIn('power', list(solver_parameter_dict.keys()))
+
+        params['momentum'] = 1.
+        tmp_instance = tmp(**params)
+        solver_parameter_dict = tmp_instance.Get_parameter_dict()
+        self.assertEqual(solver_parameter_dict['base_lr'], 2)
+        if 'iter_size' in solver_parameter_dict.keys():
+            self.assertEqual(solver_parameter_dict['iter_size'], 2)
+        self.assertEqual(solver_parameter_dict['lr_policy'], 'fixed')
+        self.assertEqual(solver_parameter_dict['regularization_type'], 'L1')
+        self.assertEqual(solver_parameter_dict['momentum'], 1.0)
+        self.assertNotIn('weight_decay', list(solver_parameter_dict.keys()))
+        self.assertNotIn('power', list(solver_parameter_dict.keys()))
+
+        if 'iter_size' in solver_parameter_dict.keys():
+            params['iter_size'] = 3
+        params['regularization_type'] = '--'
+        del params['momentum']
+        with self.assertRaises(AssertionError):
+            _ = tmp(**params).Get_parameter_dict()
+
+        del params['regularization_type']
+        params['lr_policy'] = 'step'
+        with self.assertRaises(AssertionError):
+            _ = tmp(**params).Get_parameter_dict()
+        params['lr_policy'] = 'xx'
+        with self.assertRaises(AssertionError):
+            _ = tmp(**params).Get_parameter_dict()
+        params['lr_policy'] = 'exp'
+        with self.assertRaises(AssertionError):
+            _ = tmp(**params).Get_parameter_dict()
+        with self.assertRaises(AssertionError):
+            _ = tmp(net=net,
+                    base_lr=2,
+                    lr_policy='inv').Get_parameter_dict()
+        with self.assertRaises(AssertionError):
+            _ = tmp(net=net,
+                    base_lr=2,
+                    lr_policy='multistep').Get_parameter_dict()
+        with self.assertRaises(AssertionError):
+            _ = tmp(net=net,
+                    base_lr=2,
+                    lr_policy='poly').Get_parameter_dict()
+        with self.assertRaises(AssertionError):
+            _ = tmp(net=net,   # noqa
+                    base_lr=2,
+                    lr_policy='sigmoid').Get_parameter_dict()
+
+        solver = tmp(base_lr=0.01,
+                     momentum=0.95)
+
+        X = {'data': np.zeros((10, 3, 3, 3), dtype='float32'),
+             'annotations': np.ones((10, 1), dtype='float32')}
+
+        net.fit(20,
+                solver,
+                X)
+        accy = net.predict(X)['accuracy'][0]
+        self.assertEqual(accy, 1.0)
+
+    def test_rmsprop(self):
+        """Test the RMSProp solver."""
+        import numpy as np
+        import barrista.design as design
+        from barrista.design import (ConvolutionLayer, InnerProductLayer,
+                                     SoftmaxWithLossLayer, AccuracyLayer)
+
+        netspec = design.NetSpecification([[10, 3, 3, 3], [10]],
+                                          inputs=['data', 'annotations'])
+        layers = []
+        conv_params = {'Convolution_kernel_size': 3,
+                       'Convolution_num_output': 3,
+                       'Convolution_pad': 1}
+
+        layers.append(ConvolutionLayer(**conv_params))
+        layers.append(InnerProductLayer(InnerProduct_num_output=2,
+                                        tops=['out']))
+        layers.append(SoftmaxWithLossLayer(bottoms=['out', 'annotations']))
+        layers.append(AccuracyLayer(name='accuracy',
+                                    bottoms=['out', 'annotations']))
+        netspec.layers.extend(layers)
+        net = netspec.instantiate()
+
+        #######################################################################
+        # test rmsprop solver
+        #######################################################################
+        from barrista import solver as _solver
+        if not hasattr(_solver.SolverType, 'RMSPROP'):
+            return
+        tmp = _solver.Get_solver_class('rmsprop')
+        self.assertTrue(issubclass(tmp, _solver.RMSPropSolver))
+        tmp = _solver.Get_caffe_solver_class(_solver.SolverType.RMSPROP)
+        self.assertTrue(issubclass(tmp, _solver.RMSPropSolver))
+
+        with self.assertRaises(TypeError):
+            tmp(2)
+
+        with self.assertRaises(Exception):
+            tmp(iter_size=2)
+
+        with self.assertRaises(Exception):
+            tmp(base_lr=2)
+
+        with self.assertRaises(Exception):
+            tmp(base_lr=2,
+                delta=0.1)
+
+        tmp_instance = tmp(base_lr=2,
+                           delta=0.1,
+                           rms_decay=0.9)
+        solver_parameter_dict = tmp_instance.Get_parameter_dict()
+        self.assertEqual(solver_parameter_dict['base_lr'], 2)
+        self.assertEqual(solver_parameter_dict['iter_size'], 1)
+        self.assertEqual(solver_parameter_dict['lr_policy'], 'fixed')
+        self.assertEqual(solver_parameter_dict['regularization_type'], 'L2')
+        self.assertEqual(solver_parameter_dict['rms_decay'], 0.9)
+        self.assertEqual(solver_parameter_dict['delta'], 0.1)
+        self.assertNotIn('weight_decay', list(solver_parameter_dict.keys()))
+        self.assertNotIn('power', list(solver_parameter_dict.keys()))
+
+        tmp_instance = tmp(net=net,
+                           base_lr=2,
+                           delta=0.1,
+                           rms_decay=0.9,
+                           iter_size=2)
+        solver_parameter_dict = tmp_instance.Get_parameter_dict()
+        self.assertEqual(solver_parameter_dict['base_lr'], 2)
+        self.assertEqual(solver_parameter_dict['iter_size'], 2)
+        self.assertEqual(solver_parameter_dict['lr_policy'], 'fixed')
+        self.assertEqual(solver_parameter_dict['regularization_type'], 'L2')
+        self.assertEqual(solver_parameter_dict['rms_decay'], 0.9)
+        self.assertEqual(solver_parameter_dict['delta'], 0.1)
+        self.assertNotIn('weight_decay', list(solver_parameter_dict.keys()))
+        self.assertNotIn('power', list(solver_parameter_dict.keys()))
+
+        tmp_instance = tmp(net=net,
+                           base_lr=2,
+                           delta=0.1,
+                           rms_decay=0.9,
+                           iter_size=2,
+                           regularization_type='L1')
+        solver_parameter_dict = tmp_instance.Get_parameter_dict()
+        self.assertEqual(solver_parameter_dict['base_lr'], 2)
+        self.assertEqual(solver_parameter_dict['iter_size'], 2)
+        self.assertEqual(solver_parameter_dict['lr_policy'], 'fixed')
+        self.assertEqual(solver_parameter_dict['regularization_type'], 'L1')
+        self.assertEqual(solver_parameter_dict['rms_decay'], 0.9)
+        self.assertEqual(solver_parameter_dict['delta'], 0.1)
+        self.assertNotIn('weight_decay', list(solver_parameter_dict.keys()))
+        self.assertNotIn('power', list(solver_parameter_dict.keys()))
+
+        with self.assertRaises(AssertionError):
+            _ = tmp(net=net,
+                    base_lr=2,
+                    delta=0.1,
+                    rms_decay=0.9,
+                    iter_size=3,
+                    regularization_type='--').Get_parameter_dict()
+
+        with self.assertRaises(AssertionError):
+            _ = tmp(net=net,
+                    base_lr=2,
+                    delta=0.1,
+                    rms_decay=0.9,
+                    lr_policy='step').Get_parameter_dict()
+        with self.assertRaises(AssertionError):
+            _ = tmp(net=net,
+                    base_lr=2,
+                    delta=0.1,
+                    rms_decay=0.9,
+                    lr_policy='xx').Get_parameter_dict()
+        with self.assertRaises(AssertionError):
+            _ = tmp(net=net,
+                    base_lr=2,
+                    delta=0.1,
+                    rms_decay=0.9,
+                    lr_policy='exp').Get_parameter_dict()
+        with self.assertRaises(AssertionError):
+            _ = tmp(net=net,
+                    base_lr=2,
+                    delta=0.1,
+                    rms_decay=0.9,
+                    lr_policy='inv').Get_parameter_dict()
+        with self.assertRaises(AssertionError):
+            _ = tmp(net=net,
+                    base_lr=2,
+                    delta=0.1,
+                    rms_decay=0.9,
+                    lr_policy='multistep').Get_parameter_dict()
+        with self.assertRaises(AssertionError):
+            _ = tmp(net=net,
+                    base_lr=2,
+                    delta=0.1,
+                    rms_decay=0.9,
+                    lr_policy='poly').Get_parameter_dict()
+        with self.assertRaises(AssertionError):
+            _ = tmp(net=net,   # noqa
+                    base_lr=2,
+                    delta=0.1,
+                    rms_decay=0.9,
+                    lr_policy='sigmoid').Get_parameter_dict()
+
+        solver = tmp(base_lr=2,
+                     delta=0.1,
+                     rms_decay=0.9)
+
+        X = {'data': np.zeros((10, 3, 3, 3), dtype='float32'),
+             'annotations': np.ones((10, 1), dtype='float32')}
+
+        net.fit(20,
+                solver,
+                X)
+        accy = net.predict(X)['accuracy'][0]
+        self.assertEqual(accy, 1.0)
+
+    def test_adadelta(self):
+        """Test the Adadelta solver."""
+        import numpy as np
+        import barrista.design as design
+        from barrista.design import (ConvolutionLayer, InnerProductLayer,
+                                     SoftmaxWithLossLayer, AccuracyLayer)
+
+        netspec = design.NetSpecification([[10, 3, 3, 3], [10]],
+                                          inputs=['data', 'annotations'])
+        layers = []
+        conv_params = {'Convolution_kernel_size': 3,
+                       'Convolution_num_output': 3,
+                       'Convolution_pad': 1}
+
+        layers.append(ConvolutionLayer(**conv_params))
+        layers.append(InnerProductLayer(InnerProduct_num_output=2,
+                                        tops=['out']))
+        layers.append(SoftmaxWithLossLayer(bottoms=['out', 'annotations']))
+        layers.append(AccuracyLayer(name='accuracy',
+                                    bottoms=['out', 'annotations']))
+        netspec.layers.extend(layers)
+        net = netspec.instantiate()
+
+        #######################################################################
+        # test AdaDelta solver
+        #######################################################################
+        from barrista import solver as _solver
+        if not hasattr(_solver.SolverType, 'ADADELTA'):
+            return
+        tmp = _solver.Get_solver_class('adadelta')
+        self.assertTrue(issubclass(tmp, _solver.AdaDeltaSolver))
+        tmp = _solver.Get_caffe_solver_class(_solver.SolverType.ADADELTA)
+        self.assertTrue(issubclass(tmp, _solver.AdaDeltaSolver))
+
+        with self.assertRaises(TypeError):
+            tmp(2)
+
+        with self.assertRaises(Exception):
+            tmp(iter_size=2)
+
+        with self.assertRaises(Exception):
+            tmp(base_lr=2)
+
+        with self.assertRaises(Exception):
+            tmp(base_lr=2,
+                delta=0.1)
+
+        tmp_instance = tmp(base_lr=2,
+                           momentum=0.9)
+        solver_parameter_dict = tmp_instance.Get_parameter_dict()
+        self.assertEqual(solver_parameter_dict['base_lr'], 2)
+        if 'iter_size' in solver_parameter_dict.keys():
+            self.assertEqual(solver_parameter_dict['iter_size'], 1)
+        self.assertEqual(solver_parameter_dict['lr_policy'], 'fixed')
+        self.assertEqual(solver_parameter_dict['regularization_type'], 'L2')
+        self.assertEqual(solver_parameter_dict['momentum'], 0.9)
+        self.assertEqual(solver_parameter_dict['delta'], 1E-8)
+        self.assertNotIn('weight_decay', list(solver_parameter_dict.keys()))
+        self.assertNotIn('power', list(solver_parameter_dict.keys()))
+
+        params = {'net': net, 'base_lr': 2, 'momentum': 0.9, 'delta': 0.1}
+        if 'iter_size' in solver_parameter_dict.keys():
+            params['iter_size'] = 2
+        tmp_instance = tmp(**params)
+        solver_parameter_dict = tmp_instance.Get_parameter_dict()
+        self.assertEqual(solver_parameter_dict['base_lr'], 2)
+        if 'iter_size' in solver_parameter_dict.keys():
+            self.assertEqual(solver_parameter_dict['iter_size'], 2)
+        self.assertEqual(solver_parameter_dict['lr_policy'], 'fixed')
+        self.assertEqual(solver_parameter_dict['regularization_type'], 'L2')
+        self.assertEqual(solver_parameter_dict['momentum'], 0.9)
+        self.assertEqual(solver_parameter_dict['delta'], 0.1)
+        self.assertNotIn('weight_decay', list(solver_parameter_dict.keys()))
+        self.assertNotIn('power', list(solver_parameter_dict.keys()))
+
+        solver = tmp(base_lr=0.001,
+                     momentum=0.9)
+
+        X = {'data': np.zeros((10, 3, 3, 3), dtype='float32'),
+             'annotations': np.ones((10, 1), dtype='float32')}
+
+        net.fit(20,
+                solver,
+                X)
+        accy = net.predict(X)['accuracy'][0]
+        self.assertEqual(accy, 1.0)
+
+    def test_adam(self):
+        """Test the ADAM solver."""
+        import numpy as np
+        import barrista.design as design
+        from barrista.design import (ConvolutionLayer, InnerProductLayer,
+                                     SoftmaxWithLossLayer, AccuracyLayer)
+
+        netspec = design.NetSpecification([[10, 3, 3, 3], [10]],
+                                          inputs=['data', 'annotations'])
+        layers = []
+        conv_params = {'Convolution_kernel_size': 3,
+                       'Convolution_num_output': 3,
+                       'Convolution_pad': 1}
+
+        layers.append(ConvolutionLayer(**conv_params))
+        layers.append(InnerProductLayer(InnerProduct_num_output=2,
+                                        tops=['out']))
+        layers.append(SoftmaxWithLossLayer(bottoms=['out', 'annotations']))
+        layers.append(AccuracyLayer(name='accuracy',
+                                    bottoms=['out', 'annotations']))
+        netspec.layers.extend(layers)
+        net = netspec.instantiate()
+
+        #######################################################################
+        # test adam solver
+        #######################################################################
+        from barrista import solver as _solver
+        if not hasattr(_solver.SolverType, 'ADAM'):
+            return
+        tmp = _solver.Get_solver_class('adam')
+        self.assertTrue(issubclass(tmp, _solver.AdamSolver))
+        tmp = _solver.Get_caffe_solver_class(_solver.SolverType.ADAM)
+        self.assertTrue(issubclass(tmp, _solver.AdamSolver))
+
+        with self.assertRaises(TypeError):
+            tmp(2)
+
+        with self.assertRaises(Exception):
+            tmp(iter_size=2)
+
+        tmp_instance = tmp(base_lr=2)
+        solver_parameter_dict = tmp_instance.Get_parameter_dict()
+        self.assertEqual(solver_parameter_dict['base_lr'], 2)
+        if 'iter_size' in solver_parameter_dict.keys():
+            self.assertEqual(solver_parameter_dict['iter_size'], 1)
+        self.assertEqual(solver_parameter_dict['lr_policy'], 'fixed')
+        self.assertEqual(solver_parameter_dict['regularization_type'], 'L2')
+        self.assertEqual(solver_parameter_dict['momentum'], 0.9)
+        self.assertEqual(solver_parameter_dict['momentum2'], 0.999)
+        self.assertEqual(solver_parameter_dict['delta'], 1E-8)
+        self.assertNotIn('weight_decay', list(solver_parameter_dict.keys()))
+        self.assertNotIn('power', list(solver_parameter_dict.keys()))
+
+        params = {'net': net, 'base_lr': 2, 'delta': 0.1}
+        if 'iter_size' in solver_parameter_dict.keys():
+            params['iter_size'] = 2
+        tmp_instance = tmp(**params)
+        solver_parameter_dict = tmp_instance.Get_parameter_dict()
+        self.assertEqual(solver_parameter_dict['base_lr'], 2)
+        if 'iter_size' in solver_parameter_dict.keys():
+            self.assertEqual(solver_parameter_dict['iter_size'], 2)
+        self.assertEqual(solver_parameter_dict['lr_policy'], 'fixed')
+        self.assertEqual(solver_parameter_dict['regularization_type'], 'L2')
+        self.assertEqual(solver_parameter_dict['momentum'], 0.9)
+        self.assertEqual(solver_parameter_dict['momentum2'], 0.999)
+        self.assertEqual(solver_parameter_dict['delta'], 0.1)
+        self.assertNotIn('weight_decay', list(solver_parameter_dict.keys()))
+        self.assertNotIn('power', list(solver_parameter_dict.keys()))
+
+        params['momentum2'] = 1.
+        params['regularization_type'] = 'L1'
+        tmp_instance = tmp(**params)
+        solver_parameter_dict = tmp_instance.Get_parameter_dict()
+        self.assertEqual(solver_parameter_dict['base_lr'], 2)
+        if 'iter_size' in solver_parameter_dict.keys():
+            self.assertEqual(solver_parameter_dict['iter_size'], 2)
+        self.assertEqual(solver_parameter_dict['lr_policy'], 'fixed')
+        self.assertEqual(solver_parameter_dict['regularization_type'], 'L1')
+        self.assertEqual(solver_parameter_dict['momentum'], 0.9)
+        self.assertEqual(solver_parameter_dict['momentum2'], 1.0)
+        self.assertEqual(solver_parameter_dict['delta'], 0.1)
+        self.assertNotIn('weight_decay', list(solver_parameter_dict.keys()))
+        self.assertNotIn('power', list(solver_parameter_dict.keys()))
+
+        solver = tmp(base_lr=0.001)
+
+        X = {'data': np.zeros((10, 3, 3, 3), dtype='float32'),
+             'annotations': np.ones((10, 1), dtype='float32')}
+
+        net.fit(20,
+                solver,
+                X)
+        accy = net.predict(X)['accuracy'][0]
+        self.assertEqual(accy, 1.0)
 
 
 if __name__ == '__main__':

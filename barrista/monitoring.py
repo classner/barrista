@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 """Defines several tools for monitoring net activity."""
+# pylint: disable=F0401
 import logging as _logging
 import os as _os
+import numpy as _np
 _LOGGER = _logging.getLogger(__name__)
 
 
-class Monitor(object):
+class Monitor(object):  # pylint: disable=R0903
 
     """
     The monitor interface.
@@ -16,21 +18,138 @@ class Monitor(object):
     optionally be specified.
     """
 
-    def __call__(self, **kwargs):
+    def __call__(self, kwargs):
         """
         The call implementation.
 
         For available keyword arguments, see the documentation of
-        :py:class:`barrista.net.Net.fit`.
+        :py:class:`barrista.solver.SolverInterface.Fit`.
         """
-        raise NotImplementedError()
+        if kwargs['callback_signal'] == 'pre_fit':
+            self._pre_fit(kwargs)
+        elif kwargs['callback_signal'] == 'pre_test':
+            self._pre_test(kwargs)
+        elif kwargs['callback_signal'] == 'post_test':
+            self._post_test(kwargs)
+        elif kwargs['callback_signal'] == 'pre_test_batch':
+            self._pre_test_batch(kwargs)
+        elif kwargs['callback_signal'] == 'post_test_batch':
+            self._post_test_batch(kwargs)
+        elif kwargs['callback_signal'] == 'pre_train_batch':
+            self._pre_train_batch(kwargs)
+        elif kwargs['callback_signal'] == 'post_train_batch':
+            self._post_train_batch(kwargs)
 
-    def finalize(self, **kwargs):
+    def _pre_fit(self, kwargs):  # pylint: disable=C0111
+        pass
+
+    def _pre_test(self, kwargs):  # pylint: disable=C0111
+        pass
+
+    def _post_test(self, kwargs):  # pylint: disable=C0111
+        pass
+
+    def _pre_test_batch(self, kwargs):  # pylint: disable=C0111
+        pass
+
+    def _post_test_batch(self, kwargs):  # pylint: disable=C0111
+        pass
+
+    def _pre_train_batch(self, kwargs):  # pylint: disable=C0111
+        pass
+
+    def _post_train_batch(self, kwargs):  # pylint: disable=C0111
+        pass
+
+    def finalize(self, kwargs):
         """Will be called at the end of a training/fitting process."""
         pass
 
 
-class _LossIndicator(object):
+class DataMonitor(Monitor):  # pylint: disable=R0903
+
+    r"""
+    Monitor interface for filling the blobs of a network.
+
+    This is a specific monitor which will fill the blobs of the network
+    for the forward pass or solver step.
+    Ideally there should only be one such monitor per callback,
+    but multiple ones are indeed possible.
+    """
+
+    pass
+
+
+class CyclingDataMonitor(Monitor):  # pylint: disable=R0903
+
+    r"""
+    Uses the data sequentially.
+
+    This monitor maps data to the network an cycles through the data
+    sequentially. It is the default monitor used if a user provides X
+    or X_val to the barrista.sovler.fit method.
+
+    :param X: dict of numpy.ndarray or None.
+      If specified, is used as input data. It is used sequentially, so
+      shuffle it pre, if required. The keys of the dict have to have
+      a corresponding layer name in the net.
+    """
+
+    def __init__(self, **kwargs):
+        """See class documentation."""
+        self._X = kwargs['X']  # pylint: disable=C0103
+        self._sample_pointer = 0
+        self._len_data = None
+        self._batch_size = None
+
+    def _pre_fit(self, kwargs):
+        # we make sure, now the the network is available that
+        # all names in the provided data dict has a corresponding match
+        # in the network
+        net = kwargs['net']
+        if 'test' in kwargs['callback_signal']:
+            net = kwargs['testnet']
+
+        self._len_data = len(list(self._X.values())[0])
+        for key, value in list(self._X.items()):
+            assert key in list(net.blobs.keys()), (
+                'data key has no corresponding network blob {} {}'.format(
+                    key, str(list(net.blobs.keys()))))
+            assert len(value) == self._len_data, (
+                'all items need to have the same length {} vs {}'.format(
+                    len(value), self._len_data))
+            assert isinstance(value, _np.ndarray), (
+                'data must be a numpy nd array {}'.format(type(value)))
+        self._batch_size = net.blobs[list(self._X.keys())[0]].data.shape[0]
+
+    def _pre_train_batch(self, kwargs):
+        self._pre_batch(kwargs['net'], kwargs)
+
+    def _pre_test_batch(self, kwargs):
+        self._pre_batch(kwargs['testnet'], kwargs)
+
+    def _pre_batch(self, net, kwargs):  # pylint: disable=C0111, W0613
+        # this will simply cycle through the data.
+        samples_ids = [idx % len(self._X) for idx in
+                       range(self._sample_pointer,
+                             self._sample_pointer + self._batch_size)]
+
+        # updating the sample pointer for the next time
+        self._sample_pointer = (
+            (self._sample_pointer + len(samples_ids)) % self._len_data)
+
+        for key in list(self._X.keys()):
+            # this will actually fill the data for the network
+            net.blobs[key].data[...] = (
+                self._X[key][samples_ids].reshape(
+                    net.blobs[key].data.shape))
+
+    def finalize(self, kwargs):  # pylint: disable=W0613
+        """Nothing to do here."""
+        pass
+
+
+class _LossIndicator(object):  # pylint: disable=R0903
 
     r"""
     A plugin indicator for the ``progressbar`` package.
@@ -65,7 +184,75 @@ class _LossIndicator(object):
         return ret_val
 
 
-class ProgressIndicator(Monitor):
+class ResultExtractor(Monitor):  # pylint: disable=R0903
+
+    r"""
+    This monitor is designed for monitoring scalar layer results.
+
+    The main use case are salar outputs such as loss and accuracy.
+
+    IMPORTANT: this monitor will change cbparams and add new values to it,
+    most likely other monitors will depend on this, thus, ResultExtractors
+    should be among the first monitors in the callback list, e.g. by
+    insert them always in the beginning.
+
+    It will extract the value of a layer and add the value to the cbparam.
+
+    :param cbparam_key: string.
+      The key we will overwrite/set in the cbparams dict
+
+    """
+
+    def __init__(self, cbparam_key, layer_name):
+        """See class documentation."""
+        self._layer_name = layer_name
+        self._cbparam_key = cbparam_key
+        self._init = False
+        self._not_layer_available = True
+        self._test_iterations = None
+
+    def __call__(self, kwargs):
+        """Callback implementation."""
+        if self._not_layer_available and self._init:
+            return
+        Monitor.__call__(self, kwargs)
+
+    def _pre_fit(self, kwargs):
+        tmp_net = kwargs['net']
+        if 'test' in kwargs['callback_signal']:
+            tmp_net = kwargs['testnet']
+        if self._layer_name in list(tmp_net.blobs.keys()):
+            self._not_layer_available = False
+        self._init = True
+        assert self._cbparam_key not in kwargs, (
+            'it is only allowed to add keys to the cbparam,',
+            'not overwrite them {} {}'.format(self._cbparam_key,
+                                              list(kwargs.keys())))
+
+    def _pre_train_batch(self, kwargs):
+        kwargs[self._cbparam_key] = 0.0
+
+    def _post_train_batch(self, kwargs):
+        kwargs[self._cbparam_key] = float(
+            kwargs['net'].blobs[self._layer_name].data[...].ravel()[0])
+
+    def _pre_test(self, kwargs):
+        kwargs[self._cbparam_key] = 0
+        self._test_iterations = 0
+
+    def _post_test(self, kwargs):
+        kwargs[self._cbparam_key] /= self._test_iterations
+
+    def _pre_test_batch(self, kwargs):
+        self._test_iterations += kwargs['batch_size']
+
+    def _post_test_batch(self, kwargs):
+        kwargs[self._cbparam_key] += (
+            float(kwargs['testnet'].blobs[
+                self._layer_name].data[...].ravel()[0]) * kwargs['batch_size'])
+
+
+class ProgressIndicator(Monitor):  # pylint: disable=R0903
 
     r"""
     Generates a progress bar with current information about the process.
@@ -94,33 +281,43 @@ class ProgressIndicator(Monitor):
         self.pbarclass = ProgressBar
         self.pbar = None
 
-    def __call__(self, **kwargs):
-        """Callback implementation."""
+    def _post_train_batch(self, kwargs):
         if self.pbar is None:
-            if 'loss' in kwargs.keys():
+            if 'train_loss' in list(kwargs.keys()):
                 widgets = [_LossIndicator(self)] + self.widgets
             else:
                 widgets = self.widgets
             self.pbar = self.pbarclass(maxval=kwargs['max_iter'],
                                        widgets=widgets)
             self.pbar.start()
-        if 'loss' in kwargs.keys():
-            self.loss = kwargs['loss']
-        if 'test_loss' in kwargs.keys():
+        if 'train_loss' in list(kwargs.keys()):
+            self.loss = kwargs['train_loss']
+        if 'train_accuracy' in list(kwargs.keys()):
+            self.accuracy = kwargs['train_accuracy']
+        self.pbar.update(value=kwargs['iter'])
+
+    def _post_test(self, kwargs):
+        if self.pbar is None:
+            if 'test_loss' in list(kwargs.keys()):
+                widgets = [_LossIndicator(self)] + self.widgets
+            else:
+                widgets = self.widgets
+            self.pbar = self.pbarclass(maxval=kwargs['max_iter'],
+                                       widgets=widgets)
+            self.pbar.start()
+        if 'test_loss' in list(kwargs.keys()):
             self.test_loss = kwargs['test_loss']
-        if 'accuracy' in kwargs.keys():
-            self.accuracy = kwargs['accuracy']
-        if 'test_accuracy' in kwargs.keys():
+        if 'test_accuracy' in list(kwargs.keys()):
             self.test_accuracy = kwargs['test_accuracy']
         self.pbar.update(value=kwargs['iter'])
 
-    def finalize(self, **kwargs):  # pylint: disable=W0613
+    def finalize(self, kwargs):  # pylint: disable=W0613
         """Call ``progressbar.finish()``."""
         if self.pbar is not None:
             self.pbar.finish()
 
 
-class JSONLogger(Monitor):
+class JSONLogger(Monitor):  # pylint: disable=R0903
 
     r"""
     Logs available information to a JSON file.
@@ -133,66 +330,61 @@ class JSONLogger(Monitor):
     (\* indicates required):
 
     * ``iter``\*,
-    * ``loss``,
-    * ``test_loss``,
-    * ``accuracy``,
-    * ``test_accuracy``.
 
     :param path: string.
       The path to store the file in.
 
     :param name: string.
-      The filename. Will be prefixed with `barrista_` and `.json` will be
+      The filename. Will be prefixed with 'barrista_' and '.json' will be
       appended.
+
+    :param logging: dict of lists.
+      The two keys in the dict which are used are test, train.
+      For each of those a list of keys can be provided, those keys
+      have to be available in the kwargs/cbparams structure.
+      Usually the required data is provided by the ResultExtractor.
     """
 
-    def __init__(self, path, name):
+    def __init__(self, path, name, logging):
         """See class documentation."""
         import json
         self.json_package = json
         self.json_filename = _os.path.join(path, 'barrista_' + name + '.json')
-        self.losses = []
-        self.loss_iters = []
-        self.accys = []
-        self.accys_iters = []
-        self.test_losses = []
-        self.test_loss_iters = []
-        self.test_accys = []
-        self.test_accy_iters = []
         self.dict = {'train': [], 'test': [], 'barrista_produced': True}
+        self._logging = logging
 
-    def __call__(self, **kwargs):
+    def __call__(self, kwargs):
         """Callback implementation."""
-        if 'loss' in kwargs:
-            self.losses.append(kwargs['loss'])
-            self.loss_iters.append(kwargs['iter'])
-            self.dict['train'].append({'NumIters': kwargs['iter'],
-                                       'loss': kwargs['loss']})
-        if 'accuracy' in kwargs:
-            self.accys.append(kwargs['accuracy'])
-            self.accys_iters.append(kwargs['iter'])
-            self.dict['train'].append({'NumIters': kwargs['iter'],
-                                       'accuracy': kwargs['accuracy']})
-        if 'test_loss' in kwargs:
-            self.test_losses.append(kwargs['test_loss'])
-            self.test_loss_iters.append(kwargs['iter'])
-            self.dict['test'].append({'NumIters': kwargs['iter'],
-                                      'loss': kwargs['test_loss']})
-        if 'test_accuracy' in kwargs:
-            self.test_accys.append(kwargs['test_accuracy'])
-            self.test_accy_iters.append(kwargs['iter'])
-            self.dict['test'].append({'NumIters': kwargs['iter'],
-                                      'accuracy': kwargs['test_accuracy']})
+        Monitor.__call__(self, kwargs)
         with open(self.json_filename, 'w') as outf:
             self.json_package.dump(self.dict, outf)
 
-    def finalize(self, **kwargs):  # pylint: disable=W0613
+    def _pre_fit(self, kwargs):
+        for key in list(self._logging.keys()):
+            assert key in ['train', 'test'], (
+                'only train and test is supported by this logger')
+
+    def _post_test(self, kwargs):
+        self._post('test', kwargs)
+
+    def _post_train_batch(self, kwargs):
+        self._post('train', kwargs)
+
+    def _post(self, phase_name, kwargs):  # pylint: disable=C0111
+        if phase_name not in self._logging:
+            return
+        for key in self._logging[phase_name]:
+            if key in kwargs:
+                self.dict[phase_name].append({'NumIters': kwargs['iter'],
+                                              key: kwargs[key]})
+
+    def finalize(self, kwargs):  # pylint: disable=W0613
         """Write the json file."""
         with open(self.json_filename, 'w') as outf:
             self.json_package.dump(self.dict, outf)
 
 
-class Checkpointer(Monitor):
+class Checkpointer(Monitor):  # pylint: disable=R0903
 
     r"""
     Writes the network blobs to disk at certain iteration intervals.
@@ -224,28 +416,18 @@ class Checkpointer(Monitor):
         self.name_prefix = name_prefix
         self.iterations = iterations
 
-    def __call__(self, **kwargs):
-        """Callback implementation."""
-        if not self.iterations % kwargs['batch_size'] == 0:
-            print('monitoring',self.iterations,kwargs['batch_size'])
-            import sys
-            sys.exit(1)
+    def _post_train_batch(self, kwargs):
+        assert self.iterations % kwargs['batch_size'] == 0, (
+            'iterations not multiple of batch_size, {} vs {}'.format(
+                self.iterations, kwargs['batch_size']))
+
         if kwargs['iter'] % self.iterations == 0:
-            checkpoint_filename = self.name_prefix +\
-                str(kwargs['iter']) +\
-                '.caffemodel'
-            _LOGGER.debug("Writing checkpoint to file '%s'.", checkpoint_filename)  # noqa
+            checkpoint_filename = (
+                self.name_prefix + str(kwargs['iter']) + '.caffemodel')
+            _LOGGER.debug("Writing checkpoint to file '%s'.",
+                          checkpoint_filename)
             kwargs['net'].save(checkpoint_filename)
 
-    def finalize(self, **kwargs):
+    def finalize(self, kwargs):
         """Write a final checkpoint."""
-        if kwargs['iter'] % self.iterations != 0:
-            checkpoint_filename = self.name_prefix +\
-                str(kwargs['iter']) +\
-                '.caffemodel'
-            _LOGGER.debug("Writing checkpoint to file '%s'.", checkpoint_filename)  # noqa
-            kwargs['net'].save(checkpoint_filename)
-
-
-class __dummy(object):
-    pass
+        self._post_train_batch(kwargs)
