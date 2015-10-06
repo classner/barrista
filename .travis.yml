@@ -1,0 +1,41 @@
+env:
+  matrix:
+    - WITH_CUDA=false WITH_CMAKE=false WITH_IO=true PYTHON_VERSION=2
+    - WITH_CUDA=false WITH_CMAKE=false WITH_IO=true PYTHON_VERSION=3
+
+language: cpp
+
+cache:
+  apt: true
+  directories:
+  - /home/travis/miniconda
+  - /home/travis/miniconda2
+  - /home/travis/miniconda3
+
+compiler: gcc
+
+before_install:
+  - git clone https://github.com/BVLC/caffe.git
+  - cd caffe
+  - git checkout e4304745ef9b42914d669884b7a55766ec804b48
+  - export NUM_THREADS=2
+  - export SCRIPTS=./scripts/travis
+  - export CONDA_DIR="/home/travis/miniconda$PYTHON_VERSION"
+
+install:
+  - sudo -E $SCRIPTS/travis_install.sh
+
+before_script:
+  - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/usr/local/cuda/lib64:$CONDA_DIR/lib
+  - export PATH=$CONDA_DIR/bin:$PATH
+  - $SCRIPTS/travis_setup_makefile_config.sh
+  - export CPU_ONLY=1
+  - export USE_LMDB=1
+  - export USE_LEVELDB=1
+  - export USE_OPENCV=1
+
+script:
+  - make --jobs=$NUM_THREADS --keep-going all pycaffe
+  - make install
+  - cd ..
+  - python tests.py
