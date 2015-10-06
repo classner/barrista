@@ -31,8 +31,8 @@ before_script:
   - export PATH=$CONDA_DIR/bin:$CONDA_DIR/scripts:$PATH
   - sudo -E $CONDA_DIR/bin/conda install --yes opencv || true
   - sudo -E $CONDA_DIR/bin/conda install --yes scikit-image scikit-learn pylint
-  - sudo pip install --upgrade pip
-  - sudo pip install progressbar
+  - sudo -E $CONDA_DIR/bin/pip install --upgrade pip
+  - sudo -E $CONDA_DIR/bin/pip install progressbar
   - $SCRIPTS/travis_setup_makefile_config.sh
   - export CPU_ONLY=1
   - export USE_LMDB=1
