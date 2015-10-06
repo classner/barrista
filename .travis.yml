@@ -2,7 +2,7 @@
 env:
   matrix:
     - WITH_CUDA=false WITH_CMAKE=false WITH_IO=true PYTHON_VERSION=2
-    - WITH_CUDA=false WITH_CMAKE=false WITH_IO=true PYTHON_VERSION=3
+    - WITH_CUDA=false WITH_CMAKE=true WITH_IO=true PYTHON_VERSION=3
 
 language: cpp
 
@@ -30,7 +30,9 @@ before_script:
   - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/usr/local/cuda/lib64:$CONDA_DIR/lib
   - export PATH=$CONDA_DIR/bin:$CONDA_DIR/scripts:$PATH
   - sudo -E $CONDA_DIR/bin/conda install --yes opencv || true
-  - sudo -E $CONDA_DIR/bin/conda install --yes progressbar2 scikit-image scikit-learn pylint
+  - sudo -E $CONDA_DIR/bin/conda install --yes scikit-image scikit-learn pylint
+  - sudo pip install --upgrade pip
+  - sudo pip install progressbar
   - $SCRIPTS/travis_setup_makefile_config.sh
   - export CPU_ONLY=1
   - export USE_LMDB=1
