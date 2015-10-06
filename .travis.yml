@@ -28,9 +28,9 @@ install:
 
 before_script:
   - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/usr/local/cuda/lib64:$CONDA_DIR/lib
-  - export PATH=$CONDA_DIR/bin:$PATH
+  - export PATH=$CONDA_DIR/bin:$CONDA_DIR/scripts:$PATH
   - sudo -E $CONDA_DIR/bin/conda install --yes opencv || true
-  - sudo -E $CONDA_DIR/bin/conda install --yes progressbar scikit-image scikit-learn pylint || true
+  - sudo -E $CONDA_DIR/bin/conda install --yes progressbar2 scikit-image scikit-learn pylint
   - $SCRIPTS/travis_setup_makefile_config.sh
   - export CPU_ONLY=1
   - export USE_LMDB=1
@@ -42,7 +42,7 @@ before_script:
 script:
   - make --jobs=$NUM_THREADS --keep-going all pycaffe
   - cd ..
-  - python setup.py test
+  - python tests.py
   - pylint --disable=star-args,no-member barrista
   - pylint --disable=star-args,no-member example.py
   - pylint --disable=star-args,no-member setup.py
