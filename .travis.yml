@@ -18,7 +18,7 @@ compiler: gcc
 before_install:
   - git clone https://github.com/BVLC/caffe.git
   - cd caffe
-  - ls
+  - pwd
   - git checkout 6eae122a8eb84f8371dde815986cd7524fc4cbaa
   - export NUM_THREADS=2
   - export SCRIPTS=./scripts/travis
