@@ -25,6 +25,7 @@ before_install:
 
 install:
   - sudo -E $SCRIPTS/travis_install.sh
+  - conda install opencv progressbar scikit-image scikit-learn
 
 before_script:
   - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/usr/local/cuda/lib64:$CONDA_DIR/lib
@@ -40,4 +41,5 @@ before_script:
 script:
   - make --jobs=$NUM_THREADS --keep-going all pycaffe
   - cd ..
-  - python tests.py
+  - python setup.py tests
+  - pylint barrista
