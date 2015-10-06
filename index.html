@@ -117,8 +117,6 @@
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="_sources/index.txt" rel="nofollow"> View page source</a>
-          
         
       </li>
   </ul>
@@ -127,31 +125,95 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="welcome-to-barrista-s-documentation">
+  <div class="figure align-right" id="id1">
+<a class="reference internal image-reference" href="_images/barrista.jpg"><img alt="Gwilym Davies composing his signature drink at the 2009 World Barista Championship in Atlanta, Georgia." src="_images/barrista.jpg" style="width: 233.45px; height: 350.0px;" /></a>
+<p class="caption"><span class="caption-text"><a class="reference external" href="https://commons.wikimedia.org/wiki/File:Gwilym_Davies.jpg">Photo by Liz Clayton</a>,
+<a class="reference external" href="http://creativecommons.org/licenses/by/3.0/">CC</a>.</span></p>
+</div>
+<div class="section" id="welcome-to-barrista-s-documentation">
 <h1>Welcome to barrista&#8217;s documentation!<a class="headerlink" href="#welcome-to-barrista-s-documentation" title="Permalink to this headline">¶</a></h1>
 <p>Barrista will serve your <a class="reference external" href="https://github.com/BVLC/caffe">caffe</a>
 right! It is a Python library that offers a comparable interface to
 <a class="reference external" href="http://keras.io">keras</a>
 and <a class="reference external" href="http://deeplearning.net/software/theano/">Theano</a>, but using
 standard <cite>caffe</cite>.</p>
-<p>Design your nets with the full power of <cite>caffe</cite> (and guaranteed correctness and
-completeness) while not using any <cite>.prototxt</cite> files and not messing with
-configurations; and use the flexibility and convenience of Python
-by using Callbacks for properly controlling and monitoring
-your training procedure!
-We achieve this by inspecting the protobuf objects that are used to configure
-caffe, and exposing their functionality (and some convenient additions)
-nicely. And the best: there is full compatibility to import and export
-<cite>.prototxt</cite> files so you can start working with your own DCNNs right
-away or get some from the
-<a class="reference external" href="http://caffe.berkeleyvision.org/model_zoo.html">model zoo</a>!
-It runs on every platform <cite>caffe</cite> runs on, and can be used with Python 2 and 3.</p>
-<div class="figure align-right" id="id1">
-<a class="reference internal image-reference" href="_images/barrista.jpg"><img alt="map to buried treasure" src="_images/barrista.jpg" style="width: 333.5px; height: 500.0px;" /></a>
-<p class="caption"><span class="caption-text"><a class="reference external" href="https://commons.wikimedia.org/wiki/File:Gwilym_Davies.jpg">Photo by Liz Clayton</a>,
-<a class="reference external" href="http://creativecommons.org/licenses/by/3.0/">CC</a>.</span></p>
 </div>
-<p>Contents:</p>
+<div class="section" id="why-barrista">
+<h1>Why barrista?<a class="headerlink" href="#why-barrista" title="Permalink to this headline">¶</a></h1>
+<p><cite>barrista</cite> gives you full, pythonic control over the entire <cite>caffe</cite> framework.
+It is different from the plain <cite>caffe</cite> Python interface in the way, that it
+exposes the entire caffe functionality (from net design over training and
+prediction) in a principled way to Python.</p>
+<ul>
+<li><p class="first">Design your nets with the full power of <cite>caffe</cite> within Python. Creating
+a network is as easy as:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">barrista.design</span> <span class="kn">as</span> <span class="nn">ds</span>
+<span class="n">netspec</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">NetSpecification</span><span class="p">([[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">51</span><span class="p">,</span> <span class="mi">51</span><span class="p">],</span> <span class="p">[</span><span class="mi">10</span><span class="p">]],</span>
+                              <span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;data&#39;</span><span class="p">,</span> <span class="s">&#39;annotations&#39;</span><span class="p">])</span>
+<span class="n">netspec</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">ConvolutionLayer</span><span class="p">(</span><span class="n">Convolution_kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                                          <span class="n">Convolution_pad</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                                          <span class="n">Convolution_num_output</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+<span class="n">netspec</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">EuclideanLossLayer</span><span class="p">(</span><span class="n">include_stages</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;fit&#39;</span><span class="p">]))</span>
+<span class="n">net</span> <span class="o">=</span> <span class="n">netspec</span><span class="o">.</span><span class="n">instantiate</span><span class="p">()</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">Use your networks in a principled way from Python. No more intransparent
+preprocessing, but helpful support:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">barrista.solver</span>
+<span class="n">net</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span>
+        <span class="n">barrista</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">SGDSolver</span><span class="p">(</span><span class="n">base_lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">),</span>
+        <span class="n">X</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;data&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">21</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">51</span><span class="p">,</span> <span class="mi">51</span><span class="p">)),</span>  <span class="c"># Autoatically batched.</span>
+           <span class="s">&#39;annotations&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">21</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">51</span><span class="p">,</span> <span class="mi">51</span><span class="p">))})</span>
+<span class="n">net</span><span class="o">.</span><span class="n">predict</span><span class="p">({</span><span class="s">&#39;data&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">51</span><span class="p">,</span> <span class="mi">51</span><span class="p">))})</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">Use callbacks to easily customize training and prediction:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">barrista.monitoring</span>
+<span class="n">net</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="c"># ... as before</span>
+        <span class="n">train_callbacks</span><span class="o">=</span><span class="p">[</span>
+          <span class="n">barrista</span><span class="o">.</span><span class="n">monitoring</span><span class="o">.</span><span class="n">Checkpointer</span><span class="p">(</span><span class="s">&#39;/tmp&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>
+          <span class="n">barrista</span><span class="o">.</span><span class="n">monitoring</span><span class="o">.</span><span class="n">ProgressIndicator</span><span class="p">()])</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first"><cite>barrista</cite> is always fully consistent with <cite>caffe</cite>. We internally inspect the
+protobuf object generated by <cite>caffe</cite> to infer the interface. Adding your
+own layers is as easy as:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">barrista.config</span>
+<span class="n">barrista</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">LAYER_TYPES</span><span class="p">[</span><span class="s">&#39;Amazing&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;AmazingParameter&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first"><cite>barrista</cite> naturally understands and writes every .prototxt
+file your caffe version does! Load <cite>.prototxt</cite> files (also from the
+<a class="reference external" href="http://caffe.berkeleyvision.org/model_zoo.html">model zoo</a>!)
+and use or modify the networks with barrista:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">net</span><span class="o">.</span><span class="n">to_prototxt</span><span class="p">(</span><span class="n">output_filename</span><span class="o">=</span><span class="s">&#39;net.prototxt&#39;</span><span class="p">)</span>
+<span class="n">net</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s">&#39;net.caffmodel&#39;</span><span class="p">)</span>  <span class="c"># Save the weights.</span>
+<span class="n">new_network</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">NetSpecification</span><span class="o">.</span><span class="n">from_prototxt</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s">&#39;net.prototxt&#39;</span><span class="p">)</span>
+<span class="n">new_network</span><span class="o">.</span><span class="n">load_blobs_from</span><span class="p">(</span><span class="s">&#39;net.caffemodel&#39;</span><span class="p">)</span>  <span class="c"># Load the weights.</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">It runs on every platform <cite>caffe</cite> runs on, and can be used with Python 2 and 3.</p>
+</li>
+</ul>
+</div>
+<div class="section" id="what-s-the-license">
+<h1>What&#8217;s the license?<a class="headerlink" href="#what-s-the-license" title="Permalink to this headline">¶</a></h1>
+<p>You can use barrista under the MIT License, which means you may use it freely
+in any projects.</p>
+</div>
+<div class="section" id="where-do-i-get-it">
+<h1>Where do I get it?<a class="headerlink" href="#where-do-i-get-it" title="Permalink to this headline">¶</a></h1>
+<p>The source is hosted on <a class="reference external" href="https://github.com/classner/barrista">github</a> and the
+documentation/homepage is available on github pages at
+<a class="reference external" href="http://classner.github.io/barrista">http://classner.github.io/barrista</a>.</p>
+</div>
+<div class="section" id="documentation">
+<h1>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="setup.html">Setup</a><ul>
@@ -183,11 +245,15 @@ It runs on every platform <cite>caffe</cite> runs on, and can be used with Pytho
 <li class="toctree-l2"><a class="reference internal" href="barrista.html#module-barrista.initialization">barrista.initialization module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="barrista.html#module-barrista.monitoring">barrista.monitoring module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="barrista.html#module-barrista.net">barrista.net module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="barrista.html#module-barrista.solver">barrista.solver module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="barrista.html#module-barrista.tools">barrista.tools module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="barrista.html#module-barrista">Module contents</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="about.html">About</a></li>
+<li class="toctree-l1"><a class="reference internal" href="about.html">About</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="about.html#license">License</a></li>
+</ul>
+</li>
 </ul>
 </div>
 </div>
@@ -216,7 +282,7 @@ It runs on every platform <cite>caffe</cite> runs on, and can be used with Pytho
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, The barrista authors.
+        &copy; Copyright 2015, University of Tuebingen.
 
     </p>
   </div>

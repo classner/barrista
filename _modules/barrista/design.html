@@ -129,18 +129,19 @@
             
   <h1>Source code for barrista.design</h1><div class="highlight"><pre>
 <span class="c"># -*- coding: utf-8 -*-</span>
+<span class="c"># pylint: disable=F0401, E0611, C0103, R0902, R0913, R0914, E1101</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">This module contains classes and functions to design networks with caffe.</span>
 
 <span class="sd">For the layer constructing functions, ``None`` is used to mark a parameter</span>
 <span class="sd">as unset (this is important in protobuf)!</span>
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">copy</span> <span class="kn">as</span> <span class="nn">_copy</span>
 <span class="kn">import</span> <span class="nn">inspect</span> <span class="kn">as</span> <span class="nn">_inspect</span>
 <span class="kn">import</span> <span class="nn">logging</span> <span class="kn">as</span> <span class="nn">_logging</span>
 <span class="kn">import</span> <span class="nn">subprocess</span> <span class="kn">as</span> <span class="nn">_subprocess</span>
+<span class="kn">import</span> <span class="nn">itertools</span> <span class="kn">as</span> <span class="nn">_itertools</span>
 <span class="kn">from</span> <span class="nn">tempfile</span> <span class="kn">import</span> <span class="n">NamedTemporaryFile</span> <span class="k">as</span> <span class="n">_NamedTemporaryFile</span>
 <span class="kn">import</span> <span class="nn">os</span> <span class="kn">as</span> <span class="nn">_os</span>
 <span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">itemgetter</span> <span class="k">as</span> <span class="n">_itemgetter</span>
@@ -148,22 +149,28 @@
 <span class="kn">import</span> <span class="nn">google.protobuf.text_format</span> <span class="kn">as</span> <span class="nn">_gprototext</span>
 
 <span class="c"># CAREFUL! This must be imported before any caffe-related import!</span>
-<span class="kn">from</span> <span class="nn">initialization</span> <span class="kn">import</span> <span class="n">init</span> <span class="k">as</span> <span class="n">_init</span>
-<span class="kn">from</span> <span class="nn">config</span> <span class="kn">import</span> <span class="n">LAYER_TYPES</span> <span class="k">as</span> <span class="n">_LAYER_TYPES</span>
-<span class="kn">from</span> <span class="nn">config</span> <span class="kn">import</span> <span class="n">CAFFE_BIN_FOLDER</span> <span class="k">as</span> <span class="n">_CAFFE_BIN_FOLDER</span>
-<span class="kn">from</span> <span class="nn">tools</span> <span class="kn">import</span> <span class="n">chunks</span> <span class="k">as</span> <span class="n">_chunks</span><span class="p">,</span> <span class="n">pbufToPyEnum</span> <span class="k">as</span> <span class="n">_pbufToPyEnum</span>
+<span class="kn">from</span> <span class="nn">.initialization</span> <span class="kn">import</span> <span class="n">init</span> <span class="k">as</span> <span class="n">_init</span>
+<span class="kn">from</span> <span class="nn">.config</span> <span class="kn">import</span> <span class="n">LAYER_TYPES</span> <span class="k">as</span> <span class="n">_LAYER_TYPES</span>
+<span class="kn">from</span> <span class="nn">.config</span> <span class="kn">import</span> <span class="n">CAFFE_BIN_FOLDER</span> <span class="k">as</span> <span class="n">_CAFFE_BIN_FOLDER</span>
+<span class="kn">from</span> <span class="nn">.tools</span> <span class="kn">import</span> <span class="n">chunks</span> <span class="k">as</span> <span class="n">_chunks</span><span class="p">,</span> <span class="n">pbufToPyEnum</span> <span class="k">as</span> <span class="n">_pbufToPyEnum</span>
 
 <span class="kn">import</span> <span class="nn">caffe.proto.caffe_pb2</span> <span class="kn">as</span> <span class="nn">_caffe_pb2</span>
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">caffe.draw</span> <span class="kn">as</span> <span class="nn">_draw</span>
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
     <span class="n">_draw</span> <span class="o">=</span> <span class="bp">None</span>
-<span class="kn">from</span> <span class="nn">net</span> <span class="kn">import</span> <span class="n">Net</span> <span class="k">as</span> <span class="n">_Net</span>
+<span class="kn">from</span> <span class="nn">.net</span> <span class="kn">import</span> <span class="n">Net</span> <span class="k">as</span> <span class="n">_Net</span>
 
 
 <span class="c">#: Expose all detailed properties from the caffe prototxt for</span>
 <span class="c">#: in-Python usage.</span>
 <span class="n">PROTODETAIL</span> <span class="o">=</span> <span class="n">_caffe_pb2</span>
+
+<span class="c">#: Whether this caffe version supports the `propagate_down` layer property.</span>
+<span class="n">_HAS_PROPAGATE_DOWN</span> <span class="o">=</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">LayerParameter</span><span class="p">,</span>
+                              <span class="s">&#39;propagate_down&#39;</span><span class="p">)</span>
+<span class="c">#: Whether this caffe version supports &#39;BlobShape&#39;.</span>
+<span class="n">_HAS_BLOB_SHAPE</span> <span class="o">=</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">_caffe_pb2</span><span class="p">,</span> <span class="s">&#39;BlobShape&#39;</span><span class="p">)</span>
 
 <span class="n">_init</span><span class="p">()</span>
 <span class="n">_LOGGER</span> <span class="o">=</span> <span class="n">_logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
@@ -329,15 +336,29 @@
         <span class="n">pbstate</span> <span class="o">=</span> <span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">NetState</span><span class="p">(</span><span class="n">phase</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">phase</span><span class="p">,</span>
                                       <span class="n">level</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">level</span><span class="p">,</span>
                                       <span class="n">stage</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stages</span><span class="p">)</span>
-        <span class="n">pbinput_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">BlobShape</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">dims</span><span class="p">)</span>
-                         <span class="k">for</span> <span class="n">dims</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span><span class="p">]</span>
-        <span class="n">netmessage</span> <span class="o">=</span> <span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">NetParameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                                             <span class="nb">input</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span>
-                                             <span class="n">input_shape</span><span class="o">=</span><span class="n">pbinput_shape</span><span class="p">,</span>
-                                             <span class="n">layer</span><span class="o">=</span><span class="n">pblayers</span><span class="p">,</span>
-                                             <span class="n">force_backward</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">force_backward</span><span class="p">,</span>  <span class="c"># noqa</span>
-                                             <span class="n">state</span><span class="o">=</span><span class="n">pbstate</span><span class="p">,</span>
-                                             <span class="n">debug_info</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">debug_info</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">_HAS_BLOB_SHAPE</span><span class="p">:</span>
+            <span class="n">pbinput_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">BlobShape</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">dims</span><span class="p">)</span>
+                             <span class="k">for</span> <span class="n">dims</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span><span class="p">]</span>
+            <span class="n">netmessage</span> <span class="o">=</span> <span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">NetParameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                                                 <span class="nb">input</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span>
+                                                 <span class="n">input_shape</span><span class="o">=</span><span class="n">pbinput_shape</span><span class="p">,</span>
+                                                 <span class="n">layer</span><span class="o">=</span><span class="n">pblayers</span><span class="p">,</span>
+                                                 <span class="n">force_backward</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">force_backward</span><span class="p">,</span>  <span class="c"># noqa</span>
+                                                 <span class="n">state</span><span class="o">=</span><span class="n">pbstate</span><span class="p">,</span>
+                                                 <span class="n">debug_info</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">debug_info</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">shapes_to_use</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">shape</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">4</span><span class="p">:</span>
+                    <span class="n">shape</span> <span class="o">+=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">4</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">))</span>
+                <span class="n">shapes_to_use</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+            <span class="n">netmessage</span> <span class="o">=</span> <span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">NetParameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                                                 <span class="nb">input</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span>
+                                                 <span class="n">input_dim</span><span class="o">=</span><span class="n">_itertools</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span><span class="p">),</span>
+                                                 <span class="n">layer</span><span class="o">=</span><span class="n">pblayers</span><span class="p">,</span>
+                                                 <span class="n">force_backward</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">force_backward</span><span class="p">,</span>  <span class="c"># noqa</span>
+                                                 <span class="n">state</span><span class="o">=</span><span class="n">pbstate</span><span class="p">,</span>
+                                                 <span class="n">debug_info</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">debug_info</span><span class="p">)</span>
         <span class="k">assert</span> <span class="n">netmessage</span><span class="o">.</span><span class="n">IsInitialized</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">netmessage</span>
 </div>
@@ -408,7 +429,8 @@
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">input_dim</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">_LOGGER</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&#39;The loaded prototxt contains `input_dim` fields. &#39;</span>
                          <span class="s">&#39;They are deprecated! Use `input_shape` instead.&#39;</span><span class="p">)</span>
-            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">input_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="n">_HAS_BLOB_SHAPE</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">input_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
             <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">input_dim</span><span class="p">)</span> <span class="o">%</span> <span class="mi">4</span> <span class="o">==</span> <span class="mi">0</span>
             <span class="n">input_shape</span> <span class="o">=</span> <span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">_chunks</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="mi">4</span><span class="p">)))</span>
         <span class="k">else</span><span class="p">:</span>
@@ -523,7 +545,8 @@
 <span class="sd">    :param propagate_down: list(bool) or None.</span>
 <span class="sd">      Specifies on which bottoms the backpropagation should be skipped.</span>
 <span class="sd">      Must be either 0 or equal to the number of bottoms. If ``None`` is</span>
-<span class="sd">      specified, this is initialized as ``[]``.</span>
+<span class="sd">      specified, this is initialized as ``[]``. Not available in all</span>
+<span class="sd">      caffe versions!</span>
 
 <span class="sd">    :param loss_param: :py:data:`barrista.design.LossParameter` or None.</span>
 <span class="sd">      Specifies optional ignore labels and normalization for the loss.</span>
@@ -558,6 +581,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span>
         <span class="k">if</span> <span class="n">propagate_down</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">propagate_down</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">_HAS_PROPAGATE_DOWN</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;This caffe version does not support the &quot;</span>
+                                <span class="s">&quot;`propagate_down` layer property!&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">propagate_down</span> <span class="o">=</span> <span class="n">propagate_down</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">loss_param</span> <span class="o">=</span> <span class="n">loss_param</span>
         <span class="k">if</span> <span class="n">loss_weights</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
@@ -617,7 +644,10 @@
             <span class="n">message</span><span class="o">.</span><span class="n">phase</span><span class="p">)</span>
         <span class="n">params</span> <span class="o">=</span> <span class="bp">None</span> <span class="k">if</span> <span class="s">&#39;param&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fieldnames</span> <span class="k">else</span> <span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span>
             <span class="n">message</span><span class="o">.</span><span class="n">param</span><span class="p">)</span>
-        <span class="n">propagate_down</span> <span class="o">=</span> <span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">propagate_down</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">_HAS_PROPAGATE_DOWN</span><span class="p">:</span>
+            <span class="n">propagate_down</span> <span class="o">=</span> <span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">propagate_down</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">propagate_down</span> <span class="o">=</span> <span class="bp">None</span>
         <span class="n">loss_param</span> <span class="o">=</span> <span class="p">(</span><span class="bp">None</span> <span class="k">if</span> <span class="s">&#39;loss_param&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fieldnames</span> <span class="k">else</span>
                       <span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">loss_param</span><span class="p">))</span>
         <span class="n">loss_weights</span> <span class="o">=</span> <span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">loss_weight</span><span class="p">)</span>
@@ -652,7 +682,7 @@
                 <span class="n">spec</span><span class="o">.</span><span class="n">_additional_parameters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fielddesc</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">spec</span>
 </div>
-<div class="viewcode-block" id="LayerSpecification.to_pbuf_message"><a class="viewcode-back" href="../../barrista.html#barrista.design.LayerSpecification.to_pbuf_message">[docs]</a>    <span class="k">def</span> <span class="nf">to_pbuf_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="LayerSpecification.to_pbuf_message"><a class="viewcode-back" href="../../barrista.html#barrista.design.LayerSpecification.to_pbuf_message">[docs]</a>    <span class="k">def</span> <span class="nf">to_pbuf_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>  <span class="c"># pylint: disable=R0912, R0915</span>
                         <span class="n">layerindex</span><span class="p">,</span>
                         <span class="n">preceeding_layer</span><span class="p">,</span>
                         <span class="n">net_input</span><span class="p">):</span>
@@ -740,7 +770,8 @@
         <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;param&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-        <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;propagate_down&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">propagate_down</span>
+        <span class="k">if</span> <span class="n">_HAS_PROPAGATE_DOWN</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;propagate_down&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">propagate_down</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_param</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;loss_param&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_param</span>
         <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;loss_weight&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_weights</span>
@@ -752,7 +783,7 @@
 
 
 <span class="c"># Generate the layers.</span></div></div>
-<span class="k">for</span> <span class="n">_layerkey</span> <span class="ow">in</span> <span class="n">_LAYER_TYPES</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+<span class="k">for</span> <span class="n">_layerkey</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">_LAYER_TYPES</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
     <span class="c"># Construct the layer constructor.</span>
     <span class="n">_parameters</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="c"># Get the parameters for the standard layer function.</span>
@@ -777,14 +808,13 @@
         <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">nfe</span><span class="p">:</span>
             <span class="k">print</span><span class="p">((</span><span class="s">&quot;[WARNING] Parameter {} not found in caffe proto &quot;</span>
                    <span class="s">&quot;configuration of {}! Adjust your barrista.config! &quot;</span>
-                   <span class="s">&quot;Skipping layer!&quot;</span><span class="p">)</span><span class="o">.</span>
-                   <span class="n">format</span><span class="p">(</span><span class="n">_param_obj</span><span class="p">,</span> <span class="n">_layerkey</span><span class="p">))</span>
+                   <span class="s">&quot;Skipping layer!&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_param_obj</span><span class="p">,</span> <span class="n">_layerkey</span><span class="p">))</span>
             <span class="n">_layer_error</span> <span class="o">=</span> <span class="bp">True</span>
             <span class="k">break</span>
         <span class="c"># This is guaranteed to work, because the additional parameter objects</span>
         <span class="c"># for caffe MUST only have optional parameters.</span>
         <span class="k">exec</span><span class="p">(</span><span class="s">&#39;_obj_instance = _obj_type()&#39;</span><span class="p">)</span>  <span class="c"># pylint: disable=W0122</span>
-        <span class="k">for</span> <span class="n">_fieldname</span> <span class="ow">in</span> <span class="n">_obj_type</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">_fieldname</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">_obj_type</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">_obj_type</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="n">_fieldname</span><span class="p">],</span> <span class="nb">property</span><span class="p">):</span>
                 <span class="n">_parameters</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">_param_obj</span><span class="p">[:</span><span class="o">-</span><span class="mi">9</span><span class="p">]</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="n">_fieldname</span><span class="p">,</span>
                                     <span class="bp">True</span><span class="p">,</span>
@@ -809,13 +839,11 @@
         <span class="k">exec</span><span class="p">(</span><span class="s">&#39;_obj_type = _caffe_pb2.&#39;</span> <span class="o">+</span> <span class="n">_param_obj</span><span class="p">)</span>  <span class="c"># pylint: disable=W0122</span>
         <span class="c"># identify the property name for this parameter.</span>
         <span class="n">_detected</span> <span class="o">=</span> <span class="bp">False</span>
-        <span class="k">for</span> <span class="n">_propname</span> <span class="ow">in</span> <span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">LayerParameter</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">LayerParameter</span><span class="p">(),</span> <span class="n">_propname</span><span class="p">),</span> <span class="n">_obj_type</span><span class="p">):</span>  <span class="c"># noqa</span>
-                    <span class="n">_detected</span> <span class="o">=</span> <span class="bp">True</span>
-                    <span class="k">break</span>
-            <span class="k">except</span><span class="p">:</span>
-                <span class="k">print</span><span class="p">(</span><span class="n">_propname</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">_propname</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">LayerParameter</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">LayerParameter</span><span class="p">(),</span> <span class="n">_propname</span><span class="p">),</span>
+                          <span class="n">_obj_type</span><span class="p">):</span>
+                <span class="n">_detected</span> <span class="o">=</span> <span class="bp">True</span>
+                <span class="k">break</span>
         <span class="k">assert</span> <span class="n">_detected</span><span class="p">,</span> <span class="p">(</span><span class="s">&#39;The parameter name of the layer property {0} &#39;</span> <span class="o">+</span>
                            <span class="s">&#39;could not be found!&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_param_obj</span><span class="p">)</span>
         <span class="n">_func_spec</span> <span class="o">+=</span> <span class="s">&#39;    _ret_obj._additional_parameters.append(&quot;{_propname}&quot;)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="nb">locals</span><span class="p">())</span> <span class="o">+</span> <span class="n">_os</span><span class="o">.</span><span class="n">linesep</span>  <span class="c"># noqa</span>
@@ -834,8 +862,11 @@
 <span class="s">        except:</span>
 <span class="s">            # Nothing to do here.</span>
 <span class="s">            pass</span>
-<span class="s">        {_propname}_kwargs[&quot;{_ptpl[3]}&quot;] = {_ptpl[0]}{_os.linesep}&#39;&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="nb">locals</span><span class="p">())</span>  <span class="c"># noqa</span>
-        <span class="n">_func_spec</span> <span class="o">+=</span> <span class="s">&#39;    _ret_obj.{_propname} = _caffe_pb2.{_param_obj}(**{_propname}_kwargs){_os.linesep}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="nb">locals</span><span class="p">())</span>  <span class="c"># noqa</span>
+<span class="s">        {_propname}_kwargs[&quot;{_ptpl[3]}&quot;] = {_ptpl[0]}{_os.linesep}&#39;&#39;&#39;</span><span class="p">)</span>\
+            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="nb">locals</span><span class="p">())</span>
+        <span class="n">_func_spec</span> <span class="o">+=</span> <span class="p">(</span>
+            <span class="s">&#39;    _ret_obj.{_propname} = _caffe_pb2.{_param_obj}(**{_propname}_kwargs){_os.linesep}&#39;</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="nb">locals</span><span class="p">())</span>  <span class="c"># noqa</span>
     <span class="n">_func_spec</span> <span class="o">+=</span> <span class="s">&#39;    _ret_obj.type = &quot;{}&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_layerkey</span><span class="p">)</span> <span class="o">+</span> <span class="n">_os</span><span class="o">.</span><span class="n">linesep</span>
     <span class="n">_func_spec</span> <span class="o">+=</span> <span class="s">&#39;    return _ret_obj&#39;</span>
     <span class="n">_LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">_func_spec</span><span class="p">)</span>
@@ -851,7 +882,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, The barrista authors.
+        &copy; Copyright 2015, University of Tuebingen.
 
     </p>
   </div>

@@ -1,0 +1,1098 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>barrista.solver &mdash; barrista  documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="author" title="About these documents"
+              href="../../about.html"/>
+    <link rel="top" title="barrista  documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> barrista
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../setup.html">Setup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Using <cite>barrista</cite></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../barrista.html">API documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../about.html">About</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../index.html">barrista</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      
+    <li>barrista.solver</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for barrista.solver</h1><div class="highlight"><pre>
+<span class="c"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;Exposes the caffe solvers.&quot;&quot;&quot;</span>
+<span class="c"># pylint: disable=E1101, F0401, C0103, R0913, R0914, W0212, E1121</span>
+<span class="kn">import</span> <span class="nn">hashlib</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">from</span> <span class="nn">tempfile</span> <span class="kn">import</span> <span class="n">NamedTemporaryFile</span> <span class="k">as</span> <span class="n">_NamedTemporaryFile</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">_np</span>
+
+<span class="kn">import</span> <span class="nn">google.protobuf.text_format</span> <span class="kn">as</span> <span class="nn">_gprototext</span>
+
+<span class="c"># CAREFUL! This must be imported pre any caffe-related import!</span>
+<span class="kn">from</span> <span class="nn">.tools</span> <span class="kn">import</span> <span class="n">pbufToPyEnum</span> <span class="k">as</span> <span class="n">_pbufToPyEnum</span>
+
+<span class="kn">import</span> <span class="nn">caffe</span> <span class="kn">as</span> <span class="nn">_caffe</span>
+<span class="kn">import</span> <span class="nn">caffe.proto.caffe_pb2</span> <span class="kn">as</span> <span class="nn">_caffe_pb2</span>
+
+<span class="c">#: Describes the type of the solver used. All solver types supported by caffe</span>
+<span class="c">#: are available.</span>
+<span class="n">SolverType</span> <span class="o">=</span> <span class="n">_pbufToPyEnum</span><span class="p">(</span><span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">SolverParameter</span><span class="o">.</span><span class="n">SolverType</span><span class="p">)</span>
+
+<span class="c">#: Describes the Phase used. All solver types supported by caffe</span>
+<span class="c">#: are available.</span>
+<span class="n">_Phase</span> <span class="o">=</span> <span class="n">_pbufToPyEnum</span><span class="p">(</span><span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">Phase</span><span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">monitoring</span> <span class="k">as</span> <span class="n">_monitoring</span>
+
+<span class="n">_HAS_ITER_SIZE</span> <span class="o">=</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">SolverParameter</span><span class="p">,</span> <span class="s">&#39;iter_size&#39;</span><span class="p">)</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">_ADAM_SOLVER_CLASS</span> <span class="o">=</span> <span class="n">_caffe</span><span class="o">.</span><span class="n">AdamSolver</span>
+    <span class="n">_ADAM_SOLVER_ENUM</span> <span class="o">=</span> <span class="n">SolverType</span><span class="o">.</span><span class="n">ADAM</span>
+<span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+    <span class="n">_ADAM_SOLVER_CLASS</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">_ADAM_SOLVER_ENUM</span> <span class="o">=</span> <span class="bp">None</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">_ADADELTA_SOLVER_CLASS</span> <span class="o">=</span> <span class="n">_caffe</span><span class="o">.</span><span class="n">AdaDeltaSolver</span>
+    <span class="n">_ADADELTA_SOLVER_ENUM</span> <span class="o">=</span> <span class="n">SolverType</span><span class="o">.</span><span class="n">ADADELTA</span>
+<span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+    <span class="n">_ADADELTA_SOLVER_CLASS</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">_ADADELTA_SOLVER_ENUM</span> <span class="o">=</span> <span class="bp">None</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">_ADAGRAD_SOLVER_CLASS</span> <span class="o">=</span> <span class="n">_caffe</span><span class="o">.</span><span class="n">AdaGradSolver</span>
+    <span class="n">_ADAGRAD_SOLVER_ENUM</span> <span class="o">=</span> <span class="n">SolverType</span><span class="o">.</span><span class="n">ADAGRAD</span>
+<span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+    <span class="n">_ADAGRAD_SOLVER_CLASS</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">_ADAGRAD_SOLVER_ENUM</span> <span class="o">=</span> <span class="bp">None</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">_RMSPROP_SOLVER_CLASS</span> <span class="o">=</span> <span class="n">_caffe</span><span class="o">.</span><span class="n">RMSPropSolver</span>
+    <span class="n">_RMSPROP_SOLVER_ENUM</span> <span class="o">=</span> <span class="n">SolverType</span><span class="o">.</span><span class="n">RMSPROP</span>
+<span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+    <span class="n">_RMSPROP_SOLVER_CLASS</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">_RMSPROP_SOLVER_ENUM</span> <span class="o">=</span> <span class="bp">None</span>
+
+<div class="viewcode-block" id="Solver"><a class="viewcode-back" href="../../barrista.html#barrista.solver.Solver">[docs]</a><span class="k">class</span> <span class="nc">Solver</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;Describes the Solver concept.&quot;&quot;&quot;</span>
+
+    <span class="n">_solver_types</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">_caffe_solver_type</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">_solver_type</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        Constructor.</span>
+
+<span class="sd">        :param iter_size: int&gt;0.</span>
+<span class="sd">          The number of batches the gradient is accumulated over (not</span>
+<span class="sd">          available in older caffe versions).</span>
+
+<span class="sd">        :param lr_policy: string in [&#39;fixed&#39;, &#39;step&#39;, ...]</span>
+<span class="sd">          The policy to use to adjust the learning rate during fitting.</span>
+<span class="sd">          Taken from ``solver.cpp``:</span>
+
+<span class="sd">          * fixed: always return base_lr.</span>
+<span class="sd">          * step: return base_lr \* gamma ^ (floor(iter / step))</span>
+<span class="sd">          * exp: return base_lr \* gamma ^ iter</span>
+<span class="sd">          * inv: return base_lr \* (1 + gamma \* iter) ^ (- power)</span>
+<span class="sd">          * multistep: similar to step but it allows non uniform steps defined</span>
+<span class="sd">            by stepvalue</span>
+<span class="sd">          * poly: the effective learning rate follows a polynomial decay, to be</span>
+<span class="sd">            zero by the max_iter. return base_lr (1 - iter/max_iter) ^ (power)</span>
+<span class="sd">          * sigmoid: the effective learning rate follows a sigmod decay</span>
+<span class="sd">            return base_lr ( 1/(1 + exp(-gamma \* (iter - stepsize))))</span>
+
+<span class="sd">        :param base_lr: float or None.</span>
+<span class="sd">          The base learning rate to use.</span>
+
+<span class="sd">        :param gamma: float or None.</span>
+
+<span class="sd">        :param power: float or None.</span>
+
+<span class="sd">        :param weight_decay: float or None.</span>
+<span class="sd">          Use weight decay to reduce the weights at each step.</span>
+
+<span class="sd">        :param regularization_type: string in [&#39;L1&#39;, &#39;L2&#39;].</span>
+<span class="sd">          Specifies how the ``weight_decay`` is applied.</span>
+
+<span class="sd">        :param step_stepsize: float or None.</span>
+<span class="sd">          The stepsize for the step policy.</span>
+
+<span class="sd">        :param stepvalue: float or None.</span>
+<span class="sd">          The stepvalue parameter for the multistep policy.</span>
+
+<span class="sd">        :param clip_gradients: float or None.</span>
+<span class="sd">          Clips the gradients to the specified value.</span>
+
+<span class="sd">        :param random_seed: int&gt;0 or None.</span>
+<span class="sd">          If specified, seeds the solver for reproducible results. Otherwise,</span>
+<span class="sd">          it uses a time dependent seed.</span>
+
+<span class="sd">        :param debug_info: bool.</span>
+<span class="sd">          If set to ``True``, gives additional output in the logs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_net</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_hash</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c"># some default internal parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="s">&#39;snapshot_after_train&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="s">&#39;solver_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_caffe_solver_type</span>
+
+        <span class="c"># every solver can append its on assertions or overwrite the given ones</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_asserts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">_HAS_ITER_SIZE</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_asserts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Assert_iter_size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_asserts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Assert_regularization_types</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_asserts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Assert_policy</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_solver</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_print_warning</span> <span class="o">=</span> <span class="bp">False</span>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Solver.Get_required_arguments"><a class="viewcode-back" href="../../barrista.html#barrista.solver.Solver.Get_required_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">Get_required_arguments</span><span class="p">(</span><span class="n">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The minimum number of required parameters.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="s">&#39;base_lr&#39;</span><span class="p">]</span>
+</div>
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Solver.Get_optional_arguments"><a class="viewcode-back" href="../../barrista.html#barrista.solver.Solver.Get_optional_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">Get_optional_arguments</span><span class="p">(</span><span class="n">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the optional parameters.</span>
+
+<span class="sd">        Optional parameters and some of which are None</span>
+<span class="sd">        not all combinations are possible, this is enforced by various</span>
+<span class="sd">        asserts when calling Get_parameter_dict().</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ret_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;debug_info&#39;</span><span class="p">:</span> <span class="bp">False</span><span class="p">,</span>
+                    <span class="s">&#39;weight_decay&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
+                    <span class="s">&#39;lr_policy&#39;</span><span class="p">:</span> <span class="s">&#39;fixed&#39;</span><span class="p">,</span>
+                    <span class="s">&#39;regularization_type&#39;</span><span class="p">:</span> <span class="s">&#39;L2&#39;</span><span class="p">,</span>
+                    <span class="s">&#39;power&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
+                    <span class="s">&#39;gamma&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
+                    <span class="s">&#39;stepsize&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
+                    <span class="s">&#39;stepvalue&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
+                    <span class="s">&#39;clip_gradients&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
+                    <span class="s">&#39;random_seed&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
+                    <span class="s">&#39;net&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">}</span>
+        <span class="k">if</span> <span class="n">_HAS_ITER_SIZE</span><span class="p">:</span>
+            <span class="n">ret_dict</span><span class="p">[</span><span class="s">&#39;iter_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">ret_dict</span>
+</div>
+<div class="viewcode-block" id="Solver.fit"><a class="viewcode-back" href="../../barrista.html#barrista.solver.Solver.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">iterations</span><span class="p">,</span>
+            <span class="n">X</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+            <span class="n">X_val</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+            <span class="n">test_iterations</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">test_interval</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">test_initialization</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+            <span class="n">train_callbacks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+            <span class="n">test_callbacks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+            <span class="n">net</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+            <span class="n">read_input_batch_size_from_blob_name</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">        fit the network to specific data.</span>
+
+<span class="sd">        Use monitors from the module :py:mod:`barrista.monitoring` as</span>
+<span class="sd">        callbacks to monitor the state of the net and create checkpoints.</span>
+<span class="sd">        This method offers the following kwargs to monitors (* indicates,</span>
+<span class="sd">        that the values are only available at test time, - indicates, that</span>
+<span class="sd">        the value is not necessarily available):</span>
+
+<span class="sd">        * max_iter,</span>
+<span class="sd">        * iter,</span>
+<span class="sd">        * batch_size,</span>
+<span class="sd">        * net,</span>
+<span class="sd">        * testnet\[only if there is a test phase, e.g. X_val is set]</span>
+<span class="sd">        * solver,</span>
+<span class="sd">        * callback_signal\[is automatically set by the fit function],</span>
+<span class="sd">        * X\-[only if provided by the user],</span>
+<span class="sd">        * X_val\-[only if provided by the user],</span>
+<span class="sd">        * [the following fields are only set if the corresponding</span>
+<span class="sd">           loss/accuracy layer exists for the train and/or test phase.</span>
+<span class="sd">           It can also be set by providing a custom ResultExtractor]</span>
+<span class="sd">        * loss\-,</span>
+<span class="sd">        * test_loss\*,</span>
+<span class="sd">        * accuracy\-,</span>
+<span class="sd">        * test_accuracy\*-,</span>
+
+<span class="sd">        :param iterations: int.</span>
+<span class="sd">          The number of training iterations to do. This is the plain number</span>
+<span class="sd">          of iterations, completely disregarding the batch size, i.e., for</span>
+<span class="sd">          ``iterations`` being 10 and ``batch_size`` being 10, just one batch</span>
+<span class="sd">          is forward propagated.</span>
+
+<span class="sd">        :param X: dict of numpy.ndarray or None.</span>
+<span class="sd">          If specified, is used as input data. It is used sequentially, so</span>
+<span class="sd">          shuffle it pre, if required. The keys of the dict have to have</span>
+<span class="sd">          a corresponding layer name in the net.</span>
+
+<span class="sd">        :param X_val: dict of numpy.ndarray or None.</span>
+<span class="sd">          If specified and ``test_interval&gt;0``, it is used as input data.</span>
+<span class="sd">          It is used sequentially, so shuffle it pre, if required. The</span>
+<span class="sd">          keys of the dict have to have a corresponding layer name in</span>
+<span class="sd">          the net.</span>
+
+<span class="sd">        :param test_iterations: int.</span>
+<span class="sd">          The number of test iterations to determine the validation score,</span>
+<span class="sd">          if ``test_interval&gt;0``.</span>
+
+<span class="sd">        :param test_interval: int.</span>
+<span class="sd">          The number of iterations between runs on the validation set. Is</span>
+<span class="sd">          specified in plain iterations, disregarding batch size. Hence, it</span>
+<span class="sd">          must be a multiple of the batch size.</span>
+
+<span class="sd">        :param test_initialization: bool.</span>
+<span class="sd">          Whether to do a run on the validation set pre the training is</span>
+<span class="sd">          started to get an initial score.</span>
+
+<span class="sd">        :param train_callbacks: list(callable).</span>
+<span class="sd">          List of callback callables. Will be called pre and post training</span>
+<span class="sd">          batch is processed. This list will be processed</span>
+<span class="sd">          sequentially, meaning that monitors in the sequence can</span>
+<span class="sd">          provide information for later monitors as done with</span>
+<span class="sd">          ResultExtractor.</span>
+
+<span class="sd">        :param test_callbacks: list(callable).</span>
+<span class="sd">          List of callback callables. Will be called for pre and post</span>
+<span class="sd">          testing and pre and post each batch of testing processed.</span>
+<span class="sd">          This list will be processed sequentially, meaning that</span>
+<span class="sd">          monitors in the sequence can provide information for later</span>
+<span class="sd">          monitors as done with ResultExtractor.</span>
+
+<span class="sd">        :param read_input_batch_size_from_blob_name: string.</span>
+<span class="sd">          The name of the layer to take the input batch size from (as the</span>
+<span class="sd">          first dimension of its first blob). Must be specified if the</span>
+<span class="sd">          network does not have explicit inputs (e.g., when trained from</span>
+<span class="sd">          an LMDB).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">net</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">barrista</span> <span class="kn">import</span> <span class="n">net</span> <span class="k">as</span> <span class="n">_net</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">net</span><span class="p">,</span> <span class="n">_net</span><span class="o">.</span><span class="n">Net</span><span class="p">),</span> <span class="p">(</span>
+                <span class="s">&#39;net must be an instance of barrista.net.Net&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Update_net</span><span class="p">(</span><span class="n">net</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_net</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s">&#39;neither the solver was initialized with a net nor&#39;</span><span class="p">,</span>
+            <span class="s">&#39;the fit function was called with one&#39;</span><span class="p">)</span>
+
+        <span class="n">train_callbacks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Assert_callbacks</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_net</span><span class="p">,</span>
+                                                 <span class="n">train_callbacks</span><span class="p">,</span>
+                                                 <span class="s">&#39;train&#39;</span><span class="p">)</span>
+        <span class="n">test_callbacks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Assert_callbacks</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_net</span><span class="p">,</span>
+                                                <span class="n">test_callbacks</span><span class="p">,</span>
+                                                <span class="s">&#39;test&#39;</span><span class="p">)</span>
+
+        <span class="n">batch_size</span><span class="p">,</span> <span class="n">test_iterations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Get_batch_size</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_net</span><span class="p">,</span>
+            <span class="n">test_interval</span><span class="p">,</span>
+            <span class="n">test_iterations</span><span class="p">,</span>
+            <span class="n">X_val</span><span class="p">,</span>
+            <span class="n">read_input_batch_size_from_blob_name</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Assert_iterations</span><span class="p">(</span>
+            <span class="n">batch_size</span><span class="p">,</span>
+            <span class="n">iterations</span><span class="p">,</span>
+            <span class="n">test_interval</span><span class="p">,</span>
+            <span class="n">test_iterations</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Init_cycling_monitor</span><span class="p">(</span><span class="n">X</span><span class="p">,</span>
+                                   <span class="n">X_val</span><span class="p">,</span>
+                                   <span class="n">batch_size</span><span class="p">,</span>
+                                   <span class="n">test_interval</span><span class="p">,</span>
+                                   <span class="n">train_callbacks</span><span class="p">,</span>
+                                   <span class="n">test_callbacks</span><span class="p">)</span>
+
+        <span class="n">testnet</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Init_testnet</span><span class="p">(</span><span class="n">test_interval</span><span class="p">)</span>
+
+        <span class="n">iteration</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">cbparams</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;max_iter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">iterations</span>
+        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">batch_size</span>
+        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_net</span>
+        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;testnet&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">testnet</span>
+        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;solver&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span>
+        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;X&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span>
+        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;X_val&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">X_val</span>
+        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;train_callbacks&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">train_callbacks</span>
+        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;test_callbacks&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">train_callbacks</span>
+
+        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;pre_fit&#39;</span>
+        <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">train_callbacks</span> <span class="o">+</span> <span class="n">test_callbacks</span><span class="p">):</span>
+            <span class="n">cb</span><span class="p">(</span><span class="n">cbparams</span><span class="p">)</span>
+
+        <span class="k">while</span> <span class="n">iteration</span> <span class="o">&lt;=</span> <span class="n">iterations</span><span class="p">:</span>
+            <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">iteration</span>
+            <span class="c"># Check whether to test the net.</span>
+            <span class="k">if</span> <span class="p">((</span><span class="n">test_interval</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span>
+                 <span class="n">iteration</span> <span class="o">%</span> <span class="n">test_interval</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">iteration</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span>
+                    <span class="p">(</span><span class="n">iteration</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">test_initialization</span><span class="p">)</span> <span class="ow">or</span>
+                    <span class="p">(</span><span class="n">test_interval</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">iteration</span> <span class="o">+</span> <span class="n">batch_size</span>
+                     <span class="o">&gt;=</span> <span class="n">iterations</span><span class="p">)):</span>
+                <span class="c">###############################################################</span>
+                <span class="c"># testing loop</span>
+                <span class="c">###############################################################</span>
+                <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;pre_test&#39;</span>
+                <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">test_callbacks</span><span class="p">:</span>
+                    <span class="n">cb</span><span class="p">(</span><span class="n">cbparams</span><span class="p">)</span>
+
+                <span class="n">test_iter</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">while</span> <span class="n">test_iter</span> <span class="o">&lt;</span> <span class="n">test_iterations</span><span class="p">:</span>
+                    <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;pre_test_batch&#39;</span>
+                    <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">test_callbacks</span><span class="p">:</span>
+                        <span class="n">cb</span><span class="p">(</span><span class="n">cbparams</span><span class="p">)</span>
+
+                    <span class="c"># need to multiply by batch_size since it is normalized</span>
+                    <span class="c"># internally</span>
+                    <span class="c"># pylint: disable=W0212</span>
+                    <span class="n">testnet</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">testnet</span><span class="o">.</span><span class="n">layers</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+                    <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;post_test_batch&#39;</span>
+                    <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">test_callbacks</span><span class="p">:</span>
+                        <span class="n">cb</span><span class="p">(</span><span class="n">cbparams</span><span class="p">)</span>
+                    <span class="n">test_iter</span> <span class="o">+=</span> <span class="n">batch_size</span>
+
+                <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;post_test&#39;</span>
+                <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">test_callbacks</span><span class="p">:</span>
+                    <span class="n">cb</span><span class="p">(</span><span class="n">cbparams</span><span class="p">)</span>
+
+            <span class="c">###############################################################</span>
+            <span class="c"># training loop</span>
+            <span class="c">###############################################################</span>
+
+            <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;pre_train_batch&#39;</span>
+            <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">train_callbacks</span><span class="p">:</span>
+                <span class="n">cb</span><span class="p">(</span><span class="n">cbparams</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;post_train_batch&#39;</span>
+            <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">train_callbacks</span><span class="p">:</span>
+                <span class="n">cb</span><span class="p">(</span><span class="n">cbparams</span><span class="p">)</span>
+
+            <span class="n">iteration</span> <span class="o">+=</span> <span class="n">batch_size</span>
+
+        <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">train_callbacks</span> <span class="o">+</span> <span class="n">test_callbacks</span><span class="p">):</span>
+            <span class="n">cb</span><span class="o">.</span><span class="n">finalize</span><span class="p">(</span><span class="n">cbparams</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Solver.step"><a class="viewcode-back" href="../../barrista.html#barrista.solver.Solver.step">[docs]</a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">number_of_batches</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Run ``number_of_batches`` solver steps.&quot;&quot;&quot;</span>
+        <span class="n">tmp_hash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Get_parameter_hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Get_parameter_dict</span><span class="p">())</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_hash</span> <span class="o">!=</span> <span class="n">tmp_hash</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_print_warning</span><span class="p">:</span>
+                <span class="k">print</span><span class="p">(</span><span class="s">&#39;WARNING::---------------------------------------------&#39;</span><span class="p">)</span>
+                <span class="k">print</span><span class="p">(</span><span class="s">&#39;you are re-initializing a new solver which will delete&#39;</span><span class="p">)</span>
+                <span class="k">print</span><span class="p">(</span><span class="s">&#39;the weight history of the solver.&#39;</span><span class="p">)</span>
+                <span class="k">print</span><span class="p">(</span><span class="s">&#39;Only use this option if you know what you are doing&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_print_warning</span> <span class="o">=</span> <span class="bp">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Update_solver</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_solver</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">number_of_batches</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Solver.Get_parameter_dict"><a class="viewcode-back" href="../../barrista.html#barrista.solver.Solver.Get_parameter_dict">[docs]</a>    <span class="k">def</span> <span class="nf">Get_parameter_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the solver describing parameters in a dictionary.&quot;&quot;&quot;</span>
+        <span class="c"># work our stack of assertions followed by a weak copy of the dict</span>
+        <span class="k">for</span> <span class="n">Tmp_assert</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asserts</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">Tmp_assert</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Solver.Assert_iter_size"><a class="viewcode-back" href="../../barrista.html#barrista.solver.Solver.Assert_iter_size">[docs]</a>    <span class="k">def</span> <span class="nf">Assert_iter_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Enforce the parameter constraints.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="s">&#39;iter_size&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span>
+</div>
+<div class="viewcode-block" id="Solver.Assert_regularization_types"><a class="viewcode-back" href="../../barrista.html#barrista.solver.Solver.Assert_regularization_types">[docs]</a>    <span class="k">def</span> <span class="nf">Assert_regularization_types</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Enforce the parameter constraints.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="s">&#39;regularization_type&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;L1&#39;</span><span class="p">,</span> <span class="s">&#39;L2&#39;</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="Solver.Assert_policy"><a class="viewcode-back" href="../../barrista.html#barrista.solver.Solver.Assert_policy">[docs]</a>    <span class="k">def</span> <span class="nf">Assert_policy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c"># pylint: disable=R0911</span>
+        <span class="sd">&quot;&quot;&quot;Enforce the parameter constraints.&quot;&quot;&quot;</span>
+        <span class="c"># although redundant this allows to have a quick check</span>
+        <span class="c"># of what is really required without loading the actuall net which</span>
+        <span class="c"># might take a bit of time</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="s">&#39;lr_policy&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;fixed&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="s">&#39;lr_policy&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;step&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">&#39;gamma&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="s">&#39;lr_policy&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;exp&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">&#39;gamma&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="s">&#39;lr_policy&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;inv&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="s">&#39;gamma&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span> <span class="ow">and</span>
+                    <span class="s">&#39;power&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="s">&#39;lr_policy&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;multistep&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="s">&#39;stepvalue&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span> <span class="ow">and</span>
+                    <span class="s">&#39;stepsize&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span> <span class="ow">and</span>
+                    <span class="s">&#39;gamma&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="s">&#39;lr_policy&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;poly&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">&#39;power&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="s">&#39;lr_policy&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;sigmoid&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">&#39;stepsize&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span>
+        <span class="k">return</span> <span class="bp">False</span>
+</div>
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Solver.Get_parameter_hash"><a class="viewcode-back" href="../../barrista.html#barrista.solver.Solver.Get_parameter_hash">[docs]</a>    <span class="k">def</span> <span class="nf">Get_parameter_hash</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">solver_parameter_dict</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get a has of the parameter dict.&quot;&quot;&quot;</span>
+        <span class="n">hash_obj</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">solver_parameter_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="n">hash_obj</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+            <span class="n">hash_obj</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">solver_parameter_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]))</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">hash_obj</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">())</span>
+</div>
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Solver.Get_caffe_solver_instance"><a class="viewcode-back" href="../../barrista.html#barrista.solver.Solver.Get_caffe_solver_instance">[docs]</a>    <span class="k">def</span> <span class="nf">Get_caffe_solver_instance</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">solver_parameter_dict</span><span class="p">,</span> <span class="n">net</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get a caffe solver object.&quot;&quot;&quot;</span>
+        <span class="c"># now we actually create a instance of the solver</span>
+        <span class="n">solver_message</span> <span class="o">=</span> <span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">SolverParameter</span><span class="p">(</span><span class="o">**</span><span class="n">solver_parameter_dict</span><span class="p">)</span>
+        <span class="n">messagestr</span> <span class="o">=</span> <span class="n">_gprototext</span><span class="o">.</span><span class="n">MessageToString</span><span class="p">(</span><span class="n">solver_message</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">_NamedTemporaryFile</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s">&#39;w+b&#39;</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s">&#39;.prototxt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">tmpfile</span><span class="p">:</span>
+            <span class="n">tmpfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">messagestr</span><span class="p">)</span>
+            <span class="n">tmpfile</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">cls</span><span class="o">.</span><span class="n">Get_caffe_solver_class</span><span class="p">(</span>
+                <span class="n">solver_parameter_dict</span><span class="p">[</span><span class="s">&#39;solver_type&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">_caffe_solver_class</span><span class="p">(</span>
+                    <span class="n">tmpfile</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">net</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&#39;could not initialize solver class&#39;</span><span class="p">)</span>
+</div>
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Solver.Get_solver_class"><a class="viewcode-back" href="../../barrista.html#barrista.solver.Solver.Get_solver_class">[docs]</a>    <span class="k">def</span> <span class="nf">Get_solver_class</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">solver_type</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the solver class as string.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">cls</span><span class="o">.</span><span class="n">_solver_types</span><span class="p">[</span><span class="n">solver_type</span><span class="p">]</span>
+</div>
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Solver.Get_caffe_solver_class"><a class="viewcode-back" href="../../barrista.html#barrista.solver.Solver.Get_caffe_solver_class">[docs]</a>    <span class="k">def</span> <span class="nf">Get_caffe_solver_class</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">caffe_solver_type</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the solver class as ``caffe_solver_type``.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">cls</span><span class="o">.</span><span class="n">_solver_types</span><span class="p">[</span><span class="n">caffe_solver_type</span><span class="p">]</span>
+</div>
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Solver.Register_solver"><a class="viewcode-back" href="../../barrista.html#barrista.solver.Solver.Register_solver">[docs]</a>    <span class="k">def</span> <span class="nf">Register_solver</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">solver_class</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Register a solver class.&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">solver_class</span><span class="p">,</span> <span class="n">Solver</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">solver_class</span><span class="o">.</span><span class="n">_solver_type</span> <span class="ow">in</span> <span class="n">cls</span><span class="o">.</span><span class="n">_solver_types</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s">&#39;solver&#39;</span><span class="p">,</span>
+                         <span class="n">solver_class</span><span class="o">.</span><span class="n">_solver_type</span><span class="p">,</span>
+                         <span class="s">&#39;already defined&#39;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">solver_class</span><span class="o">.</span><span class="n">_caffe_solver_type</span> <span class="ow">in</span> <span class="n">cls</span><span class="o">.</span><span class="n">_solver_types</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s">&#39;solver&#39;</span><span class="p">,</span>
+                         <span class="n">solver_class</span><span class="o">.</span><span class="n">_solver_type</span><span class="p">,</span>
+                         <span class="s">&#39;already defined&#39;</span><span class="p">))</span>
+        <span class="c"># we register with both access types</span>
+        <span class="n">cls</span><span class="o">.</span><span class="n">_solver_types</span><span class="p">[</span><span class="n">solver_class</span><span class="o">.</span><span class="n">_caffe_solver_type</span><span class="p">]</span> <span class="o">=</span> <span class="n">solver_class</span>
+        <span class="n">cls</span><span class="o">.</span><span class="n">_solver_types</span><span class="p">[</span><span class="n">solver_class</span><span class="o">.</span><span class="n">_solver_type</span><span class="p">]</span> <span class="o">=</span> <span class="n">solver_class</span>
+</div>
+    <span class="k">def</span> <span class="nf">_Update_solver</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Re-initialize the solver.&quot;&quot;&quot;</span>
+        <span class="c"># we (re-)initialize the solver</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_solver</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Get_caffe_solver_instance</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Get_parameter_dict</span><span class="p">(),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_net</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_hash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Get_parameter_hash</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Get_parameter_dict</span><span class="p">())</span>
+
+        <span class="c"># we only want to see the warning once</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_print_warning</span> <span class="o">=</span> <span class="bp">True</span>
+
+<div class="viewcode-block" id="Solver.update_parameters"><a class="viewcode-back" href="../../barrista.html#barrista.solver.Solver.update_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">update_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Update the solver parameters.&quot;&quot;&quot;</span>
+        <span class="c"># adding the default keys if they are not yet set</span>
+        <span class="k">for</span> <span class="n">argument</span><span class="p">,</span> <span class="n">default</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Get_optional_arguments</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="n">argument</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span> <span class="ow">and</span> <span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="n">argument</span><span class="p">]</span> <span class="o">=</span> <span class="n">default</span>
+
+        <span class="c"># first add all parameters which are actually required</span>
+        <span class="k">for</span> <span class="n">arg_key</span><span class="p">,</span> <span class="n">arg_value</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="n">arg_key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">Get_required_arguments</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="n">arg_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">arg_value</span>
+
+        <span class="c"># make sure that all required arguments are set</span>
+        <span class="n">tmp_required_arguments</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Get_required_arguments</span><span class="p">())</span>
+        <span class="n">intersection</span> <span class="o">=</span> <span class="n">tmp_required_arguments</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+        <span class="k">if</span> <span class="n">intersection</span> <span class="o">!=</span> <span class="n">tmp_required_arguments</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="p">[</span><span class="s">&#39;we are missing required arguments&#39;</span><span class="p">,</span>
+                 <span class="nb">str</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">())),</span>
+                 <span class="s">&#39;vs&#39;</span><span class="p">,</span>
+                 <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Get_required_arguments</span><span class="p">())]))</span>
+
+        <span class="k">for</span> <span class="n">arg_key</span><span class="p">,</span> <span class="n">arg_value</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+            <span class="c"># the very special case of passing the net</span>
+            <span class="c"># this will not be passed as a parameter to the parameter dict</span>
+            <span class="c"># but we will ensure that the net is always the same</span>
+            <span class="c"># as the one used for initialization</span>
+            <span class="k">if</span> <span class="n">arg_key</span> <span class="o">==</span> <span class="s">&#39;net&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_Update_net</span><span class="p">(</span><span class="n">arg_value</span><span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">arg_key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Get_optional_arguments</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="n">arg_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">arg_value</span>
+
+        <span class="c"># we make sure that there is no spelling mistake in the kwargs</span>
+        <span class="n">total_arguments</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Get_required_arguments</span><span class="p">())</span>
+        <span class="n">total_arguments</span> <span class="o">=</span> <span class="n">total_arguments</span><span class="o">.</span><span class="n">union</span><span class="p">(</span>
+            <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Get_optional_arguments</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+        <span class="k">for</span> <span class="n">argument</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="n">argument</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">total_arguments</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="p">[</span><span class="s">&#39;argument&#39;</span><span class="p">,</span> <span class="n">argument</span><span class="p">,</span> <span class="s">&#39;is not supported&#39;</span><span class="p">]))</span>
+</div>
+    <span class="k">def</span> <span class="nf">_Update_net</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">net</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Check that the net remains the same.&quot;&quot;&quot;</span>
+        <span class="c"># since the user could potentially provide two different nets to</span>
+        <span class="c"># the solver, which is not supported, thus we check that the net</span>
+        <span class="c"># has not changed</span>
+        <span class="k">if</span> <span class="n">net</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_net</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_net</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">id</span><span class="p">(</span><span class="n">net</span><span class="p">):</span>
+                <span class="kn">from</span> <span class="nn">ktoolspy</span> <span class="kn">import</span> <span class="n">klog</span>
+                <span class="n">klog</span><span class="o">.</span><span class="n">Error_ipdb</span><span class="p">()</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="p">[</span><span class="s">&#39;a solver works only with one network&#39;</span><span class="p">,</span>
+                     <span class="s">&#39;the network has to remain the same&#39;</span><span class="p">]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_net</span> <span class="o">=</span> <span class="n">net</span>
+
+    <span class="k">def</span> <span class="nf">_Get_batch_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                        <span class="n">net</span><span class="p">,</span>
+                        <span class="n">test_interval</span><span class="p">,</span>
+                        <span class="n">test_iterations</span><span class="p">,</span>
+                        <span class="n">X_val</span><span class="p">,</span>
+                        <span class="n">read_input_batch_size_from_blob_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the batch size and the test iterations.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c"># Otherwise, a DB backend is used.</span>
+            <span class="n">batch_size</span> <span class="o">=</span> <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">net</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">test_interval</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span>
+                    <span class="n">test_iterations</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span>
+                    <span class="n">X_val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">):</span>
+                <span class="n">test_iterations</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">X_val</span><span class="p">))</span> <span class="o">/</span>
+                                           <span class="nb">float</span><span class="p">(</span><span class="n">batch_size</span><span class="p">))</span> <span class="o">*</span> <span class="n">batch_size</span>
+            <span class="k">if</span> <span class="n">read_input_batch_size_from_blob_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">tmp_batch_size</span> <span class="o">=</span> <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span>
+                    <span class="n">read_input_batch_size_from_blob_name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">assert</span> <span class="p">(</span><span class="n">tmp_batch_size</span> <span class="o">==</span> <span class="n">batch_size</span><span class="p">),</span> <span class="p">(</span>
+                    <span class="s">&quot;The input size and the first dimension of &quot;</span>
+                    <span class="s">&quot;the blob to read the batch size from don&#39;t &quot;</span>
+                    <span class="s">&quot;match: {}, {}.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tmp_batch_size</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">test_iterations</span>
+
+        <span class="c"># some kind of backend is used</span>
+        <span class="k">assert</span> <span class="n">read_input_batch_size_from_blob_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s">&#39;no inputs thus the batch_size must be determined from a blob&#39;</span><span class="p">)</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span>
+            <span class="n">read_input_batch_size_from_blob_name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">test_iterations</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_Assert_iterations</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span>
+                           <span class="n">batch_size</span><span class="p">,</span>
+                           <span class="n">iterations</span><span class="p">,</span>
+                           <span class="n">test_interval</span><span class="p">,</span>
+                           <span class="n">test_iterations</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Make sure iterations follow all of our rules.&quot;&quot;&quot;</span>
+        <span class="c"># namely being a multiple of the batch_size</span>
+        <span class="k">assert</span> <span class="n">iterations</span> <span class="o">%</span> <span class="n">batch_size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s">&#39;error iterations do not match {} {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">iterations</span><span class="p">,</span>
+                                                         <span class="n">batch_size</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">test_interval</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">test_iterations</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s">&#39;test iterations must be &gt; 0 but is {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">test_iterations</span><span class="p">))</span>
+        <span class="c"># Set the configurable arguments.</span>
+        <span class="k">assert</span> <span class="n">test_iterations</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s">&#39;test iterations must be &gt;= 0 but is {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">test_iterations</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="n">test_interval</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s">&#39;test interval must be &gt;= 0 but is {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">test_iterations</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="n">test_interval</span> <span class="o">%</span> <span class="n">batch_size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s">&#39;error iterations do not match&#39;</span><span class="p">,</span> <span class="n">test_iterations</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_Assert_callbacks</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">net</span><span class="p">,</span> <span class="n">callbacks</span><span class="p">,</span> <span class="n">phase</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Assert the callbacks work properly.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">callbacks</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">callbacks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">callbacks</span><span class="p">,</span> <span class="nb">list</span><span class="p">),</span> <span class="p">(</span>
+            <span class="s">&#39;callbacks have to be in a list {} {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">callbacks</span><span class="p">),</span> <span class="nb">type</span><span class="p">(</span><span class="n">callbacks</span><span class="p">)))</span>
+        <span class="k">for</span> <span class="n">callback</span> <span class="ow">in</span> <span class="n">callbacks</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">callback</span><span class="p">,</span> <span class="n">_monitoring</span><span class="o">.</span><span class="n">Monitor</span><span class="p">),</span> <span class="p">(</span>
+                <span class="s">&#39;a callback has to derive from montoring.Monitor&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s">&#39;loss&#39;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="n">callbacks</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">_monitoring</span><span class="o">.</span><span class="n">ResultExtractor</span><span class="p">(</span>
+                <span class="n">phase</span> <span class="o">+</span> <span class="s">&#39;_loss&#39;</span><span class="p">,</span> <span class="s">&#39;loss&#39;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="s">&#39;accuracy&#39;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="n">callbacks</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">_monitoring</span><span class="o">.</span><span class="n">ResultExtractor</span><span class="p">(</span>
+                <span class="n">phase</span> <span class="o">+</span> <span class="s">&#39;_accuracy&#39;</span><span class="p">,</span> <span class="s">&#39;accuracy&#39;</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">callbacks</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_Init_cycling_monitor</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span>
+                              <span class="n">X</span><span class="p">,</span>
+                              <span class="n">X_val</span><span class="p">,</span>
+                              <span class="n">batch_size</span><span class="p">,</span>
+                              <span class="n">test_interval</span><span class="p">,</span>
+                              <span class="n">train_callbacks</span><span class="p">,</span>
+                              <span class="n">test_callbacks</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convencience initialization function.</span>
+
+<span class="sd">        ...such that the user can</span>
+<span class="sd">        simply provide X, X_val dicts and we internally create</span>
+<span class="sd">        the CyclingDataMonitors.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">X</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&gt;=</span> <span class="n">batch_size</span>
+            <span class="c"># safety measure, we do not want to have two different data</span>
+            <span class="c"># monitors in the same callback list</span>
+            <span class="k">for</span> <span class="n">callback</span> <span class="ow">in</span> <span class="n">train_callbacks</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">callback</span><span class="p">,</span> <span class="n">_monitoring</span><span class="o">.</span><span class="n">DataMonitor</span><span class="p">),</span> <span class="p">(</span>
+                    <span class="s">&#39;if we use X we cannot use a data monitor&#39;</span><span class="p">)</span>
+            <span class="n">tmp_data_monitor</span> <span class="o">=</span> <span class="n">_monitoring</span><span class="o">.</span><span class="n">CyclingDataMonitor</span><span class="p">(</span><span class="n">X</span><span class="o">=</span><span class="n">X</span><span class="p">)</span>
+            <span class="n">train_callbacks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp_data_monitor</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">test_interval</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">X_val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">X_val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">X_val</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">])</span>
+
+            <span class="c"># safety measure, we do not want to have two different data</span>
+            <span class="c"># monitors in the same callback list</span>
+            <span class="k">for</span> <span class="n">callback</span> <span class="ow">in</span> <span class="n">test_callbacks</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">callback</span><span class="p">,</span> <span class="n">_monitoring</span><span class="o">.</span><span class="n">DataMonitor</span><span class="p">),</span> <span class="p">(</span>
+                    <span class="s">&#39;if we use X_val we cannot use a data monitor&#39;</span><span class="p">)</span>
+            <span class="n">tmp_data_monitor</span> <span class="o">=</span> <span class="n">_monitoring</span><span class="o">.</span><span class="n">CyclingDataMonitor</span><span class="p">(</span><span class="n">X</span><span class="o">=</span><span class="n">X_val</span><span class="p">)</span>
+            <span class="n">test_callbacks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp_data_monitor</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_Init_testnet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_interval</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize the test phase network.&quot;&quot;&quot;</span>
+        <span class="n">testnet</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">if</span> <span class="n">test_interval</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c"># Setup the test net.</span>
+            <span class="n">test_netspec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_net</span><span class="o">.</span><span class="n">_specification</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">test_netspec</span><span class="o">.</span><span class="n">phase</span> <span class="o">=</span> <span class="n">_Phase</span><span class="o">.</span><span class="n">TEST</span>
+            <span class="n">test_netspec</span><span class="o">.</span><span class="n">predict_inputs</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="n">test_netspec</span><span class="o">.</span><span class="n">predict_input_shapes</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="n">testnet</span> <span class="o">=</span> <span class="n">test_netspec</span><span class="o">.</span><span class="n">instantiate</span><span class="p">()</span>
+            <span class="n">testnet</span><span class="o">.</span><span class="n">share_with</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_net</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">testnet</span>
+
+</div>
+<div class="viewcode-block" id="SGDSolver"><a class="viewcode-back" href="../../barrista.html#barrista.solver.SGDSolver">[docs]</a><span class="k">class</span> <span class="nc">SGDSolver</span><span class="p">(</span><span class="n">Solver</span><span class="p">):</span>
+
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Thin wrapper for the vanilla SGD solver provided by the caffe framework.</span>
+
+<span class="sd">    :param momentum: float or None.</span>
+<span class="sd">      The momentum to use. Multiplies the former gradient with this factor</span>
+<span class="sd">      and adds it to the gradient in the following step.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_solver_type</span> <span class="o">=</span> <span class="s">&#39;sgd&#39;</span>
+    <span class="n">_caffe_solver_type</span> <span class="o">=</span> <span class="n">SolverType</span><span class="o">.</span><span class="n">SGD</span>
+    <span class="n">_caffe_solver_class</span> <span class="o">=</span> <span class="n">_caffe</span><span class="o">.</span><span class="n">SGDSolver</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Constructor.&quot;&quot;&quot;</span>
+        <span class="n">Solver</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="SGDSolver.Get_required_arguments"><a class="viewcode-back" href="../../barrista.html#barrista.solver.SGDSolver.Get_required_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">Get_required_arguments</span><span class="p">(</span><span class="n">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;See :py:class:`barrista.solver.Solver`.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Solver</span><span class="o">.</span><span class="n">Get_required_arguments</span><span class="p">()</span>
+</div>
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="SGDSolver.Get_optional_arguments"><a class="viewcode-back" href="../../barrista.html#barrista.solver.SGDSolver.Get_optional_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">Get_optional_arguments</span><span class="p">(</span><span class="n">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;See :py:class:`barrista.solver.Solver`.&quot;&quot;&quot;</span>
+        <span class="n">optional_arguments</span> <span class="o">=</span> <span class="n">Solver</span><span class="o">.</span><span class="n">Get_optional_arguments</span><span class="p">()</span>
+        <span class="n">optional_arguments</span><span class="p">[</span><span class="s">&#39;momentum&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">return</span> <span class="n">optional_arguments</span>
+
+</div></div>
+<div class="viewcode-block" id="AdagradSolver"><a class="viewcode-back" href="../../barrista.html#barrista.solver.AdagradSolver">[docs]</a><span class="k">class</span> <span class="nc">AdagradSolver</span><span class="p">(</span><span class="n">Solver</span><span class="p">):</span>
+
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Thin wrapper for the Adagrad solver provided by the caffe framework.</span>
+
+<span class="sd">    To understand how this solver works please inspect the</span>
+<span class="sd">    cplusplus implementation in solver.cpp.</span>
+
+<span class="sd">    The corresponding publication is called &#39;Adaptive Subgradient</span>
+<span class="sd">    Methods for Online Learning and Stochastic Optimization&#39; by</span>
+<span class="sd">    John Duchi, Elad Hazan, Yoram Singer</span>
+
+<span class="sd">    :param momentum: float or None.</span>
+<span class="sd">      The momentum to use. Multiplies the former gradient with this factor</span>
+<span class="sd">      and adds it to the gradient in the following step.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_solver_type</span> <span class="o">=</span> <span class="s">&#39;adagrad&#39;</span>
+    <span class="n">_caffe_solver_type</span> <span class="o">=</span> <span class="n">_ADAGRAD_SOLVER_ENUM</span>
+    <span class="n">_caffe_solver_class</span> <span class="o">=</span> <span class="n">_ADAGRAD_SOLVER_CLASS</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;See :py:class:`barrista.solver.Solver`.&quot;&quot;&quot;</span>
+        <span class="n">Solver</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="AdagradSolver.Get_required_arguments"><a class="viewcode-back" href="../../barrista.html#barrista.solver.AdagradSolver.Get_required_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">Get_required_arguments</span><span class="p">(</span><span class="n">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;See :py:class:`barrista.solver.Solver`.&quot;&quot;&quot;</span>
+        <span class="n">required_arguments</span> <span class="o">=</span> <span class="n">Solver</span><span class="o">.</span><span class="n">Get_required_arguments</span><span class="p">()</span>
+        <span class="n">required_arguments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&#39;delta&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">required_arguments</span>
+</div>
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="AdagradSolver.Get_optional_arguments"><a class="viewcode-back" href="../../barrista.html#barrista.solver.AdagradSolver.Get_optional_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">Get_optional_arguments</span><span class="p">(</span><span class="n">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;See :py:class:`barrista.solver.Solver`.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Solver</span><span class="o">.</span><span class="n">Get_optional_arguments</span><span class="p">()</span>
+
+</div></div>
+<div class="viewcode-block" id="NesterovSolver"><a class="viewcode-back" href="../../barrista.html#barrista.solver.NesterovSolver">[docs]</a><span class="k">class</span> <span class="nc">NesterovSolver</span><span class="p">(</span><span class="n">Solver</span><span class="p">):</span>
+
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Thin wrapper for the Nesterov solver provided by the caffe framework.</span>
+
+<span class="sd">    To understand how this solver works please inspect the</span>
+<span class="sd">    cplusplus implementation in solver.cpp.</span>
+
+<span class="sd">    :param momentum: float or None.</span>
+<span class="sd">      The momentum to use. Multiplies the former gradient with this factor</span>
+<span class="sd">      and adds it to the gradient in the following step.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_solver_type</span> <span class="o">=</span> <span class="s">&#39;nesterov&#39;</span>
+    <span class="n">_caffe_solver_type</span> <span class="o">=</span> <span class="n">SolverType</span><span class="o">.</span><span class="n">NESTEROV</span>
+    <span class="n">_caffe_solver_class</span> <span class="o">=</span> <span class="n">_caffe</span><span class="o">.</span><span class="n">NesterovSolver</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;See :py:class:`barrista.solver.Solver`.&quot;&quot;&quot;</span>
+        <span class="n">Solver</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="NesterovSolver.Get_required_arguments"><a class="viewcode-back" href="../../barrista.html#barrista.solver.NesterovSolver.Get_required_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">Get_required_arguments</span><span class="p">(</span><span class="n">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;See :py:class:`barrista.solver.Solver`.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Solver</span><span class="o">.</span><span class="n">Get_required_arguments</span><span class="p">()</span>
+</div>
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="NesterovSolver.Get_optional_arguments"><a class="viewcode-back" href="../../barrista.html#barrista.solver.NesterovSolver.Get_optional_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">Get_optional_arguments</span><span class="p">(</span><span class="n">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;See :py:class:`barrista.solver.Solver`.&quot;&quot;&quot;</span>
+        <span class="n">optional_arguments</span> <span class="o">=</span> <span class="n">Solver</span><span class="o">.</span><span class="n">Get_optional_arguments</span><span class="p">()</span>
+        <span class="n">optional_arguments</span><span class="p">[</span><span class="s">&#39;momentum&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">return</span> <span class="n">optional_arguments</span>
+
+</div></div>
+<div class="viewcode-block" id="RMSPropSolver"><a class="viewcode-back" href="../../barrista.html#barrista.solver.RMSPropSolver">[docs]</a><span class="k">class</span> <span class="nc">RMSPropSolver</span><span class="p">(</span><span class="n">Solver</span><span class="p">):</span>
+
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Thin wrapper for the RMSProp solver provided by the caffe framework.</span>
+
+<span class="sd">    To understand how this solver works please inspect the</span>
+<span class="sd">    cplusplus implementation in solver.cpp.</span>
+
+<span class="sd">    This solver has been discussed in a lecture given by Hinton.</span>
+<span class="sd">    www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf</span>
+
+<span class="sd">    :param rms_decay: float</span>
+<span class="sd">      MeanSquare(t) = rms_decay*MeanSquare(t-1)+(1-rms_decay)*SquareGradient(t)</span>
+<span class="sd">    :param delta: float</span>
+<span class="sd">        numerical stability [useful choice 1E-8]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_solver_type</span> <span class="o">=</span> <span class="s">&#39;rmsprop&#39;</span>
+    <span class="n">_caffe_solver_type</span> <span class="o">=</span> <span class="n">_RMSPROP_SOLVER_ENUM</span>
+    <span class="n">_caffe_solver_class</span> <span class="o">=</span> <span class="n">_RMSPROP_SOLVER_CLASS</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;See :py:class:`barrista.solver.Solver`.&quot;&quot;&quot;</span>
+        <span class="n">Solver</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="RMSPropSolver.Get_required_arguments"><a class="viewcode-back" href="../../barrista.html#barrista.solver.RMSPropSolver.Get_required_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">Get_required_arguments</span><span class="p">(</span><span class="n">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;See :py:class:`barrista.solver.Solver`.&quot;&quot;&quot;</span>
+        <span class="n">required_arguments</span> <span class="o">=</span> <span class="n">Solver</span><span class="o">.</span><span class="n">Get_required_arguments</span><span class="p">()</span>
+        <span class="n">required_arguments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&#39;rms_decay&#39;</span><span class="p">)</span>
+        <span class="n">required_arguments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&#39;delta&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">required_arguments</span>
+</div>
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="RMSPropSolver.Get_optional_arguments"><a class="viewcode-back" href="../../barrista.html#barrista.solver.RMSPropSolver.Get_optional_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">Get_optional_arguments</span><span class="p">(</span><span class="n">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;See :py:class:`barrista.solver.Solver`.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Solver</span><span class="o">.</span><span class="n">Get_optional_arguments</span><span class="p">()</span>
+
+</div></div>
+<div class="viewcode-block" id="AdaDeltaSolver"><a class="viewcode-back" href="../../barrista.html#barrista.solver.AdaDeltaSolver">[docs]</a><span class="k">class</span> <span class="nc">AdaDeltaSolver</span><span class="p">(</span><span class="n">Solver</span><span class="p">):</span>
+
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Thin wrapper for the AdaDelta solver provided by the caffe framework.</span>
+
+<span class="sd">    To understand how this solver works please inspect the</span>
+<span class="sd">    cplusplus implementation in solver.cpp.</span>
+
+<span class="sd">    The corresponding arxiv paper is called &#39;ADADELTA: An Adaptive</span>
+<span class="sd">    Learning Rate Method&#39; by Matthew D. Zeiler.</span>
+
+<span class="sd">    :param delta: float</span>
+<span class="sd">        numerical stability [useful choice 1E-8]</span>
+<span class="sd">    :param momentum: float or None.</span>
+<span class="sd">      The momentum to use. Multiplies the former gradient with this factor</span>
+<span class="sd">      and adds it to the gradient in the following step.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_solver_type</span> <span class="o">=</span> <span class="s">&#39;adadelta&#39;</span>
+    <span class="n">_caffe_solver_type</span> <span class="o">=</span> <span class="n">_ADADELTA_SOLVER_ENUM</span>
+    <span class="n">_caffe_solver_class</span> <span class="o">=</span> <span class="n">_ADADELTA_SOLVER_CLASS</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;See :py:class:`barrista.solver.Solver`.&quot;&quot;&quot;</span>
+        <span class="n">Solver</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="AdaDeltaSolver.Get_required_arguments"><a class="viewcode-back" href="../../barrista.html#barrista.solver.AdaDeltaSolver.Get_required_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">Get_required_arguments</span><span class="p">(</span><span class="n">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;See :py:class:`barrista.solver.Solver`.&quot;&quot;&quot;</span>
+        <span class="n">required_arguments</span> <span class="o">=</span> <span class="n">Solver</span><span class="o">.</span><span class="n">Get_required_arguments</span><span class="p">()</span>
+        <span class="n">required_arguments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&#39;momentum&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">required_arguments</span>
+</div>
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="AdaDeltaSolver.Get_optional_arguments"><a class="viewcode-back" href="../../barrista.html#barrista.solver.AdaDeltaSolver.Get_optional_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">Get_optional_arguments</span><span class="p">(</span><span class="n">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;See :py:class:`barrista.solver.Solver`.&quot;&quot;&quot;</span>
+        <span class="n">optional_arguments</span> <span class="o">=</span> <span class="n">Solver</span><span class="o">.</span><span class="n">Get_optional_arguments</span><span class="p">()</span>
+        <span class="c"># epsilon</span>
+        <span class="n">optional_arguments</span><span class="p">[</span><span class="s">&#39;delta&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1E-8</span>
+        <span class="k">return</span> <span class="n">optional_arguments</span>
+
+</div></div>
+<div class="viewcode-block" id="AdamSolver"><a class="viewcode-back" href="../../barrista.html#barrista.solver.AdamSolver">[docs]</a><span class="k">class</span> <span class="nc">AdamSolver</span><span class="p">(</span><span class="n">Solver</span><span class="p">):</span>
+
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Thin wrapper for the Adam solver provided by the caffe framework.</span>
+
+<span class="sd">    To understand how this solver works please inspect the</span>
+<span class="sd">    cplusplus implementation in solver.cpp.</span>
+
+<span class="sd">    The corresponding arxiv paper is called &#39; Adam: A Method for</span>
+<span class="sd">    Stochastic Optimization &#39; by Diederik Kingma, Jimmy Ba</span>
+
+<span class="sd">    :param base_lr: float</span>
+<span class="sd">        [useful choice 0.001]</span>
+<span class="sd">    :param momentum: float.</span>
+<span class="sd">        beta 1 useful default 0.9</span>
+<span class="sd">    :param momentum2: float.</span>
+<span class="sd">        beta 2 useful default 0.999</span>
+<span class="sd">    :param delta: float</span>
+<span class="sd">        numerical stability [useful choice 1E-8]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_solver_type</span> <span class="o">=</span> <span class="s">&#39;adam&#39;</span>
+    <span class="n">_caffe_solver_type</span> <span class="o">=</span> <span class="n">_ADAM_SOLVER_ENUM</span>
+    <span class="n">_caffe_solver_class</span> <span class="o">=</span> <span class="n">_ADAM_SOLVER_CLASS</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;See :py:class:`barrista.solver.Solver`.&quot;&quot;&quot;</span>
+        <span class="n">Solver</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="AdamSolver.Get_required_arguments"><a class="viewcode-back" href="../../barrista.html#barrista.solver.AdamSolver.Get_required_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">Get_required_arguments</span><span class="p">(</span><span class="n">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;See :py:class:`barrista.solver.Solver`.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Solver</span><span class="o">.</span><span class="n">Get_required_arguments</span><span class="p">()</span>
+</div>
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="AdamSolver.Get_optional_arguments"><a class="viewcode-back" href="../../barrista.html#barrista.solver.AdamSolver.Get_optional_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">Get_optional_arguments</span><span class="p">(</span><span class="n">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;See :py:class:`barrista.solver.Solver`.&quot;&quot;&quot;</span>
+        <span class="n">optional_arguments</span> <span class="o">=</span> <span class="n">Solver</span><span class="o">.</span><span class="n">Get_optional_arguments</span><span class="p">()</span>
+        <span class="c"># beta 1</span>
+        <span class="n">optional_arguments</span><span class="p">[</span><span class="s">&#39;momentum&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.9</span>
+        <span class="c"># beta 2</span>
+        <span class="n">optional_arguments</span><span class="p">[</span><span class="s">&#39;momentum2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.999</span>
+        <span class="c"># epsilon</span>
+        <span class="n">optional_arguments</span><span class="p">[</span><span class="s">&#39;delta&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1E-8</span>
+        <span class="k">return</span> <span class="n">optional_arguments</span>
+
+
+<span class="c"># register the locally specified solver</span></div></div>
+<span class="n">Solver</span><span class="o">.</span><span class="n">Register_solver</span><span class="p">(</span><span class="n">SGDSolver</span><span class="p">)</span>
+<span class="n">Solver</span><span class="o">.</span><span class="n">Register_solver</span><span class="p">(</span><span class="n">AdagradSolver</span><span class="p">)</span>
+<span class="n">Solver</span><span class="o">.</span><span class="n">Register_solver</span><span class="p">(</span><span class="n">NesterovSolver</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">_RMSPROP_SOLVER_CLASS</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="n">Solver</span><span class="o">.</span><span class="n">Register_solver</span><span class="p">(</span><span class="n">RMSPropSolver</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">_ADADELTA_SOLVER_CLASS</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="n">Solver</span><span class="o">.</span><span class="n">Register_solver</span><span class="p">(</span><span class="n">AdaDeltaSolver</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">_ADAM_SOLVER_CLASS</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="n">Solver</span><span class="o">.</span><span class="n">Register_solver</span><span class="p">(</span><span class="n">AdamSolver</span><span class="p">)</span>
+
+
+<span class="n">Get_solver_class</span> <span class="o">=</span> <span class="n">Solver</span><span class="o">.</span><span class="n">Get_solver_class</span>
+<span class="n">Get_caffe_solver_class</span> <span class="o">=</span> <span class="n">Solver</span><span class="o">.</span><span class="n">Get_caffe_solver_class</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, University of Tuebingen.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

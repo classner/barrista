@@ -42,6 +42,14 @@ barrista.net module
     :undoc-members:
     :show-inheritance:
 
+barrista.solver module
+----------------------
+
+.. automodule:: barrista.solver
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 barrista.tools module
 ---------------------
 

@@ -146,6 +146,7 @@
  | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
  | <a href="#T"><strong>T</strong></a>
+ | <a href="#U"><strong>U</strong></a>
  | <a href="#V"><strong>V</strong></a>
  | <a href="#W"><strong>W</strong></a>
  
@@ -161,10 +162,34 @@
   <dt><a href="barrista.html#barrista.design.AccuracyLayer">AccuracyLayer() (in module barrista.design)</a>
   </dt>
 
+      
+  <dt><a href="barrista.html#barrista.solver.AdaDeltaSolver">AdaDeltaSolver (class in barrista.solver)</a>
+  </dt>
+
+      
+  <dt><a href="barrista.html#barrista.solver.AdagradSolver">AdagradSolver (class in barrista.solver)</a>
+  </dt>
+
+      
+  <dt><a href="barrista.html#barrista.solver.AdamSolver">AdamSolver (class in barrista.solver)</a>
+  </dt>
+
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="barrista.html#barrista.design.ArgMaxLayer">ArgMaxLayer() (in module barrista.design)</a>
+  </dt>
+
+      
+  <dt><a href="barrista.html#barrista.solver.Solver.Assert_iter_size">Assert_iter_size() (barrista.solver.Solver method)</a>
+  </dt>
+
+      
+  <dt><a href="barrista.html#barrista.solver.Solver.Assert_policy">Assert_policy() (barrista.solver.Solver method)</a>
+  </dt>
+
+      
+  <dt><a href="barrista.html#barrista.solver.Solver.Assert_regularization_types">Assert_regularization_types() (barrista.solver.Solver method)</a>
   </dt>
 
   </dl></td>
@@ -197,6 +222,10 @@
 
       
   <dt><a href="barrista.html#module-barrista.net">barrista.net (module)</a>
+  </dt>
+
+      
+  <dt><a href="barrista.html#module-barrista.solver">barrista.solver (module)</a>
   </dt>
 
       
@@ -239,6 +268,10 @@
   <dt><a href="barrista.html#barrista.design.NetSpecification.copy">copy() (barrista.design.NetSpecification method)</a>
   </dt>
 
+      
+  <dt><a href="barrista.html#barrista.monitoring.CyclingDataMonitor">CyclingDataMonitor (class in barrista.monitoring)</a>
+  </dt>
+
   </dl></td>
 </tr></table>
 
@@ -250,11 +283,15 @@
   </dt>
 
       
-  <dt><a href="barrista.html#barrista.design.DropoutLayer">DropoutLayer() (in module barrista.design)</a>
+  <dt><a href="barrista.html#barrista.monitoring.DataMonitor">DataMonitor (class in barrista.monitoring)</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="barrista.html#barrista.design.DropoutLayer">DropoutLayer() (in module barrista.design)</a>
+  </dt>
+
       
   <dt><a href="barrista.html#barrista.design.DummyDataLayer">DummyDataLayer() (in module barrista.design)</a>
   </dt>
@@ -299,6 +336,10 @@
 
       <dd><dl>
         
+  <dt><a href="barrista.html#barrista.monitoring.CyclingDataMonitor.finalize">(barrista.monitoring.CyclingDataMonitor method)</a>
+  </dt>
+
+        
   <dt><a href="barrista.html#barrista.monitoring.JSONLogger.finalize">(barrista.monitoring.JSONLogger method)</a>
   </dt>
 
@@ -315,6 +356,12 @@
   <dt><a href="barrista.html#barrista.net.Net.fit">fit() (barrista.net.Net method)</a>
   </dt>
 
+      <dd><dl>
+        
+  <dt><a href="barrista.html#barrista.solver.Solver.fit">(barrista.solver.Solver method)</a>
+  </dt>
+
+      </dl></dd>
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
@@ -336,7 +383,89 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
+  <dt><a href="barrista.html#barrista.solver.Solver.Get_caffe_solver_class">Get_caffe_solver_class() (barrista.solver.Solver class method)</a>
+  </dt>
+
+      
+  <dt><a href="barrista.html#barrista.solver.Solver.Get_caffe_solver_instance">Get_caffe_solver_instance() (barrista.solver.Solver class method)</a>
+  </dt>
+
+      
+  <dt><a href="barrista.html#barrista.solver.AdaDeltaSolver.Get_optional_arguments">Get_optional_arguments() (barrista.solver.AdaDeltaSolver class method)</a>
+  </dt>
+
+      <dd><dl>
+        
+  <dt><a href="barrista.html#barrista.solver.AdagradSolver.Get_optional_arguments">(barrista.solver.AdagradSolver class method)</a>
+  </dt>
+
+        
+  <dt><a href="barrista.html#barrista.solver.AdamSolver.Get_optional_arguments">(barrista.solver.AdamSolver class method)</a>
+  </dt>
+
+        
+  <dt><a href="barrista.html#barrista.solver.NesterovSolver.Get_optional_arguments">(barrista.solver.NesterovSolver class method)</a>
+  </dt>
+
+        
+  <dt><a href="barrista.html#barrista.solver.RMSPropSolver.Get_optional_arguments">(barrista.solver.RMSPropSolver class method)</a>
+  </dt>
+
+        
+  <dt><a href="barrista.html#barrista.solver.SGDSolver.Get_optional_arguments">(barrista.solver.SGDSolver class method)</a>
+  </dt>
+
+        
+  <dt><a href="barrista.html#barrista.solver.Solver.Get_optional_arguments">(barrista.solver.Solver class method)</a>
+  </dt>
+
+      </dl></dd>
+      
+  <dt><a href="barrista.html#barrista.solver.Solver.Get_parameter_dict">Get_parameter_dict() (barrista.solver.Solver method)</a>
+  </dt>
+
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="barrista.html#barrista.solver.Solver.Get_parameter_hash">Get_parameter_hash() (barrista.solver.Solver class method)</a>
+  </dt>
+
+      
   <dt><a href="barrista.html#barrista.design.NetSpecification.get_predict_net_specification">get_predict_net_specification() (barrista.design.NetSpecification method)</a>
+  </dt>
+
+      
+  <dt><a href="barrista.html#barrista.solver.AdaDeltaSolver.Get_required_arguments">Get_required_arguments() (barrista.solver.AdaDeltaSolver class method)</a>
+  </dt>
+
+      <dd><dl>
+        
+  <dt><a href="barrista.html#barrista.solver.AdagradSolver.Get_required_arguments">(barrista.solver.AdagradSolver class method)</a>
+  </dt>
+
+        
+  <dt><a href="barrista.html#barrista.solver.AdamSolver.Get_required_arguments">(barrista.solver.AdamSolver class method)</a>
+  </dt>
+
+        
+  <dt><a href="barrista.html#barrista.solver.NesterovSolver.Get_required_arguments">(barrista.solver.NesterovSolver class method)</a>
+  </dt>
+
+        
+  <dt><a href="barrista.html#barrista.solver.RMSPropSolver.Get_required_arguments">(barrista.solver.RMSPropSolver class method)</a>
+  </dt>
+
+        
+  <dt><a href="barrista.html#barrista.solver.SGDSolver.Get_required_arguments">(barrista.solver.SGDSolver class method)</a>
+  </dt>
+
+        
+  <dt><a href="barrista.html#barrista.solver.Solver.Get_required_arguments">(barrista.solver.Solver class method)</a>
+  </dt>
+
+      </dl></dd>
+      
+  <dt><a href="barrista.html#barrista.solver.Solver.Get_solver_class">Get_solver_class() (barrista.solver.Solver class method)</a>
   </dt>
 
   </dl></td>
@@ -448,6 +577,10 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
+  <dt><a href="barrista.html#barrista.solver.NesterovSolver">NesterovSolver (class in barrista.solver)</a>
+  </dt>
+
+      
   <dt><a href="barrista.html#barrista.net.Net">Net (class in barrista.net)</a>
   </dt>
 
@@ -520,17 +653,29 @@
   </dt>
 
       
+  <dt><a href="barrista.html#barrista.solver.Solver.Register_solver">Register_solver() (barrista.solver.Solver class method)</a>
+  </dt>
+
+      
   <dt><a href="barrista.html#barrista.design.ReLULayer">ReLULayer() (in module barrista.design)</a>
+  </dt>
+
+      
+  <dt><a href="barrista.html#barrista.design.ResampleLayer">ResampleLayer() (in module barrista.design)</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="barrista.html#barrista.design.ResampleLayer">ResampleLayer() (in module barrista.design)</a>
+  <dt><a href="barrista.html#barrista.design.ReshapeLayer">ReshapeLayer() (in module barrista.design)</a>
   </dt>
 
       
-  <dt><a href="barrista.html#barrista.design.ReshapeLayer">ReshapeLayer() (in module barrista.design)</a>
+  <dt><a href="barrista.html#barrista.monitoring.ResultExtractor">ResultExtractor (class in barrista.monitoring)</a>
+  </dt>
+
+      
+  <dt><a href="barrista.html#barrista.solver.RMSPropSolver">RMSPropSolver (class in barrista.solver)</a>
   </dt>
 
   </dl></td>
@@ -548,6 +693,10 @@
   </dt>
 
       
+  <dt><a href="barrista.html#barrista.solver.SGDSolver">SGDSolver (class in barrista.solver)</a>
+  </dt>
+
+      
   <dt><a href="barrista.html#barrista.design.SigmoidCrossEntropyLossLayer">SigmoidCrossEntropyLossLayer() (in module barrista.design)</a>
   </dt>
 
@@ -559,12 +708,12 @@
   <dt><a href="barrista.html#barrista.design.SilenceLayer">SilenceLayer() (in module barrista.design)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="barrista.html#barrista.design.SliceLayer">SliceLayer() (in module barrista.design)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="barrista.html#barrista.design.SoftmaxLayer">SoftmaxLayer() (in module barrista.design)</a>
   </dt>
@@ -574,11 +723,23 @@
   </dt>
 
       
+  <dt><a href="barrista.html#barrista.solver.Solver">Solver (class in barrista.solver)</a>
+  </dt>
+
+      
+  <dt><a href="barrista.html#barrista.solver.SolverType">SolverType (in module barrista.solver)</a>
+  </dt>
+
+      
   <dt><a href="barrista.html#barrista.design.SplitLayer">SplitLayer() (in module barrista.design)</a>
   </dt>
 
       
   <dt><a href="barrista.html#barrista.design.SPPLayer">SPPLayer() (in module barrista.design)</a>
+  </dt>
+
+      
+  <dt><a href="barrista.html#barrista.solver.Solver.step">step() (barrista.solver.Solver method)</a>
   </dt>
 
   </dl></td>
@@ -613,6 +774,16 @@
       </dl></dd>
       
   <dt><a href="barrista.html#barrista.design.NetSpecification.to_prototxt">to_prototxt() (barrista.design.NetSpecification method)</a>
+  </dt>
+
+  </dl></td>
+</tr></table>
+
+<h2 id="U">U</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="barrista.html#barrista.solver.Solver.update_parameters">update_parameters() (barrista.solver.Solver method)</a>
   </dt>
 
   </dl></td>
@@ -661,7 +832,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, The barrista authors.
+        &copy; Copyright 2015, University of Tuebingen.
 
     </p>
   </div>

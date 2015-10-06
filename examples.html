@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Using barrista &mdash; barrista  documentation</title>
+  <title>Examples &mdash; barrista  documentation</title>
   
 
   
@@ -32,9 +32,7 @@
   
         <link rel="author" title="About these documents"
               href="about.html"/>
-    <link rel="top" title="barrista  documentation" href="index.html"/>
-        <link rel="next" title="API documentation" href="barrista.html"/>
-        <link rel="prev" title="Setup" href="setup.html"/> 
+    <link rel="top" title="barrista  documentation" href="index.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -79,22 +77,9 @@
           
             
             
-                <ul class="current">
+                <ul>
 <li class="toctree-l1"><a class="reference internal" href="setup.html">Setup</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="">Using <cite>barrista</cite></a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#importing-and-configuring-barrista">Importing and configuring barrista</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#creating-a-network-specification">Creating a network specification</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#visualizing-a-network">Visualizing a network</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#importing-a-network-specification">Importing a network specification</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#using-a-network">Using a network</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#loading-parameters">Loading parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#training-a-network">Training a network</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#getting-predictions">Getting predictions</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#using-different-architectures-to-fit-and-predict">Using different architectures to <code class="docutils literal"><span class="pre">fit</span></code> and <code class="docutils literal"><span class="pre">predict</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Using <cite>barrista</cite></a></li>
 <li class="toctree-l1"><a class="reference internal" href="barrista.html">API documentation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="about.html">About</a></li>
 </ul>
@@ -127,7 +112,7 @@
   <ul class="wy-breadcrumbs">
     <li><a href="index.html">Docs</a> &raquo;</li>
       
-    <li>Using <cite>barrista</cite></li>
+    <li>Examples</li>
       <li class="wy-breadcrumbs-aside">
         
           
@@ -139,11 +124,9 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="using-barrista">
-<h1>Using <cite>barrista</cite><a class="headerlink" href="#using-barrista" title="Permalink to this headline">¶</a></h1>
-<p>This file gives a quite comprehensive walkthrough through nearly all
-features offered by barrista. If you want to get your hands dirty right away,
-there is a comprehensive example of a VGG-like net being trained and applied
+  <div class="section" id="examples">
+<h1>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h1>
+<p>There is a comprehensive example of a VGG-like net being trained and applied
 in the file <code class="docutils literal"><span class="pre">example.py</span></code> in the root folder of the barrista package.</p>
 <div class="section" id="importing-and-configuring-barrista">
 <h2>Importing and configuring barrista<a class="headerlink" href="#importing-and-configuring-barrista" title="Permalink to this headline">¶</a></h2>
@@ -166,14 +149,14 @@ to use a specific <cite>caffe</cite> version on the fly as follows:</p>
 <h2>Creating a network specification<a class="headerlink" href="#creating-a-network-specification" title="Permalink to this headline">¶</a></h2>
 <p>The module <a class="reference internal" href="barrista.html#module-barrista.design" title="barrista.design"><code class="xref py py-mod docutils literal"><span class="pre">barrista.design</span></code></a> contains methods and classes to
 design <cite>caffe</cite> models. We will use it in the following example to create
-a simple, <cite>VGG</cite>-like model:</p>
+a simple <cite>VGG</cite>-like model:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">barrista.design</span> <span class="kn">as</span> <span class="nn">design</span>
 <span class="kn">from</span> <span class="nn">barrista.design</span> <span class="kn">import</span> <span class="p">(</span><span class="n">ConvolutionLayer</span><span class="p">,</span> <span class="n">ReLULayer</span><span class="p">,</span> <span class="n">PoolingLayer</span><span class="p">,</span>
-                              <span class="n">DropoutLayer</span><span class="p">,</span> <span class="n">InnerProductLayer</span><span class="p">,</span>
-                              <span class="n">SoftmaxLayer</span><span class="p">,</span> <span class="n">SoftmaxWithLossLayer</span><span class="p">,</span>
-                              <span class="n">AccuracyLayer</span><span class="p">)</span>
+                             <span class="n">DropoutLayer</span><span class="p">,</span> <span class="n">InnerProductLayer</span><span class="p">,</span>
+                             <span class="n">SoftmaxLayer</span><span class="p">,</span> <span class="n">SoftmaxWithLossLayer</span><span class="p">,</span>
+                             <span class="n">AccuracyLayer</span><span class="p">)</span>
 
-<span class="c"># The only required parameter is a list of lists with the input shape</span>
+<span class="c"># The only required parameter is a list of list with the input shape</span>
 <span class="c"># specification for the network.</span>
 <span class="n">netspec</span> <span class="o">=</span> <span class="n">design</span><span class="o">.</span><span class="n">NetSpecification</span><span class="p">([[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">51</span><span class="p">,</span> <span class="mi">51</span><span class="p">]])</span>
 
@@ -207,12 +190,7 @@ a simple, <cite>VGG</cite>-like model:</p>
 <span class="n">netspec</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">layers</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The layer names are exactly the same as in the prototxt format. All direct
-parameters for a layer can be set by using it&#8217;s constructor or later be set
-as it&#8217;s object property. If you have to use sub-objects (or rather messages,
-in prototxt-speak), they are all available from the object
-<a class="reference internal" href="barrista.html#barrista.design.PROTODETAIL" title="barrista.design.PROTODETAIL"><code class="xref py py-data docutils literal"><span class="pre">barrista.design.PROTODETAIL</span></code></a>.</p>
-<p>You can now inspect the specification and programatically change its parameters.
+<p>You can now inspect the model and programatically change its parameters.
 To get the prototxt representation, use the method
 <a class="reference internal" href="barrista.html#barrista.design.NetSpecification.to_prototxt" title="barrista.design.NetSpecification.to_prototxt"><code class="xref py py-func docutils literal"><span class="pre">barrista.design.NetSpecification.to_prototxt()</span></code></a>:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="k">print</span><span class="p">(</span><span class="n">netspec</span><span class="o">.</span><span class="n">to_prototxt</span><span class="p">())</span>
@@ -226,7 +204,7 @@ directly create prototxt files:</p>
 </div>
 <div class="section" id="visualizing-a-network">
 <h2>Visualizing a network<a class="headerlink" href="#visualizing-a-network" title="Permalink to this headline">¶</a></h2>
-<p>It is possible to visualize a network specification or an instantiated
+<p>It is possible to visualize a network specification and an instantiated
 network by calling its <a class="reference internal" href="barrista.html#barrista.design.NetSpecification.visualize" title="barrista.design.NetSpecification.visualize"><code class="xref py py-func docutils literal"><span class="pre">barrista.design.NetSpecification.visualize()</span></code></a>
 or <a class="reference internal" href="barrista.html#barrista.net.Net.visualize" title="barrista.net.Net.visualize"><code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.visualize()</span></code></a> function. It is possible to directly
 display it or write it to a file:</p>
@@ -258,69 +236,34 @@ Simply run:</p>
 </div>
 <p>to get a fully working network object. It is subclassed from the
 <code class="docutils literal"><span class="pre">caffe.Net</span></code>, so it comes with all the methods you are familiar with. But
-be prepared for some more convenience! You can set cpu or gpu mode by
-using <a class="reference internal" href="barrista.html#barrista.net.set_mode_cpu" title="barrista.net.set_mode_cpu"><code class="xref py py-func docutils literal"><span class="pre">barrista.net.set_mode_cpu()</span></code></a> and
-<a class="reference internal" href="barrista.html#barrista.net.set_mode_gpu" title="barrista.net.set_mode_gpu"><code class="xref py py-func docutils literal"><span class="pre">barrista.net.set_mode_gpu()</span></code></a>.</p>
+be prepared for some more convenience!</p>
+</div>
 <div class="section" id="loading-parameters">
-<h3>Loading parameters<a class="headerlink" href="#loading-parameters" title="Permalink to this headline">¶</a></h3>
+<h2>Loading parameters<a class="headerlink" href="#loading-parameters" title="Permalink to this headline">¶</a></h2>
+<p>We modified our caffe installation to export the function <code class="docutils literal"><span class="pre">CopyTrainedLayersFrom</span></code>
+by adding the following lines to the Net definition in <cite>python/caffe/_caffe.cpp</cite>:</p>
+<div class="highlight-python"><div class="highlight"><pre>void Net_load_blobs_from(Net&lt;Dtype&gt;&amp; net, string filename) {
+  CheckFile(filename);
+  net.CopyTrainedLayersFrom(filename);
+}
+
+// Within the definition of net:
+.def(&quot;load_blobs_from&quot;, &amp;Net_load_blobs_from)
+</pre></div>
+</div>
 <p>With this, the blobs can be loaded as:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">net</span><span class="o">.</span><span class="n">load_blobs_from</span><span class="p">(</span><span class="s">&#39;your/path/to/blobs.caffemodel&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p><strong>CAUTION</strong>: The blobs are stored in the <a href="#id1"><span class="problematic" id="id2">``</span></a>.caffemodel``s by name. Blobs will be
+<p><strong>CAUTION</strong>: The blobs are stored in the binary files by name. Blobs will be
 matched to network layers with the same name. If a name does not match, the
 blob is simply ignored! This gives a powerful mechanic for partially loading
-blobs, but be careful when remaining your layers!</p>
+blobs, but may be an error source!</p>
 </div>
-<div class="section" id="training-a-network">
-<h3>Training a network<a class="headerlink" href="#training-a-network" title="Permalink to this headline">¶</a></h3>
-<p>To train a network, you can use the <cite>scikit-learn</cite> like method
-<a class="reference internal" href="barrista.html#barrista.net.Net.fit" title="barrista.net.Net.fit"><code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.fit()</span></code></a>. It is very powerful and can be used in many
-different ways! While maintaining nearly all configurability of the caffe
-solvers, it adds powerful callback functionality and is a lot easier to use.</p>
-<p>The only required method parameter is the number of iterations that you want
-to train your network with. If you configured it with data-layers that are
-loading data from external sources, you just have to decide about the kind
-of solver to use and probably specify its learning rate. For this example,
-we use in-memory data from Python for the training, and some monitors to
-generate outputs:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">barrista</span> <span class="kn">import</span> <span class="n">solver</span>
-<span class="kn">from</span> <span class="nn">barrista.monitoring</span> <span class="kn">import</span> <span class="n">ProgressIndicator</span><span class="p">,</span> <span class="n">Checkpointer</span><span class="p">,</span> <span class="n">JSONLogger</span>
-
-<span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">11</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">51</span><span class="p">,</span> <span class="mi">51</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;float32&#39;</span><span class="p">)</span>
-<span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">11</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;float32&#39;</span><span class="p">)</span>
-
-<span class="c"># Configure our monitors.</span>
-<span class="n">progress</span> <span class="o">=</span> <span class="n">ProgressIndicator</span><span class="p">()</span>
-<span class="n">perforce</span> <span class="o">=</span> <span class="n">JSONLogger</span><span class="p">(</span><span class="n">json_filename</span><span class="o">=</span><span class="s">&#39;test.json&#39;</span><span class="p">)</span>
-<span class="n">checkptr</span> <span class="o">=</span> <span class="n">Checkpointer</span><span class="p">(</span><span class="s">&#39;test_net_&#39;</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span>
-<span class="c"># Run the training.</span>
-<span class="n">net</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span>
-        <span class="n">solver</span><span class="o">.</span><span class="n">SGDSolver</span><span class="p">(</span><span class="n">base_lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">),</span>
-        <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span>
-        <span class="n">test_interval</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>  <span class="c"># optional</span>
-        <span class="n">X_val</span><span class="o">=</span><span class="n">X</span><span class="p">,</span> <span class="n">Y_val</span><span class="o">=</span><span class="n">Y</span><span class="p">,</span>  <span class="c"># optional</span>
-        <span class="n">after_batch_callbacks</span><span class="o">=</span><span class="p">[</span><span class="n">progress</span><span class="p">,</span> <span class="n">perforce</span><span class="p">,</span> <span class="n">checkptr</span><span class="p">],</span>
-        <span class="n">after_test_callbacks</span><span class="o">=</span><span class="p">[</span><span class="n">progress</span><span class="p">,</span> <span class="n">perforce</span><span class="p">])</span>
-</pre></div>
-</div>
-<p>The parameters <code class="docutils literal"><span class="pre">test_interval</span></code>, <code class="docutils literal"><span class="pre">X_val</span></code> and <code class="docutils literal"><span class="pre">Y_val</span></code> are optional. If they
-are specified, there is a test performed on the validation set in
-regular intervals.</p>
-<p>Note that all iteration parameters are speaking of &#8216;true&#8217; iterations, i.e.,
-not batch iterations but sample iterations. This is, why they must be a
-multiple of the batch size (e.g., for a network with a batch size of 10,
-you have to do at least 10 training iterations, and one batch will be
-used for the training).</p>
-<p>The <a class="reference internal" href="barrista.html#barrista.monitoring.Checkpointer" title="barrista.monitoring.Checkpointer"><code class="xref py py-class docutils literal"><span class="pre">barrista.monitoring.Checkpointer</span></code></a> is used to write the network
-blobs to a file, which can be loaded later using the function
-<code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.load_blobs_from()</span></code>. There is, however,
-currently no monitor implemented to store the solverstate.</p>
-</div>
-<div class="section" id="getting-predictions">
-<h3>Getting predictions<a class="headerlink" href="#getting-predictions" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="forward-propagation">
+<h2>Forward propagation<a class="headerlink" href="#forward-propagation" title="Permalink to this headline">¶</a></h2>
 <p>In the spirit of the <cite>scikit-learn</cite> library, we added the method
-<a class="reference internal" href="barrista.html#barrista.net.Net.predict" title="barrista.net.Net.predict"><code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.predict()</span></code></a> to get predictions for you, while
+<a class="reference internal" href="barrista.html#barrista.net.Net.predict" title="barrista.net.Net.predict"><code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.predict()</span></code></a> to do all the annoying batching for you, while
 maintaining a clear separation of data preprocessing:</p>
 <ul class="simple">
 <li>It is YOUR responsibility to prepare the data in an iterable object
@@ -347,6 +290,47 @@ update progress indicators:</p>
 </pre></div>
 </div>
 </div>
+<div class="section" id="training-a-network">
+<h2>Training a network<a class="headerlink" href="#training-a-network" title="Permalink to this headline">¶</a></h2>
+<p>To train a network, you can use the scikit-learn like method
+<a class="reference internal" href="barrista.html#barrista.net.Net.fit" title="barrista.net.Net.fit"><code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.fit()</span></code></a>. It is very powerful and can be used in many
+different ways! While maintaining nearly all configurability of the caffe
+solvers, it adds powerful callback functionality and is a lot easier to use.</p>
+<p>The only required method parameter is the number of iterations that you want
+to train your model with. If you configured it with data-layers that are
+loading data from external sources, you then just have to decide for the kind
+of solver to use and probably specify its learning rate. For this example,
+we use in-memory data from Python for the training, and some monitors to
+generate outputs:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">barrista.monitoring</span> <span class="kn">import</span> <span class="n">ProgressIndicator</span><span class="p">,</span> <span class="n">Checkpointer</span><span class="p">,</span> <span class="n">JSONLogger</span>
+
+<span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">11</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">51</span><span class="p">,</span> <span class="mi">51</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;float32&#39;</span><span class="p">)</span>
+<span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">11</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;float32&#39;</span><span class="p">)</span>
+
+<span class="c"># Configure our monitors.</span>
+<span class="n">progress</span> <span class="o">=</span> <span class="n">ProgressIndicator</span><span class="p">()</span>
+<span class="n">perforce</span> <span class="o">=</span> <span class="n">JSONLogger</span><span class="p">(</span><span class="n">json_filename</span><span class="o">=</span><span class="s">&#39;test.json&#39;</span><span class="p">)</span>
+<span class="n">checkptr</span> <span class="o">=</span> <span class="n">Checkpointer</span><span class="p">(</span><span class="s">&#39;test_net_&#39;</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span>
+<span class="c"># Run the training.</span>
+<span class="n">net</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span>
+        <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span>
+        <span class="n">base_lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+        <span class="n">test_interval</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>  <span class="c"># optional</span>
+        <span class="n">X_val</span><span class="o">=</span><span class="n">X</span><span class="p">,</span> <span class="n">Y_val</span><span class="o">=</span><span class="n">Y</span><span class="p">,</span>  <span class="c"># optional</span>
+        <span class="n">after_batch_callbacks</span><span class="o">=</span><span class="p">[</span><span class="n">progress</span><span class="p">,</span> <span class="n">perforce</span><span class="p">,</span> <span class="n">checkptr</span><span class="p">],</span>
+        <span class="n">after_test_callbacks</span><span class="o">=</span><span class="p">[</span><span class="n">progress</span><span class="p">,</span> <span class="n">perforce</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>The parameters <code class="docutils literal"><span class="pre">test_interval</span></code>, <code class="docutils literal"><span class="pre">X_val</span></code> and <code class="docutils literal"><span class="pre">Y_val</span></code> are optional, but if
+specified there is a test on the validation set performed in regular intervals.</p>
+<p>Note that all iteration parameters are speaking of &#8216;true&#8217; iterations, i.e.,
+not batch iterations but sample iterations. This is, why they must be a
+multiple of the batch size (e.g., for a network with a batch size of 10,
+you have to do at least 10 training iterations, and one batch will be
+used for the training).</p>
+<p>The <a class="reference internal" href="barrista.html#barrista.monitoring.Checkpointer" title="barrista.monitoring.Checkpointer"><code class="xref py py-class docutils literal"><span class="pre">barrista.monitoring.Checkpointer</span></code></a> is used to write the network
+blobs to a file, that can be loaded later using the function
+<code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.load_blobs_from()</span></code>.</p>
 </div>
 <div class="section" id="using-different-architectures-to-fit-and-predict">
 <h2>Using different architectures to <code class="docutils literal"><span class="pre">fit</span></code> and <code class="docutils literal"><span class="pre">predict</span></code><a class="headerlink" href="#using-different-architectures-to-fit-and-predict" title="Permalink to this headline">¶</a></h2>
@@ -357,7 +341,7 @@ network depending on it&#8217;s state. It has
 <code class="xref py py-attr docutils literal"><span class="pre">barrista.design.NetSpecification.stages</span></code>. The <code class="docutils literal"><span class="pre">phase</span></code> is used
 to configure the net during the &#8216;fit&#8217; progress to alternate between training
 and validation sets. We offer a simple way of using the <code class="docutils literal"><span class="pre">stages</span></code> to switch
-between different architectures for &#8216;fit&#8217; and &#8216;predict&#8217;.</p>
+between different architectures between &#8216;fit&#8217; and &#8216;predict&#8217;.</p>
 <p>When designing a network, you can specify the optional parameters
 <code class="docutils literal"><span class="pre">predict_inputs</span></code> and <code class="docutils literal"><span class="pre">predict_input_shapes</span></code>. If you do so, when
 instantiating the net, a second version of the net with the stages set only
@@ -375,11 +359,11 @@ just as expected, while maintaining a high level of convenience:</p>
 <span class="c"># This is the last regular one. Use `tops` to give its outputs a</span>
 <span class="c"># simple-to-remember name.</span>
 <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">InnerProductLayer</span><span class="p">(</span><span class="n">tops</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;net_out&#39;</span><span class="p">],</span> <span class="n">InnerProduct_num_output</span><span class="o">=</span><span class="mi">10</span><span class="p">))</span>
-<span class="c"># Add a layer for being used by the `predict` method:</span>
+<span class="c"># Add a layer used when using the `predict` method:</span>
 <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SoftmaxLayer</span><span class="p">(</span><span class="n">bottoms</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;net_out&#39;</span><span class="p">],</span>
                            <span class="n">tops</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;out&#39;</span><span class="p">],</span>
                            <span class="n">include_stages</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;predict&#39;</span><span class="p">]))</span>
-<span class="c"># Add layers for being used by the `fit` method:</span>
+<span class="c"># Add layers when using the `fit` method:</span>
 <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SoftmaxWithLossLayer</span><span class="p">(</span><span class="n">bottoms</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;net_out&#39;</span><span class="p">,</span> <span class="s">&#39;annotations&#39;</span><span class="p">],</span>
                                    <span class="n">include_stages</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;fit&#39;</span><span class="p">]))</span>
 <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">AccuracyLayer</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;accuracy&#39;</span><span class="p">,</span>
@@ -389,9 +373,9 @@ just as expected, while maintaining a high level of convenience:</p>
 </div>
 <p>Remember that you can additionally use any other conditional criteria such as
 <code class="docutils literal"><span class="pre">phase</span></code> and <code class="docutils literal"><span class="pre">level</span></code> to further customize the net.</p>
-<p>Once instantiated, this net will output loss and accuracy when it&#8217;s
+<p>Once instantiated, this net will output loss and accuracy when its
 <a class="reference internal" href="barrista.html#barrista.net.Net.fit" title="barrista.net.Net.fit"><code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.fit()</span></code></a>
-method is called, and output softmaxed values when it&#8217;s
+method is called, and output softmax values for its inputs when its
 <a class="reference internal" href="barrista.html#barrista.net.Net.predict" title="barrista.net.Net.predict"><code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.predict()</span></code></a> method is called. You can find an example
 for this in the file <code class="docutils literal"><span class="pre">barrista/example.py</span></code>.</p>
 </div>
@@ -401,15 +385,6 @@ for this in the file <code class="docutils literal"><span class="pre">barrista/e
            </div>
           </div>
           <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="barrista.html" class="btn btn-neutral float-right" title="API documentation" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
-      
-      
-        <a href="setup.html" class="btn btn-neutral" title="Setup" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
-      
-    </div>
   
 
   <hr/>

@@ -26,10 +26,9 @@ if you are not using one of these version, don't worry, you will be able to
 easily add them by hand.
 
 The patch files are located in the barrista folder `patches` and can be applied
-(for example) by getting `pypatch <https://pypi.python.org/pypi/pypatch/0.5.1>`_
-and executing::
+(for example) by navigating to your caffe root folder and executing::
 
-    pypatch apply ../path/to/barrista/patches/patch_[X].patch path/to/caffe/root
+    git apply ../path/to/barrista/patches/barrista-patch-[X].patch
 
 If there is no patch available for your very caffe version, you should still
 be able to quickly find out what lines to change by having a look at the
@@ -91,7 +90,7 @@ You can install the project to your python installation by running::
 
     python setup.py install
 
-or, to be able to modify the software in it's current folder while using it,
+or, to be able to modify the software in its current folder while using it,
 run::
 
     python setup.py develop

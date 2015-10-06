@@ -126,8 +126,6 @@
       <li class="wy-breadcrumbs-aside">
         
           
-            <a href="_sources/setup.txt" rel="nofollow"> View page source</a>
-          
         
       </li>
   </ul>
@@ -158,9 +156,8 @@ parallelization support and the new solvers from September 2015. But even
 if you are not using one of these version, don&#8217;t worry, you will be able to
 easily add them by hand.</p>
 <p>The patch files are located in the barrista folder <cite>patches</cite> and can be applied
-(for example) by getting <a class="reference external" href="https://pypi.python.org/pypi/pypatch/0.5.1">pypatch</a>
-and executing:</p>
-<div class="highlight-python"><div class="highlight"><pre>pypatch apply ../path/to/barrista/patches/patch_[X].patch path/to/caffe/root
+(for example) by navigating to your caffe root folder and executing:</p>
+<div class="highlight-python"><div class="highlight"><pre>git apply ../path/to/barrista/patches/barrista-patch-[X].patch
 </pre></div>
 </div>
 <p>If there is no patch available for your very caffe version, you should still
@@ -216,7 +213,7 @@ proper configuration and compatibility by executing:</p>
 <div class="highlight-python"><div class="highlight"><pre>python setup.py install
 </pre></div>
 </div>
-<p>or, to be able to modify the software in it&#8217;s current folder while using it,
+<p>or, to be able to modify the software in its current folder while using it,
 run:</p>
 <div class="highlight-python"><div class="highlight"><pre>python setup.py develop
 </pre></div>
@@ -279,7 +276,7 @@ fly as follows:</p>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, The barrista authors.
+        &copy; Copyright 2015, University of Tuebingen.
 
     </p>
   </div>

@@ -88,6 +88,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#module-barrista.initialization">barrista.initialization module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-barrista.monitoring">barrista.monitoring module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-barrista.net">barrista.net module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-barrista.solver">barrista.solver module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-barrista.tools">barrista.tools module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-barrista">Module contents</a></li>
 </ul>
@@ -126,8 +127,6 @@
     <li>API documentation</li>
       <li class="wy-breadcrumbs-aside">
         
-          
-            <a href="_sources/barrista.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -304,7 +303,8 @@ Multipliers for learning rate and weight decay for the layer parameters.</li>
 <li><strong>propagate_down</strong> &#8211; list(bool) or None.
 Specifies on which bottoms the backpropagation should be skipped.
 Must be either 0 or equal to the number of bottoms. If <code class="docutils literal"><span class="pre">None</span></code> is
-specified, this is initialized as <code class="docutils literal"><span class="pre">[]</span></code>.</li>
+specified, this is initialized as <code class="docutils literal"><span class="pre">[]</span></code>. Not available in all
+caffe versions!</li>
 <li><strong>loss_param</strong> &#8211; <code class="xref py py-data docutils literal"><span class="pre">barrista.design.LossParameter</span></code> or None.
 Specifies optional ignore labels and normalization for the loss.</li>
 <li><strong>loss_weights</strong> &#8211; list(float) or None.
@@ -677,15 +677,53 @@ multiple of the batch size!</li>
 </table>
 <dl class="method">
 <dt id="barrista.monitoring.Checkpointer.finalize">
-<code class="descname">finalize</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#Checkpointer.finalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.Checkpointer.finalize" title="Permalink to this definition">¶</a></dt>
+<code class="descname">finalize</code><span class="sig-paren">(</span><em>kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#Checkpointer.finalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.Checkpointer.finalize" title="Permalink to this definition">¶</a></dt>
 <dd><p>Write a final checkpoint.</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="class">
+<dt id="barrista.monitoring.CyclingDataMonitor">
+<em class="property">class </em><code class="descclassname">barrista.monitoring.</code><code class="descname">CyclingDataMonitor</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#CyclingDataMonitor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.CyclingDataMonitor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#barrista.monitoring.Monitor" title="barrista.monitoring.Monitor"><code class="xref py py-class docutils literal"><span class="pre">barrista.monitoring.Monitor</span></code></a></p>
+<p>Uses the data sequentially.</p>
+<p>This monitor maps data to the network an cycles through the data
+sequentially. It is the default monitor used if a user provides X
+or X_val to the barrista.sovler.fit method.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>X</strong> &#8211; dict of numpy.ndarray or None.
+If specified, is used as input data. It is used sequentially, so
+shuffle it pre, if required. The keys of the dict have to have
+a corresponding layer name in the net.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="barrista.monitoring.CyclingDataMonitor.finalize">
+<code class="descname">finalize</code><span class="sig-paren">(</span><em>kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#CyclingDataMonitor.finalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.CyclingDataMonitor.finalize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Nothing to do here.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="barrista.monitoring.DataMonitor">
+<em class="property">class </em><code class="descclassname">barrista.monitoring.</code><code class="descname">DataMonitor</code><a class="reference internal" href="_modules/barrista/monitoring.html#DataMonitor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.DataMonitor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#barrista.monitoring.Monitor" title="barrista.monitoring.Monitor"><code class="xref py py-class docutils literal"><span class="pre">barrista.monitoring.Monitor</span></code></a></p>
+<p>Monitor interface for filling the blobs of a network.</p>
+<p>This is a specific monitor which will fill the blobs of the network
+for the forward pass or solver step.
+Ideally there should only be one such monitor per callback,
+but multiple ones are indeed possible.</p>
+</dd></dl>
+
+<dl class="class">
 <dt id="barrista.monitoring.JSONLogger">
-<em class="property">class </em><code class="descclassname">barrista.monitoring.</code><code class="descname">JSONLogger</code><span class="sig-paren">(</span><em>path</em>, <em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#JSONLogger"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.JSONLogger" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">barrista.monitoring.</code><code class="descname">JSONLogger</code><span class="sig-paren">(</span><em>path</em>, <em>name</em>, <em>logging</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#JSONLogger"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.JSONLogger" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#barrista.monitoring.Monitor" title="barrista.monitoring.Monitor"><code class="xref py py-class docutils literal"><span class="pre">barrista.monitoring.Monitor</span></code></a></p>
 <p>Logs available information to a JSON file.</p>
 <p>The information is stored in a dictionary of lists. The lists contain
@@ -695,10 +733,6 @@ currently logged scores are loss, accuracy, test loss and test accuracy.</p>
 (* indicates required):</p>
 <ul class="simple">
 <li><code class="docutils literal"><span class="pre">iter</span></code>*,</li>
-<li><code class="docutils literal"><span class="pre">loss</span></code>,</li>
-<li><code class="docutils literal"><span class="pre">test_loss</span></code>,</li>
-<li><code class="docutils literal"><span class="pre">accuracy</span></code>,</li>
-<li><code class="docutils literal"><span class="pre">test_accuracy</span></code>.</li>
 </ul>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -708,8 +742,13 @@ currently logged scores are loss, accuracy, test loss and test accuracy.</p>
 <li><strong>path</strong> &#8211; string.
 The path to store the file in.</li>
 <li><strong>name</strong> &#8211; string.
-The filename. Will be prefixed with <cite>barrista_</cite> and <cite>.json</cite> will be
+The filename. Will be prefixed with &#8216;<a href="#id1"><span class="problematic" id="id2">barrista_</span></a>&#8216; and &#8216;.json&#8217; will be
 appended.</li>
+<li><strong>logging</strong> &#8211; dict of lists.
+The two keys in the dict which are used are test, train.
+For each of those a list of keys can be provided, those keys
+have to be available in the kwargs/cbparams structure.
+Usually the required data is provided by the ResultExtractor.</li>
 </ul>
 </td>
 </tr>
@@ -717,7 +756,7 @@ appended.</li>
 </table>
 <dl class="method">
 <dt id="barrista.monitoring.JSONLogger.finalize">
-<code class="descname">finalize</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#JSONLogger.finalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.JSONLogger.finalize" title="Permalink to this definition">¶</a></dt>
+<code class="descname">finalize</code><span class="sig-paren">(</span><em>kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#JSONLogger.finalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.JSONLogger.finalize" title="Permalink to this definition">¶</a></dt>
 <dd><p>Write the json file.</p>
 </dd></dl>
 
@@ -734,7 +773,7 @@ the function <a class="reference internal" href="#barrista.monitoring.Monitor.fi
 optionally be specified.</p>
 <dl class="method">
 <dt id="barrista.monitoring.Monitor.finalize">
-<code class="descname">finalize</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#Monitor.finalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.Monitor.finalize" title="Permalink to this definition">¶</a></dt>
+<code class="descname">finalize</code><span class="sig-paren">(</span><em>kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#Monitor.finalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.Monitor.finalize" title="Permalink to this definition">¶</a></dt>
 <dd><p>Will be called at the end of a training/fitting process.</p>
 </dd></dl>
 
@@ -758,10 +797,32 @@ available, it also displays loss, accuracy, test loss and test accuracy.</p>
 </ul>
 <dl class="method">
 <dt id="barrista.monitoring.ProgressIndicator.finalize">
-<code class="descname">finalize</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#ProgressIndicator.finalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.ProgressIndicator.finalize" title="Permalink to this definition">¶</a></dt>
+<code class="descname">finalize</code><span class="sig-paren">(</span><em>kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#ProgressIndicator.finalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.ProgressIndicator.finalize" title="Permalink to this definition">¶</a></dt>
 <dd><p>Call <code class="docutils literal"><span class="pre">progressbar.finish()</span></code>.</p>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="class">
+<dt id="barrista.monitoring.ResultExtractor">
+<em class="property">class </em><code class="descclassname">barrista.monitoring.</code><code class="descname">ResultExtractor</code><span class="sig-paren">(</span><em>cbparam_key</em>, <em>layer_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#ResultExtractor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.ResultExtractor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#barrista.monitoring.Monitor" title="barrista.monitoring.Monitor"><code class="xref py py-class docutils literal"><span class="pre">barrista.monitoring.Monitor</span></code></a></p>
+<p>This monitor is designed for monitoring scalar layer results.</p>
+<p>The main use case are salar outputs such as loss and accuracy.</p>
+<p>IMPORTANT: this monitor will change cbparams and add new values to it,
+most likely other monitors will depend on this, thus, ResultExtractors
+should be among the first monitors in the callback list, e.g. by
+insert them always in the beginning.</p>
+<p>It will extract the value of a layer and add the value to the cbparam.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>cbparam_key</strong> &#8211; string.
+The key we will overwrite/set in the cbparams dict</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </div>
@@ -801,92 +862,13 @@ in stage <code class="docutils literal"><span class="pre">predict</span></code> 
 </table>
 <dl class="method">
 <dt id="barrista.net.Net.fit">
-<code class="descname">fit</code><span class="sig-paren">(</span><em>iterations</em>, <em>solver</em>, <em>X=None</em>, <em>Y=None</em>, <em>X_val=None</em>, <em>Y_val=None</em>, <em>test_iterations=0</em>, <em>test_interval=0</em>, <em>test_initialization=False</em>, <em>before_batch_callbacks=None</em>, <em>after_batch_callbacks=None</em>, <em>before_test_callbacks=None</em>, <em>after_test_callbacks=None</em>, <em>before_test_batch_callbacks=None</em>, <em>after_test_batch_callbacks=None</em>, <em>read_input_batch_size_from_blob_name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/net.html#Net.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.net.Net.fit" title="Permalink to this definition">¶</a></dt>
-<dd><p>Fit the network to specific data.</p>
-<p>Use monitors from the module <a class="reference internal" href="#module-barrista.monitoring" title="barrista.monitoring"><code class="xref py py-mod docutils literal"><span class="pre">barrista.monitoring</span></code></a> as
-callbacks to monitor the state of the net and create checkpoints.
-This method offers the following kwargs to monitors (* indicates,
-that the values are only available at test time, - indicates, that
-the value is not necessarily available):</p>
-<ul class="simple">
-<li>max_iter,</li>
-<li>iter,</li>
-<li>batch_size,</li>
-<li>loss,</li>
-<li>accuracy-,</li>
-<li>net,</li>
-<li>solver,</li>
-<li>X,</li>
-<li>X_val,</li>
-<li>Y,</li>
-<li>Y_val,</li>
-<li>test_loss*,</li>
-<li>test_accuracy*-.</li>
-</ul>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>iterations</strong> &#8211; int.
-The number of training iterations to do. This is the plain number
-of iterations, completely disregarding the batch size, i.e., for
-<code class="docutils literal"><span class="pre">iterations</span></code> being 10 and <code class="docutils literal"><span class="pre">batch_size</span></code> being 10, just one batch
-is forward propagated.</li>
-<li><strong>X</strong> &#8211; iterable(numpy array) or None.
-If specified, is used as input data. It is used sequentially, so
-shuffle it before, if required.</li>
-<li><strong>Y</strong> &#8211; iterable(numpy array) or None.
-Required if <code class="docutils literal"><span class="pre">X</span></code> is specified. The annotations of training.</li>
-<li><strong>X_val</strong> &#8211; iterable(numpy array) or None.
-If specified along with <code class="docutils literal"><span class="pre">Y_val</span></code> and <code class="docutils literal"><span class="pre">test_interval&gt;0</span></code>, is used
-to get validation scores.</li>
-<li><strong>Y_val</strong> &#8211; iterable(numpy array) or None.
-The annotation data for the validation set.</li>
-<li><strong>test_iterations</strong> &#8211; int.
-The number of test iterations to determine the validation score,
-if <code class="docutils literal"><span class="pre">test_interval&gt;0</span></code>.</li>
-<li><strong>test_interval</strong> &#8211; int.
-The number of iterations between runs on the validation set. Is
-specified in plain iterations, disregarding batch size. Hence, it
-must be a multiple of the batch size.</li>
-<li><strong>test_initialization</strong> &#8211; bool.
-Whether to do a run on the validation set before the training is
-started to get an initial score.</li>
-<li><strong>before_batch_callbacks</strong> &#8211; list(callable).
-List of callback callables. Will be called before a training batch
-is processed. Does not provide <code class="docutils literal"><span class="pre">loss</span></code> and <code class="docutils literal"><span class="pre">accuracy</span></code> kwargs.</li>
-<li><strong>after_batch_callbacks</strong> &#8211; list(callable).
-List of callback callables. Will be called after a training batch
-was processed.</li>
-<li><strong>before_test_callbacks</strong> &#8211; list(callable).
-List of callback callables. Will be called before starting the test
-processing. Does not provide <code class="docutils literal"><span class="pre">loss</span></code> and <code class="docutils literal"><span class="pre">accuracy</span></code> kwargs.</li>
-<li><strong>after_test_callbacks</strong> &#8211; list(callable).
-List of callback callables. Will be called after completing the test
-processing. Does not provide <code class="docutils literal"><span class="pre">loss</span></code> and <code class="docutils literal"><span class="pre">accuracy</span></code> kwargs, but
-provides <code class="docutils literal"><span class="pre">test_loss</span></code> and, if available, <code class="docutils literal"><span class="pre">test_accuracy</span></code>.</li>
-<li><strong>before_test_batch_callbacks</strong> &#8211; list(callable).
-List of callback callables. Will be called before a test batch is
-processed. Does not provide <code class="docutils literal"><span class="pre">loss</span></code> and <code class="docutils literal"><span class="pre">accuracy</span></code> kwargs.</li>
-<li><strong>after_test_batch_callbacks</strong> &#8211; list(callable).
-List of callback callables. Will be called after a test batch is
-processed. Does not provide <code class="docutils literal"><span class="pre">loss</span></code> and <code class="docutils literal"><span class="pre">accuracy</span></code> kwargs.</li>
-<li><strong>read_input_batch_size_from_blob_name</strong> &#8211; string.
-The name of the layer to take the input batch size from (as the
-first dimension of its first blob). Must be specified if the
-network does not have explicit inputs (e.g., when trained from
-an LMDB).</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
+<code class="descname">fit</code><span class="sig-paren">(</span><em>iterations</em>, <em>solver</em>, <em>X=None</em>, <em>X_val=None</em>, <em>test_iterations=0</em>, <em>test_interval=0</em>, <em>test_initialization=False</em>, <em>train_callbacks=None</em>, <em>test_callbacks=None</em>, <em>read_input_batch_size_from_blob_name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/net.html#Net.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.net.Net.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <code class="xref py py-func docutils literal"><span class="pre">barrista.solver.SolverInterface.fit()</span></code>.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="barrista.net.Net.predict">
-<code class="descname">predict</code><span class="sig-paren">(</span><em>input_sequence</em>, <em>pad_instead_of_rescale=True</em>, <em>before_batch_callbacks=None</em>, <em>after_batch_callbacks=None</em>, <em>return_unprocessed_outputs=False</em>, <em>out_layer_names=None</em>, <em>use_fit_network=False</em>, <em>oversample=False</em>, <em>before_oversample_resize_to=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/net.html#Net.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.net.Net.predict" title="Permalink to this definition">¶</a></dt>
+<code class="descname">predict</code><span class="sig-paren">(</span><em>input_sequence</em>, <em>pre_batch_callbacks=None</em>, <em>post_batch_callbacks=None</em>, <em>out_blob_names=None</em>, <em>use_fit_network=None</em>, <em>oversample=False</em>, <em>before_oversample_resize_to=None</em>, <em>input_processing_flags=None</em>, <em>output_processing_flags=None</em>, <em>static_inputs=None</em>, <em>input_size_spec=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/net.html#Net.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.net.Net.predict" title="Permalink to this definition">¶</a></dt>
 <dd><p>Predict samples in the spirit of <cite>scikit-learn</cite>.</p>
 <ul class="simple">
 <li>It is YOUR responsibility to prepare the data in an iterable object
@@ -900,34 +882,25 @@ forward propagate it in batches.</li>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>input_sequence</strong> &#8211; iterable(3D numpy arrays).
+<li><strong>input_sequence</strong> &#8211; iterable(3D numpy arrays) or dict(string: ...).
 The 3D numpy arrays must match in their first dimension with the
 second dimension of the network input (number of channels). E.g.,
 for a network with input shape [10, 3, 24, 24], you could provide
 inputs as 4D numpy array of shape [100, 3, 10, 10] or a list of
 3D numpy arrays of shape [3, Y, X], where X and Y may be arbitrary
-and different for each image.</li>
-<li><strong>pad_instead_of_rescale</strong> &#8211; bool.
-By default, all inputs are rescaled to the network input size by
-using bicubic interpolation and the full network output is
-returned. If set to <code class="docutils literal"><span class="pre">True</span></code>, samples are padded to be in the middle
-of the network input, and depending on whether
-<code class="docutils literal"><span class="pre">return_unprocessed_outputs</span></code> is set or not, you will receive
-the cut-out output areas or the full outputs of the networks
-as result.</li>
-<li><strong>before_batch_callbacks</strong> &#8211; list(callable) or None.
+and different for each image. If you are using a multi-input network,
+you can provide a dictionary of iterables of 3D numpy arrays before,
+where the keys are the input blob names to fill. Use the
+<cite>input_processing_flags</cite> to specify how preprocessing is
+done in any scenario.</li>
+<li><strong>pre_batch_callbacks</strong> &#8211; list(callable) or None.
 Each element of this list will be called with the batch id as
 argument before forward propagating a batch.</li>
-<li><strong>after_batch_callbacks</strong> &#8211; list(callable) or None.
+<li><strong>post_batch_callbacks</strong> &#8211; list(callable) or None.
 See before, but after a callback.</li>
-<li><strong>return_unprocessed_outputs</strong> &#8211; bool.
-If set to False and <code class="docutils literal"><span class="pre">pad_instead_of_rescale</span></code> is set, returns
-only the relevant areas of the output. Otherwise, returns the full
-network output.</li>
-<li><strong>out_layer_names</strong> &#8211; list(string) or None.
-The names of the layers of which the outputs are returned. If
-unspecified, uses <code class="docutils literal"><span class="pre">self.outputs</span></code>. If more than one is used, no
-postprocessing is applied on the outputs!</li>
+<li><strong>out_blob_names</strong> &#8211; list(string) or None.
+The names of the blobs of which the values are returned. If
+unspecified, uses <code class="docutils literal"><span class="pre">self.outputs</span></code>.</li>
 <li><strong>use_fit_network</strong> &#8211; bool.
 If set to <code class="docutils literal"><span class="pre">True</span></code>, always use this very network, independent of
 whether an internal network in stage <code class="docutils literal"><span class="pre">predict</span></code> is available.
@@ -939,16 +912,39 @@ processing yourself.</li>
 <li><strong>before_oversample_resize_to</strong> &#8211; 2-tuple(int) or None.
 A tuple specifying height and width to resize to before oversampling
 or None if the image should not be resized before oversampling.</li>
+<li><strong>input_processing_flags</strong> &#8211; dict(string:string) or None.
+A list or tuple of letters specifying the proprocessing for each
+input. &#8216;n&#8217;: no preprocessing, &#8216;r&#8217;: rescale, &#8216;p&#8217;: pad.
+Default: [&#8216;n&#8217;] * number_of_inputs</li>
+<li><strong>output_processing_flags</strong> &#8211; dict(string:string) or None.
+A list or tuple of letters specifying the postprocessing of the
+outputs. &#8216;n&#8217;: no postprocessing, &#8216;pX&#8217;: unpack from
+padding of input X, where X is the 0-based input index.
+Default: [&#8216;n&#8217;] * number_of_inputs</li>
+<li><strong>static_inputs</strong> &#8211; list(string) or None.
+A list of input blob names for wich the input will always be
+fully used, independent of the selected samples.</li>
+<li><strong>input_size_spec</strong> &#8211; (int, int) or None.
+For exotic network configurations it can be necessary to specify
+the batch size and input size because it can not be automatically
+inferred. By default (None), use the first dimension of the first
+network blob as batch size and the first dimension of the associated
+inputs as amount of samples.</li>
 </ul>
 </td>
 </tr>
 </tbody>
 </table>
+<dl class="docutils">
+<dt>:returns <span class="classifier-delimiter">:</span> <span class="classifier">dict(string:np.array) or np.array.</span></dt>
+<dd>Returns a dictionary of arrays if multiple outputs are returned
+or directly the array in the case of just one output.</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="barrista.net.Net.predict_sliding_window">
-<code class="descname">predict_sliding_window</code><span class="sig-paren">(</span><em>input_sequence</em>, <em>before_batch_callbacks=None</em>, <em>after_batch_callbacks=None</em>, <em>out_layer_names=None</em>, <em>use_fit_network=False</em>, <em>oversample=False</em>, <em>extraction_step=(1</em>, <em>1)</em>, <em>account_for_step=True</em>, <em>interpolation_method=0L</em>, <em>pad_border=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/net.html#Net.predict_sliding_window"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.net.Net.predict_sliding_window" title="Permalink to this definition">¶</a></dt>
+<code class="descname">predict_sliding_window</code><span class="sig-paren">(</span><em>input_sequence</em>, <em>pre_batch_callbacks=None</em>, <em>post_batch_callbacks=None</em>, <em>out_blob_names=None</em>, <em>use_fit_network=False</em>, <em>oversample=False</em>, <em>extraction_step=(1</em>, <em>1)</em>, <em>account_for_step=True</em>, <em>interpolation_method=0L</em>, <em>pad_border=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/net.html#Net.predict_sliding_window"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.net.Net.predict_sliding_window" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get predictions for all images in a sliding window manner.</p>
 <p>Similar to the <a class="reference internal" href="#barrista.net.Net.predict" title="barrista.net.Net.predict"><code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.predict()</span></code></a> method. See there
 for the parameter descriptions. For this method, every image must be
@@ -961,12 +957,37 @@ window, and for each output layer the reassembled images are returned.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>input_sequence</strong> &#8211; iterable(3D numpy arrays)
+The 3D numpy arrays must match in their first dimension with the
+second dimension of the network input (number of channels). E.g.,
+for a network with input shape [10, 3, 24, 24], you could provide
+inputs as 4D numpy array of shape [100, 3, 10, 10] or a list of
+3D numpy arrays of shape [3, Y, X], where X and Y may be arbitrary
+and different for each image. Multi-input networks are not yet
+supported by this method.</li>
+<li><strong>pre_batch_callbacks</strong> &#8211; list(callable) or None.
+Each element of this list will be called with the batch id as
+argument before forward propagating a batch.</li>
+<li><strong>post_batch_callbacks</strong> &#8211; list(callable) or None.
+See before, but after a callback.</li>
+<li><strong>out_blob_names</strong> &#8211; list(string) or None.
+The names of the blobs of which the values are returned. If
+unspecified, uses <code class="docutils literal"><span class="pre">self.outputs</span></code>. Must currently contain exactly
+one element.</li>
+<li><strong>use_fit_network</strong> &#8211; bool.
+If set to <code class="docutils literal"><span class="pre">True</span></code>, always use this very network, independent of
+whether an internal network in stage <code class="docutils literal"><span class="pre">predict</span></code> is available.
+For more information, see the constructor documentation.</li>
+<li><strong>oversample</strong> &#8211; bool.
+If set to <code class="docutils literal"><span class="pre">True</span></code>, uses oversampling and averages the results. You
+have to take care to bring them into the right shape for further
+processing yourself.</li>
 <li><strong>extraction_step</strong> &#8211; 2-tuple(int).
 Window step size in y and x direction.</li>
 <li><strong>account_for_step</strong> &#8211; bool.
 If set to True, the output is resized with nearest neighbor
 interpolation to get a full-sized image.</li>
-<li><strong>interpolation_method</strong> &#8211; int in {<cite>cv2.INTER_...</cite>}.
+<li><strong>interpolation_method</strong> &#8211; int in {<a href="#id3"><span class="problematic" id="id4">cv2.INTER_</span></a>...}.
 The interpolation strategy used, if <code class="docutils literal"><span class="pre">account_for_step</span></code> is set and
 the <code class="docutils literal"><span class="pre">extraction_step</span></code> is not <code class="docutils literal"><span class="pre">(1,</span> <span class="pre">1)</span></code>.</li>
 <li><strong>pad_border</strong> &#8211; bool.
@@ -1022,6 +1043,413 @@ Graphic of the visualization as (H, W, C) image in BGR format.</p>
 </dd></dl>
 
 </div>
+<div class="section" id="module-barrista.solver">
+<span id="barrista-solver-module"></span><h2>barrista.solver module<a class="headerlink" href="#module-barrista.solver" title="Permalink to this headline">¶</a></h2>
+<p>Exposes the caffe solvers.</p>
+<dl class="class">
+<dt id="barrista.solver.AdaDeltaSolver">
+<em class="property">class </em><code class="descclassname">barrista.solver.</code><code class="descname">AdaDeltaSolver</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#AdaDeltaSolver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.AdaDeltaSolver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#barrista.solver.Solver" title="barrista.solver.Solver"><code class="xref py py-class docutils literal"><span class="pre">barrista.solver.Solver</span></code></a></p>
+<p>Thin wrapper for the AdaDelta solver provided by the caffe framework.</p>
+<p>To understand how this solver works please inspect the
+cplusplus implementation in solver.cpp.</p>
+<p>The corresponding arxiv paper is called &#8216;ADADELTA: An Adaptive
+Learning Rate Method&#8217; by Matthew D. Zeiler.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>delta</strong> &#8211; float
+numerical stability [useful choice 1E-8]</li>
+<li><strong>momentum</strong> &#8211; float or None.
+The momentum to use. Multiplies the former gradient with this factor
+and adds it to the gradient in the following step.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="classmethod">
+<dt id="barrista.solver.AdaDeltaSolver.Get_optional_arguments">
+<em class="property">classmethod </em><code class="descname">Get_optional_arguments</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#AdaDeltaSolver.Get_optional_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.AdaDeltaSolver.Get_optional_arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#barrista.solver.Solver" title="barrista.solver.Solver"><code class="xref py py-class docutils literal"><span class="pre">barrista.solver.Solver</span></code></a>.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="barrista.solver.AdaDeltaSolver.Get_required_arguments">
+<em class="property">classmethod </em><code class="descname">Get_required_arguments</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#AdaDeltaSolver.Get_required_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.AdaDeltaSolver.Get_required_arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#barrista.solver.Solver" title="barrista.solver.Solver"><code class="xref py py-class docutils literal"><span class="pre">barrista.solver.Solver</span></code></a>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="barrista.solver.AdagradSolver">
+<em class="property">class </em><code class="descclassname">barrista.solver.</code><code class="descname">AdagradSolver</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#AdagradSolver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.AdagradSolver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#barrista.solver.Solver" title="barrista.solver.Solver"><code class="xref py py-class docutils literal"><span class="pre">barrista.solver.Solver</span></code></a></p>
+<p>Thin wrapper for the Adagrad solver provided by the caffe framework.</p>
+<p>To understand how this solver works please inspect the
+cplusplus implementation in solver.cpp.</p>
+<p>The corresponding publication is called &#8216;Adaptive Subgradient
+Methods for Online Learning and Stochastic Optimization&#8217; by
+John Duchi, Elad Hazan, Yoram Singer</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>momentum</strong> &#8211; float or None.
+The momentum to use. Multiplies the former gradient with this factor
+and adds it to the gradient in the following step.</td>
+</tr>
+</tbody>
+</table>
+<dl class="classmethod">
+<dt id="barrista.solver.AdagradSolver.Get_optional_arguments">
+<em class="property">classmethod </em><code class="descname">Get_optional_arguments</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#AdagradSolver.Get_optional_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.AdagradSolver.Get_optional_arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#barrista.solver.Solver" title="barrista.solver.Solver"><code class="xref py py-class docutils literal"><span class="pre">barrista.solver.Solver</span></code></a>.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="barrista.solver.AdagradSolver.Get_required_arguments">
+<em class="property">classmethod </em><code class="descname">Get_required_arguments</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#AdagradSolver.Get_required_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.AdagradSolver.Get_required_arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#barrista.solver.Solver" title="barrista.solver.Solver"><code class="xref py py-class docutils literal"><span class="pre">barrista.solver.Solver</span></code></a>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="barrista.solver.AdamSolver">
+<em class="property">class </em><code class="descclassname">barrista.solver.</code><code class="descname">AdamSolver</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#AdamSolver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.AdamSolver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#barrista.solver.Solver" title="barrista.solver.Solver"><code class="xref py py-class docutils literal"><span class="pre">barrista.solver.Solver</span></code></a></p>
+<p>Thin wrapper for the Adam solver provided by the caffe framework.</p>
+<p>To understand how this solver works please inspect the
+cplusplus implementation in solver.cpp.</p>
+<p>The corresponding arxiv paper is called &#8216; Adam: A Method for
+Stochastic Optimization &#8216; by Diederik Kingma, Jimmy Ba</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>base_lr</strong> &#8211; float
+[useful choice 0.001]</li>
+<li><strong>momentum</strong> &#8211; float.
+beta 1 useful default 0.9</li>
+<li><strong>momentum2</strong> &#8211; float.
+beta 2 useful default 0.999</li>
+<li><strong>delta</strong> &#8211; float
+numerical stability [useful choice 1E-8]</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="classmethod">
+<dt id="barrista.solver.AdamSolver.Get_optional_arguments">
+<em class="property">classmethod </em><code class="descname">Get_optional_arguments</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#AdamSolver.Get_optional_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.AdamSolver.Get_optional_arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#barrista.solver.Solver" title="barrista.solver.Solver"><code class="xref py py-class docutils literal"><span class="pre">barrista.solver.Solver</span></code></a>.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="barrista.solver.AdamSolver.Get_required_arguments">
+<em class="property">classmethod </em><code class="descname">Get_required_arguments</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#AdamSolver.Get_required_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.AdamSolver.Get_required_arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#barrista.solver.Solver" title="barrista.solver.Solver"><code class="xref py py-class docutils literal"><span class="pre">barrista.solver.Solver</span></code></a>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="barrista.solver.NesterovSolver">
+<em class="property">class </em><code class="descclassname">barrista.solver.</code><code class="descname">NesterovSolver</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#NesterovSolver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.NesterovSolver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#barrista.solver.Solver" title="barrista.solver.Solver"><code class="xref py py-class docutils literal"><span class="pre">barrista.solver.Solver</span></code></a></p>
+<p>Thin wrapper for the Nesterov solver provided by the caffe framework.</p>
+<p>To understand how this solver works please inspect the
+cplusplus implementation in solver.cpp.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>momentum</strong> &#8211; float or None.
+The momentum to use. Multiplies the former gradient with this factor
+and adds it to the gradient in the following step.</td>
+</tr>
+</tbody>
+</table>
+<dl class="classmethod">
+<dt id="barrista.solver.NesterovSolver.Get_optional_arguments">
+<em class="property">classmethod </em><code class="descname">Get_optional_arguments</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#NesterovSolver.Get_optional_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.NesterovSolver.Get_optional_arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#barrista.solver.Solver" title="barrista.solver.Solver"><code class="xref py py-class docutils literal"><span class="pre">barrista.solver.Solver</span></code></a>.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="barrista.solver.NesterovSolver.Get_required_arguments">
+<em class="property">classmethod </em><code class="descname">Get_required_arguments</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#NesterovSolver.Get_required_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.NesterovSolver.Get_required_arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#barrista.solver.Solver" title="barrista.solver.Solver"><code class="xref py py-class docutils literal"><span class="pre">barrista.solver.Solver</span></code></a>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="barrista.solver.RMSPropSolver">
+<em class="property">class </em><code class="descclassname">barrista.solver.</code><code class="descname">RMSPropSolver</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#RMSPropSolver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.RMSPropSolver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#barrista.solver.Solver" title="barrista.solver.Solver"><code class="xref py py-class docutils literal"><span class="pre">barrista.solver.Solver</span></code></a></p>
+<p>Thin wrapper for the RMSProp solver provided by the caffe framework.</p>
+<p>To understand how this solver works please inspect the
+cplusplus implementation in solver.cpp.</p>
+<p>This solver has been discussed in a lecture given by Hinton.
+www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>rms_decay</strong> &#8211; float
+MeanSquare(t) = rms_decay*MeanSquare(t-1)+(1-rms_decay)*SquareGradient(t)</li>
+<li><strong>delta</strong> &#8211; float
+numerical stability [useful choice 1E-8]</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="classmethod">
+<dt id="barrista.solver.RMSPropSolver.Get_optional_arguments">
+<em class="property">classmethod </em><code class="descname">Get_optional_arguments</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#RMSPropSolver.Get_optional_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.RMSPropSolver.Get_optional_arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#barrista.solver.Solver" title="barrista.solver.Solver"><code class="xref py py-class docutils literal"><span class="pre">barrista.solver.Solver</span></code></a>.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="barrista.solver.RMSPropSolver.Get_required_arguments">
+<em class="property">classmethod </em><code class="descname">Get_required_arguments</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#RMSPropSolver.Get_required_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.RMSPropSolver.Get_required_arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#barrista.solver.Solver" title="barrista.solver.Solver"><code class="xref py py-class docutils literal"><span class="pre">barrista.solver.Solver</span></code></a>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="barrista.solver.SGDSolver">
+<em class="property">class </em><code class="descclassname">barrista.solver.</code><code class="descname">SGDSolver</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#SGDSolver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.SGDSolver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#barrista.solver.Solver" title="barrista.solver.Solver"><code class="xref py py-class docutils literal"><span class="pre">barrista.solver.Solver</span></code></a></p>
+<p>Thin wrapper for the vanilla SGD solver provided by the caffe framework.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>momentum</strong> &#8211; float or None.
+The momentum to use. Multiplies the former gradient with this factor
+and adds it to the gradient in the following step.</td>
+</tr>
+</tbody>
+</table>
+<dl class="classmethod">
+<dt id="barrista.solver.SGDSolver.Get_optional_arguments">
+<em class="property">classmethod </em><code class="descname">Get_optional_arguments</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#SGDSolver.Get_optional_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.SGDSolver.Get_optional_arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#barrista.solver.Solver" title="barrista.solver.Solver"><code class="xref py py-class docutils literal"><span class="pre">barrista.solver.Solver</span></code></a>.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="barrista.solver.SGDSolver.Get_required_arguments">
+<em class="property">classmethod </em><code class="descname">Get_required_arguments</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#SGDSolver.Get_required_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.SGDSolver.Get_required_arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>See <a class="reference internal" href="#barrista.solver.Solver" title="barrista.solver.Solver"><code class="xref py py-class docutils literal"><span class="pre">barrista.solver.Solver</span></code></a>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="barrista.solver.Solver">
+<em class="property">class </em><code class="descclassname">barrista.solver.</code><code class="descname">Solver</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#Solver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.Solver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>Describes the Solver concept.</p>
+<dl class="method">
+<dt id="barrista.solver.Solver.Assert_iter_size">
+<code class="descname">Assert_iter_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#Solver.Assert_iter_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.Solver.Assert_iter_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Enforce the parameter constraints.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="barrista.solver.Solver.Assert_policy">
+<code class="descname">Assert_policy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#Solver.Assert_policy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.Solver.Assert_policy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Enforce the parameter constraints.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="barrista.solver.Solver.Assert_regularization_types">
+<code class="descname">Assert_regularization_types</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#Solver.Assert_regularization_types"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.Solver.Assert_regularization_types" title="Permalink to this definition">¶</a></dt>
+<dd><p>Enforce the parameter constraints.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="barrista.solver.Solver.Get_caffe_solver_class">
+<em class="property">classmethod </em><code class="descname">Get_caffe_solver_class</code><span class="sig-paren">(</span><em>caffe_solver_type</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#Solver.Get_caffe_solver_class"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.Solver.Get_caffe_solver_class" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the solver class as <code class="docutils literal"><span class="pre">caffe_solver_type</span></code>.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="barrista.solver.Solver.Get_caffe_solver_instance">
+<em class="property">classmethod </em><code class="descname">Get_caffe_solver_instance</code><span class="sig-paren">(</span><em>solver_parameter_dict</em>, <em>net</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#Solver.Get_caffe_solver_instance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.Solver.Get_caffe_solver_instance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a caffe solver object.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="barrista.solver.Solver.Get_optional_arguments">
+<em class="property">classmethod </em><code class="descname">Get_optional_arguments</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#Solver.Get_optional_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.Solver.Get_optional_arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the optional parameters.</p>
+<p>Optional parameters and some of which are None
+not all combinations are possible, this is enforced by various
+asserts when calling Get_parameter_dict().</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="barrista.solver.Solver.Get_parameter_dict">
+<code class="descname">Get_parameter_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#Solver.Get_parameter_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.Solver.Get_parameter_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the solver describing parameters in a dictionary.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="barrista.solver.Solver.Get_parameter_hash">
+<em class="property">classmethod </em><code class="descname">Get_parameter_hash</code><span class="sig-paren">(</span><em>solver_parameter_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#Solver.Get_parameter_hash"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.Solver.Get_parameter_hash" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a has of the parameter dict.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="barrista.solver.Solver.Get_required_arguments">
+<em class="property">classmethod </em><code class="descname">Get_required_arguments</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#Solver.Get_required_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.Solver.Get_required_arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>The minimum number of required parameters.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="barrista.solver.Solver.Get_solver_class">
+<em class="property">classmethod </em><code class="descname">Get_solver_class</code><span class="sig-paren">(</span><em>solver_type</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#Solver.Get_solver_class"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.Solver.Get_solver_class" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the solver class as string.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="barrista.solver.Solver.Register_solver">
+<em class="property">classmethod </em><code class="descname">Register_solver</code><span class="sig-paren">(</span><em>solver_class</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#Solver.Register_solver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.Solver.Register_solver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register a solver class.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="barrista.solver.Solver.fit">
+<code class="descname">fit</code><span class="sig-paren">(</span><em>iterations</em>, <em>X=None</em>, <em>X_val=None</em>, <em>test_iterations=0</em>, <em>test_interval=0</em>, <em>test_initialization=False</em>, <em>train_callbacks=None</em>, <em>test_callbacks=None</em>, <em>net=None</em>, <em>read_input_batch_size_from_blob_name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#Solver.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.Solver.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>fit the network to specific data.</p>
+<p>Use monitors from the module <a class="reference internal" href="#module-barrista.monitoring" title="barrista.monitoring"><code class="xref py py-mod docutils literal"><span class="pre">barrista.monitoring</span></code></a> as
+callbacks to monitor the state of the net and create checkpoints.
+This method offers the following kwargs to monitors (* indicates,
+that the values are only available at test time, - indicates, that
+the value is not necessarily available):</p>
+<ul>
+<li><p class="first">max_iter,</p>
+</li>
+<li><p class="first">iter,</p>
+</li>
+<li><p class="first">batch_size,</p>
+</li>
+<li><p class="first">net,</p>
+</li>
+<li><p class="first">testnet[only if there is a test phase, e.g. X_val is set]</p>
+</li>
+<li><p class="first">solver,</p>
+</li>
+<li><p class="first">callback_signal[is automatically set by the fit function],</p>
+</li>
+<li><p class="first">X-[only if provided by the user],</p>
+</li>
+<li><p class="first">X_val-[only if provided by the user],</p>
+</li>
+<li><dl class="first docutils">
+<dt>[the following fields are only set if the corresponding</dt>
+<dd><p class="first last">loss/accuracy layer exists for the train and/or test phase.
+It can also be set by providing a custom ResultExtractor]</p>
+</dd>
+</dl>
+</li>
+<li><p class="first">loss-,</p>
+</li>
+<li><p class="first">test_loss*,</p>
+</li>
+<li><p class="first">accuracy-,</p>
+</li>
+<li><p class="first">test_accuracy*-,</p>
+</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>iterations</strong> &#8211; int.
+The number of training iterations to do. This is the plain number
+of iterations, completely disregarding the batch size, i.e., for
+<code class="docutils literal"><span class="pre">iterations</span></code> being 10 and <code class="docutils literal"><span class="pre">batch_size</span></code> being 10, just one batch
+is forward propagated.</li>
+<li><strong>X</strong> &#8211; dict of numpy.ndarray or None.
+If specified, is used as input data. It is used sequentially, so
+shuffle it pre, if required. The keys of the dict have to have
+a corresponding layer name in the net.</li>
+<li><strong>X_val</strong> &#8211; dict of numpy.ndarray or None.
+If specified and <code class="docutils literal"><span class="pre">test_interval&gt;0</span></code>, it is used as input data.
+It is used sequentially, so shuffle it pre, if required. The
+keys of the dict have to have a corresponding layer name in
+the net.</li>
+<li><strong>test_iterations</strong> &#8211; int.
+The number of test iterations to determine the validation score,
+if <code class="docutils literal"><span class="pre">test_interval&gt;0</span></code>.</li>
+<li><strong>test_interval</strong> &#8211; int.
+The number of iterations between runs on the validation set. Is
+specified in plain iterations, disregarding batch size. Hence, it
+must be a multiple of the batch size.</li>
+<li><strong>test_initialization</strong> &#8211; bool.
+Whether to do a run on the validation set pre the training is
+started to get an initial score.</li>
+<li><strong>train_callbacks</strong> &#8211; list(callable).
+List of callback callables. Will be called pre and post training
+batch is processed. This list will be processed
+sequentially, meaning that monitors in the sequence can
+provide information for later monitors as done with
+ResultExtractor.</li>
+<li><strong>test_callbacks</strong> &#8211; list(callable).
+List of callback callables. Will be called for pre and post
+testing and pre and post each batch of testing processed.
+This list will be processed sequentially, meaning that
+monitors in the sequence can provide information for later
+monitors as done with ResultExtractor.</li>
+<li><strong>read_input_batch_size_from_blob_name</strong> &#8211; string.
+The name of the layer to take the input batch size from (as the
+first dimension of its first blob). Must be specified if the
+network does not have explicit inputs (e.g., when trained from
+an LMDB).</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="barrista.solver.Solver.step">
+<code class="descname">step</code><span class="sig-paren">(</span><em>number_of_batches</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#Solver.step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.Solver.step" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run <code class="docutils literal"><span class="pre">number_of_batches</span></code> solver steps.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="barrista.solver.Solver.update_parameters">
+<code class="descname">update_parameters</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#Solver.update_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.Solver.update_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the solver parameters.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="attribute">
+<dt id="barrista.solver.SolverType">
+<code class="descclassname">barrista.solver.</code><code class="descname">SolverType</code><a class="headerlink" href="#barrista.solver.SolverType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Describes the type of the solver used. All solver types supported by caffe
+are available.</p>
+<p>alias of <code class="xref py py-class docutils literal"><span class="pre">Enum</span></code></p>
+</dd></dl>
+
+</div>
 <div class="section" id="module-barrista.tools">
 <span id="barrista-tools-module"></span><h2>barrista.tools module<a class="headerlink" href="#module-barrista.tools" title="Permalink to this headline">¶</a></h2>
 <p>Implements some useful tools.</p>
@@ -1041,7 +1469,8 @@ For example:</p>
 <p>Upon exiting the context, the directory and everything contained
 in it are removed.</p>
 <p>Source:
-<a class="reference external" href="http://stackoverflow.com/questions/19296146/tempfile-temporarydirectory-context-manager-in-python-2-7">http://stackoverflow.com/questions/19296146/tempfile-temporarydirectory-context-manager-in-python-2-7</a>  # noqa</p>
+<a class="reference external" href="http://stackoverflow.com/questions/19296146/">http://stackoverflow.com/questions/19296146/</a>
+tempfile-temporarydirectory-context-manager-in-python-2-7.</p>
 <dl class="method">
 <dt id="barrista.tools.TemporaryDirectory.cleanup">
 <code class="descname">cleanup</code><span class="sig-paren">(</span><em>_warn=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/tools.html#TemporaryDirectory.cleanup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.tools.TemporaryDirectory.cleanup" title="Permalink to this definition">¶</a></dt>
@@ -1054,7 +1483,8 @@ in it are removed.</p>
 <dt id="barrista.tools.chunks">
 <code class="descclassname">barrista.tools.</code><code class="descname">chunks</code><span class="sig-paren">(</span><em>seq</em>, <em>size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/tools.html#chunks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.tools.chunks" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create chunks of <code class="docutils literal"><span class="pre">size</span></code> of <code class="docutils literal"><span class="pre">seq</span></code>.</p>
-<p>See <a class="reference external" href="http://stackoverflow.com/questions/434287/what-is-the-most-pythonic-way-to-iterate-over-a-list-in-chunks">http://stackoverflow.com/questions/434287/what-is-the-most-pythonic-way-to-iterate-over-a-list-in-chunks</a>.  # noqa</p>
+<p>See <a class="reference external" href="http://stackoverflow.com/questions/434287/">http://stackoverflow.com/questions/434287/</a>
+what-is-the-most-pythonic-way-to-iterate-over-a-list-in-chunks.</p>
 </dd></dl>
 
 <dl class="function">
@@ -1122,7 +1552,7 @@ The value to pad with.</li>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, The barrista authors.
+        &copy; Copyright 2015, University of Tuebingen.
 
     </p>
   </div>

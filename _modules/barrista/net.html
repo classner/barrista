@@ -129,9 +129,9 @@
             
   <h1>Source code for barrista.net</h1><div class="highlight"><pre>
 <span class="c"># -*- coding: utf-8 -*-</span>
-<span class="c"># pylint: disable=E1101</span>
+<span class="c"># pylint: disable=E1101, F0401, R0912, R0913, R0914, C0103</span>
 <span class="sd">&quot;&quot;&quot;Implements an extended Net object.&quot;&quot;&quot;</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+
 
 <span class="kn">import</span> <span class="nn">time</span> <span class="kn">as</span> <span class="nn">_time</span>
 <span class="kn">import</span> <span class="nn">logging</span> <span class="kn">as</span> <span class="nn">_logging</span>
@@ -140,22 +140,16 @@
 <span class="kn">import</span> <span class="nn">cv2</span> <span class="kn">as</span> <span class="nn">_cv2</span>
 <span class="kn">from</span> <span class="nn">sklearn.feature_extraction.image</span> <span class="kn">import</span> <span class="n">extract_patches</span> <span class="k">as</span> <span class="n">_extract_patches</span>
 
+<span class="kn">from</span> <span class="nn">.tools</span> <span class="kn">import</span> <span class="n">chunks</span> <span class="k">as</span> <span class="n">_chunks</span><span class="p">,</span> <span class="n">pad</span> <span class="k">as</span> <span class="n">_pad</span>
+
 <span class="c"># CAREFUL! This must be imported before any caffe-related import!</span>
-<span class="kn">from</span> <span class="nn">initialization</span> <span class="kn">import</span> <span class="n">init</span> <span class="k">as</span> <span class="n">_init</span>
-<span class="kn">from</span> <span class="nn">tools</span> <span class="kn">import</span> <span class="n">chunks</span> <span class="k">as</span> <span class="n">_chunks</span><span class="p">,</span> <span class="n">pad</span> <span class="k">as</span> <span class="n">_pad</span><span class="p">,</span> <span class="n">pbufToPyEnum</span> <span class="k">as</span> <span class="n">_pbufToPyEnum</span>
+<span class="kn">from</span> <span class="nn">.initialization</span> <span class="kn">import</span> <span class="n">init</span> <span class="k">as</span> <span class="n">_init</span>
 
 <span class="kn">import</span> <span class="nn">caffe</span> <span class="kn">as</span> <span class="nn">_caffe</span>
-<span class="kn">import</span> <span class="nn">caffe.proto.caffe_pb2</span> <span class="kn">as</span> <span class="nn">_caffe_pb2</span>
-
-<span class="kn">import</span> <span class="nn">solver</span> <span class="kn">as</span> <span class="nn">_solver</span>
 
 <span class="n">_init</span><span class="p">()</span>
 <span class="n">_LOGGER</span> <span class="o">=</span> <span class="n">_logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
 
-
-<span class="c">#: Describes the type of the solver used. All solver types supported by caffe</span>
-<span class="c">#: are available.</span>
-<span class="n">_Phase</span> <span class="o">=</span> <span class="n">_pbufToPyEnum</span><span class="p">(</span><span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">Phase</span><span class="p">)</span>
 
 <span class="c">#: Set CPU processing mode.</span>
 <span class="n">set_mode_cpu</span> <span class="o">=</span> <span class="n">_caffe</span><span class="o">.</span><span class="n">set_mode_cpu</span><span class="p">()</span>
@@ -207,9 +201,9 @@
 
 <div class="viewcode-block" id="Net.predict_sliding_window"><a class="viewcode-back" href="../../barrista.html#barrista.net.Net.predict_sliding_window">[docs]</a>    <span class="k">def</span> <span class="nf">predict_sliding_window</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                                <span class="n">input_sequence</span><span class="p">,</span>
-                               <span class="n">before_batch_callbacks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-                               <span class="n">after_batch_callbacks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-                               <span class="n">out_layer_names</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                               <span class="n">pre_batch_callbacks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                               <span class="n">post_batch_callbacks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                               <span class="n">out_blob_names</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                                <span class="n">use_fit_network</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
                                <span class="n">oversample</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
                                <span class="n">extraction_step</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
@@ -227,6 +221,37 @@
 <span class="sd">        The output of the network for one patch must be of shape</span>
 <span class="sd">        (num_layers X 1 X 1) and currently only one output layer is supported.</span>
 
+<span class="sd">        :param input_sequence: iterable(3D numpy arrays)</span>
+<span class="sd">          The 3D numpy arrays must match in their first dimension with the</span>
+<span class="sd">          second dimension of the network input (number of channels). E.g.,</span>
+<span class="sd">          for a network with input shape [10, 3, 24, 24], you could provide</span>
+<span class="sd">          inputs as 4D numpy array of shape [100, 3, 10, 10] or a list of</span>
+<span class="sd">          3D numpy arrays of shape [3, Y, X], where X and Y may be arbitrary</span>
+<span class="sd">          and different for each image. Multi-input networks are not yet</span>
+<span class="sd">          supported by this method.</span>
+
+<span class="sd">        :param pre_batch_callbacks: list(callable) or None.</span>
+<span class="sd">          Each element of this list will be called with the batch id as</span>
+<span class="sd">          argument before forward propagating a batch.</span>
+
+<span class="sd">        :param post_batch_callbacks: list(callable) or None.</span>
+<span class="sd">          See before, but after a callback.</span>
+
+<span class="sd">        :param out_blob_names: list(string) or None.</span>
+<span class="sd">          The names of the blobs of which the values are returned. If</span>
+<span class="sd">          unspecified, uses ``self.outputs``. Must currently contain exactly</span>
+<span class="sd">          one element.</span>
+
+<span class="sd">        :param use_fit_network: bool.</span>
+<span class="sd">          If set to ``True``, always use this very network, independent of</span>
+<span class="sd">          whether an internal network in stage ``predict`` is available.</span>
+<span class="sd">          For more information, see the constructor documentation.</span>
+
+<span class="sd">        :param oversample: bool.</span>
+<span class="sd">          If set to ``True``, uses oversampling and averages the results. You</span>
+<span class="sd">          have to take care to bring them into the right shape for further</span>
+<span class="sd">          processing yourself.</span>
+
 <span class="sd">        :parameter extraction_step: 2-tuple(int).</span>
 <span class="sd">          Window step size in y and x direction.</span>
 
@@ -234,7 +259,7 @@
 <span class="sd">          If set to True, the output is resized with nearest neighbor</span>
 <span class="sd">          interpolation to get a full-sized image.</span>
 
-<span class="sd">        :parameter interpolation_method: int in {`cv2.INTER_...`}.</span>
+<span class="sd">        :parameter interpolation_method: int in {cv2.INTER_...}.</span>
 <span class="sd">          The interpolation strategy used, if ``account_for_step`` is set and</span>
 <span class="sd">          the ``extraction_step`` is not ``(1, 1)``.</span>
 
@@ -255,11 +280,11 @@
         <span class="n">input_dims</span> <span class="o">=</span> <span class="n">prednet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">prednet</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span>
         <span class="n">input_image_dims</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">input_dims</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
         <span class="k">for</span> <span class="n">im</span> <span class="ow">in</span> <span class="n">input_sequence</span><span class="p">:</span>
-            <span class="k">assert</span><span class="p">(</span><span class="n">im</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">input_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-            <span class="k">assert</span><span class="p">(</span><span class="n">im</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">input_image_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-            <span class="k">assert</span><span class="p">(</span><span class="n">im</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">input_image_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-        <span class="k">assert</span> <span class="p">(</span><span class="n">out_layer_names</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span>
-                <span class="nb">len</span><span class="p">(</span><span class="n">out_layer_names</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">),</span> <span class="s">&quot;Only one output layer is supported!&quot;</span>  <span class="c"># noqa</span>
+            <span class="k">assert</span> <span class="n">im</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">input_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="n">im</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">input_image_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="n">im</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">input_image_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">out_blob_names</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">out_blob_names</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">),</span> <span class="s">&quot;Only one output layer is supported!&quot;</span>  <span class="c"># noqa</span>
         <span class="n">output_images</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">im_id</span><span class="p">,</span> <span class="n">im</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">input_sequence</span><span class="p">):</span>
             <span class="n">_LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Processing image </span><span class="si">%d</span><span class="s">...&quot;</span><span class="p">,</span> <span class="n">im_id</span><span class="p">)</span>
@@ -273,13 +298,11 @@
                                                         <span class="n">extraction_step</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
             <span class="n">sampled_shape</span> <span class="o">=</span> <span class="n">patches</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
             <span class="n">patches</span> <span class="o">=</span> <span class="n">patches</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">_np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">patches</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">3</span><span class="p">]),</span>
-                                                 <span class="n">patches</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">:])))</span>
+                                                  <span class="n">patches</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">:])))</span>
             <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">patches</span><span class="p">,</span>
-                                   <span class="n">pad_instead_of_rescale</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-                                   <span class="n">before_batch_callbacks</span><span class="o">=</span><span class="n">before_batch_callbacks</span><span class="p">,</span>  <span class="c"># noqa</span>
-                                   <span class="n">after_batch_callbacks</span><span class="o">=</span><span class="n">after_batch_callbacks</span><span class="p">,</span>
-                                   <span class="n">return_unprocessed_outputs</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-                                   <span class="n">out_layer_names</span><span class="o">=</span><span class="n">out_layer_names</span><span class="p">,</span>
+                                   <span class="n">pre_batch_callbacks</span><span class="o">=</span><span class="n">pre_batch_callbacks</span><span class="p">,</span>  <span class="c"># noqa</span>
+                                   <span class="n">post_batch_callbacks</span><span class="o">=</span><span class="n">post_batch_callbacks</span><span class="p">,</span>
+                                   <span class="n">out_blob_names</span><span class="o">=</span><span class="n">out_blob_names</span><span class="p">,</span>
                                    <span class="n">use_fit_network</span><span class="o">=</span><span class="n">use_fit_network</span><span class="p">,</span>
                                    <span class="n">oversample</span><span class="o">=</span><span class="n">oversample</span><span class="p">,</span>
                                    <span class="n">before_oversample_resize_to</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span>
@@ -304,21 +327,25 @@
                               <span class="n">val_idx</span> <span class="o">//</span> <span class="n">sampled_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
                               <span class="n">val_idx</span> <span class="o">%</span> <span class="n">sampled_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">val</span><span class="p">[:]</span>
                 <span class="c"># Resize.</span>
-                <span class="k">for</span> <span class="n">layer_idx</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                <span class="k">for</span> <span class="n">layer_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
                     <span class="n">layer_area</span> <span class="o">=</span> <span class="n">out_im</span><span class="p">[</span>
                         <span class="n">layer_idx</span><span class="p">,</span>
-                        <span class="nb">int</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">input_image_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">))</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="nb">int</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">input_image_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">))</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span>  <span class="c"># noqa</span>
-                        <span class="nb">int</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">input_image_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">))</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="nb">int</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">input_image_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">))</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>  <span class="c"># noqa</span>
+                        <span class="nb">int</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">input_image_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">))</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                        <span class="o">-</span><span class="nb">int</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">input_image_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">))</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="nb">int</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">input_image_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">))</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                        <span class="o">-</span><span class="nb">int</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">input_image_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">))</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
                     <span class="n">layer_area</span><span class="p">[</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">_cv2</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span>
-                                        <span class="n">collected</span><span class="p">[</span><span class="n">layer_idx</span><span class="p">],</span>
-                                        <span class="p">(</span><span class="n">layer_area</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
-                                         <span class="n">layer_area</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
-                                        <span class="n">interpolation</span><span class="o">=</span><span class="n">interpolation_method</span><span class="p">)</span>
+                        <span class="n">collected</span><span class="p">[</span><span class="n">layer_idx</span><span class="p">],</span>
+                        <span class="p">(</span><span class="n">layer_area</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                         <span class="n">layer_area</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                        <span class="n">interpolation</span><span class="o">=</span><span class="n">interpolation_method</span><span class="p">)</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="n">pad_border</span><span class="p">:</span>
                     <span class="n">out_im</span> <span class="o">=</span> <span class="n">out_im</span><span class="p">[</span>
                         <span class="p">:,</span>
-                        <span class="nb">int</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">input_image_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">))</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="nb">int</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">input_image_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">))</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span>  <span class="c"># noqa</span>
-                        <span class="nb">int</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">input_image_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">))</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="nb">int</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">input_image_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">))</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>  <span class="c"># noqa</span>
+                        <span class="nb">int</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">input_image_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">))</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                        <span class="o">-</span><span class="nb">int</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">input_image_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">))</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="nb">int</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">input_image_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">))</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                        <span class="o">-</span><span class="nb">int</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">input_image_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">))</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
                 <span class="n">output_images</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out_im</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="c"># Collect the values.</span>
@@ -342,16 +369,18 @@
                          <span class="n">_time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">image_beginpoint</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">output_images</span>
 </div>
-<div class="viewcode-block" id="Net.predict"><a class="viewcode-back" href="../../barrista.html#barrista.net.Net.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="Net.predict"><a class="viewcode-back" href="../../barrista.html#barrista.net.Net.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>  <span class="c"># pylint: disable=R0915</span>
                 <span class="n">input_sequence</span><span class="p">,</span>
-                <span class="n">pad_instead_of_rescale</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-                <span class="n">before_batch_callbacks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-                <span class="n">after_batch_callbacks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-                <span class="n">return_unprocessed_outputs</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
-                <span class="n">out_layer_names</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-                <span class="n">use_fit_network</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                <span class="n">pre_batch_callbacks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                <span class="n">post_batch_callbacks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                <span class="n">out_blob_names</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                <span class="n">use_fit_network</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                 <span class="n">oversample</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
-                <span class="n">before_oversample_resize_to</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+                <span class="n">before_oversample_resize_to</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                <span class="n">input_processing_flags</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                <span class="n">output_processing_flags</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                <span class="n">static_inputs</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                <span class="n">input_size_spec</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">        Predict samples in the spirit of `scikit-learn`.</span>
 
@@ -361,39 +390,28 @@
 <span class="sd">        * The method will match the data to the input size of the network and</span>
 <span class="sd">          forward propagate it in batches.</span>
 
-<span class="sd">        :param input_sequence: iterable(3D numpy arrays).</span>
+<span class="sd">        :param input_sequence: iterable(3D numpy arrays) or dict(string: ...).</span>
 <span class="sd">          The 3D numpy arrays must match in their first dimension with the</span>
 <span class="sd">          second dimension of the network input (number of channels). E.g.,</span>
 <span class="sd">          for a network with input shape [10, 3, 24, 24], you could provide</span>
 <span class="sd">          inputs as 4D numpy array of shape [100, 3, 10, 10] or a list of</span>
 <span class="sd">          3D numpy arrays of shape [3, Y, X], where X and Y may be arbitrary</span>
-<span class="sd">          and different for each image.</span>
+<span class="sd">          and different for each image. If you are using a multi-input network,</span>
+<span class="sd">          you can provide a dictionary of iterables of 3D numpy arrays before,</span>
+<span class="sd">          where the keys are the input blob names to fill. Use the</span>
+<span class="sd">          `input_processing_flags` to specify how preprocessing is</span>
+<span class="sd">          done in any scenario.</span>
 
-<span class="sd">        :param pad_instead_of_rescale: bool.</span>
-<span class="sd">          By default, all inputs are rescaled to the network input size by</span>
-<span class="sd">          using bicubic interpolation and the full network output is</span>
-<span class="sd">          returned. If set to ``True``, samples are padded to be in the middle</span>
-<span class="sd">          of the network input, and depending on whether</span>
-<span class="sd">          ``return_unprocessed_outputs`` is set or not, you will receive</span>
-<span class="sd">          the cut-out output areas or the full outputs of the networks</span>
-<span class="sd">          as result.</span>
-
-<span class="sd">        :param before_batch_callbacks: list(callable) or None.</span>
+<span class="sd">        :param pre_batch_callbacks: list(callable) or None.</span>
 <span class="sd">          Each element of this list will be called with the batch id as</span>
 <span class="sd">          argument before forward propagating a batch.</span>
 
-<span class="sd">        :param after_batch_callbacks: list(callable) or None.</span>
+<span class="sd">        :param post_batch_callbacks: list(callable) or None.</span>
 <span class="sd">          See before, but after a callback.</span>
 
-<span class="sd">        :param return_unprocessed_outputs: bool.</span>
-<span class="sd">          If set to False and ``pad_instead_of_rescale`` is set, returns</span>
-<span class="sd">          only the relevant areas of the output. Otherwise, returns the full</span>
-<span class="sd">          network output.</span>
-
-<span class="sd">        :param out_layer_names: list(string) or None.</span>
-<span class="sd">          The names of the layers of which the outputs are returned. If</span>
-<span class="sd">          unspecified, uses ``self.outputs``. If more than one is used, no</span>
-<span class="sd">          postprocessing is applied on the outputs!</span>
+<span class="sd">        :param out_blob_names: list(string) or None.</span>
+<span class="sd">          The names of the blobs of which the values are returned. If</span>
+<span class="sd">          unspecified, uses ``self.outputs``.</span>
 
 <span class="sd">        :param use_fit_network: bool.</span>
 <span class="sd">          If set to ``True``, always use this very network, independent of</span>
@@ -408,112 +426,233 @@
 <span class="sd">        :param before_oversample_resize_to: 2-tuple(int) or None.</span>
 <span class="sd">          A tuple specifying height and width to resize to before oversampling</span>
 <span class="sd">          or None if the image should not be resized before oversampling.</span>
+
+<span class="sd">        :param input_processing_flags: dict(string:string) or None.</span>
+<span class="sd">          A list or tuple of letters specifying the proprocessing for each</span>
+<span class="sd">          input. &#39;n&#39;: no preprocessing, &#39;r&#39;: rescale, &#39;p&#39;: pad.</span>
+<span class="sd">          Default: [&#39;n&#39;] * number_of_inputs</span>
+
+<span class="sd">        :param output_processing_flags: dict(string:string) or None.</span>
+<span class="sd">          A list or tuple of letters specifying the postprocessing of the</span>
+<span class="sd">          outputs. &#39;n&#39;: no postprocessing, &#39;pX&#39;: unpack from</span>
+<span class="sd">          padding of input X, where X is the 0-based input index.</span>
+<span class="sd">          Default: [&#39;n&#39;] * number_of_inputs</span>
+
+<span class="sd">        :param static_inputs: list(string) or None.</span>
+<span class="sd">          A list of input blob names for wich the input will always be</span>
+<span class="sd">          fully used, independent of the selected samples.</span>
+
+<span class="sd">        :param input_size_spec: (int, int) or None.</span>
+<span class="sd">          For exotic network configurations it can be necessary to specify</span>
+<span class="sd">          the batch size and input size because it can not be automatically</span>
+<span class="sd">          inferred. By default (None), use the first dimension of the first</span>
+<span class="sd">          network blob as batch size and the first dimension of the associated</span>
+<span class="sd">          inputs as amount of samples.</span>
+
+<span class="sd">        :returns : dict(string:np.array) or np.array.</span>
+<span class="sd">          Returns a dictionary of arrays if multiple outputs are returned</span>
+<span class="sd">          or directly the array in the case of just one output.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">before_batch_callbacks</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="n">before_batch_callbacks</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="n">after_batch_callbacks</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="n">after_batch_callbacks</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict_variant</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">use_fit_network</span><span class="p">:</span>
+        <span class="c"># Parameter checks.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">use_fit_network</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict_variant</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">_LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Using prediction network variant.&quot;</span><span class="p">)</span>
             <span class="n">prednet</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict_variant</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">prednet</span> <span class="o">=</span> <span class="bp">self</span>
-        <span class="n">input_dims</span> <span class="o">=</span> <span class="n">prednet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">prednet</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span>
-        <span class="n">input_image_dims</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">input_dims</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
-        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">input_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">out_layer_names</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="n">out_layer_names</span> <span class="o">=</span> <span class="n">prednet</span><span class="o">.</span><span class="n">outputs</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_sequence</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="c"># We have multiple input dicts specified.</span>
+            <span class="k">for</span> <span class="n">input_blob_name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">input_sequence</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                <span class="k">assert</span> <span class="n">input_blob_name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">prednet</span><span class="o">.</span><span class="n">blobs</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="p">(</span>
+                    <span class="s">&quot;Specified input blob not found: {}.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">input_blob_name</span><span class="p">)</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">prednet</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s">&quot;You did not specify the `input_sequence` as dictionary. &quot;</span>
+                <span class="s">&quot;This only works for networks with one input! Inputs: {}.&quot;</span>
+                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prednet</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">input_sequence</span> <span class="o">=</span> <span class="p">{</span><span class="n">prednet</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span> <span class="n">input_sequence</span><span class="p">}</span>
+        <span class="k">if</span> <span class="n">pre_batch_callbacks</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">pre_batch_callbacks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">post_batch_callbacks</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">post_batch_callbacks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">out_blob_names</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">out_blob_names</span> <span class="o">=</span> <span class="n">prednet</span><span class="o">.</span><span class="n">outputs</span>
+        <span class="k">for</span> <span class="n">bname</span> <span class="ow">in</span> <span class="n">out_blob_names</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">bname</span> <span class="ow">in</span> <span class="n">prednet</span><span class="o">.</span><span class="n">blobs</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s">&quot;The following blob name was specified in `out_blob_names` &quot;</span>
+                <span class="s">&quot;but I didn&#39;t find a blob with this name: {}.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bname</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="c"># `use_fit_network` has already been checked.</span>
+        <span class="k">if</span> <span class="n">oversample</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">prednet</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s">&quot;Oversampling can currently only be used with 1-input networks.&quot;</span>
+            <span class="p">)</span>
+        <span class="n">input_image_dims_0</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="n">prednet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">prednet</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+        <span class="k">if</span> <span class="n">before_oversample_resize_to</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">oversample</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s">&quot;`before_oversample_resize_to` specified, but not `oversample`!&quot;</span>
+            <span class="p">)</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="n">before_oversample_resize_to</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">input_image_dims_0</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span>
+                    <span class="n">before_oversample_resize_to</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">input_image_dims_0</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">assert</span> <span class="n">input_processing_flags</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> \
+            <span class="nb">all</span><span class="p">([</span><span class="n">flag</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;r&#39;</span><span class="p">,</span> <span class="s">&#39;p&#39;</span><span class="p">,</span> <span class="s">&#39;n&#39;</span><span class="p">]</span>
+                 <span class="k">for</span> <span class="n">flag</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">input_processing_flags</span><span class="o">.</span><span class="n">values</span><span class="p">())]),</span> \
+            <span class="s">&quot;The input processing flags must be in [&#39;r&#39;, &#39;p&#39;, &#39;n&#39;].&quot;</span>
+        <span class="k">if</span> <span class="n">input_processing_flags</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">input_processing_flags</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+                <span class="p">[(</span><span class="n">inp_name</span><span class="p">,</span> <span class="s">&#39;n&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">inp_name</span> <span class="ow">in</span> <span class="n">prednet</span><span class="o">.</span><span class="n">inputs</span><span class="p">])</span>
+        <span class="k">assert</span> <span class="n">output_processing_flags</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> \
+            <span class="nb">all</span><span class="p">([</span><span class="n">flag</span><span class="o">.</span><span class="n">lower</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;r&#39;</span><span class="p">,</span> <span class="s">&#39;p&#39;</span><span class="p">,</span> <span class="s">&#39;n&#39;</span><span class="p">]</span>
+                 <span class="k">for</span> <span class="n">flag</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">output_processing_flags</span><span class="o">.</span><span class="n">values</span><span class="p">())]),</span> \
+            <span class="s">&quot;The output processing flags must be in [&#39;p&#39;, &#39;n&#39;].&quot;</span>
+        <span class="k">if</span> <span class="n">output_processing_flags</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">output_processing_flags</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+                <span class="p">[(</span><span class="n">out_name</span><span class="p">,</span> <span class="s">&#39;n&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">out_name</span> <span class="ow">in</span> <span class="n">out_blob_names</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">static_inputs</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">static_inputs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">covered_inputs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">static_inputs</span> <span class="o">+</span>
+                                  <span class="nb">list</span><span class="p">(</span><span class="n">input_processing_flags</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+        <span class="k">assert</span> <span class="n">prednet</span><span class="o">.</span><span class="n">inputs</span> <span class="o">==</span> <span class="n">covered_inputs</span><span class="p">,</span>\
+            <span class="p">(</span><span class="s">&quot;The `static_inputs` together with the &quot;</span>
+             <span class="s">&quot;`input_processing_flags` must cover all net inputs! &quot;</span>
+             <span class="s">&quot;Currently covered: {} of {}.&quot;</span>
+             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">covered_inputs</span><span class="p">,</span> <span class="n">prednet</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">input_size_spec</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">batch_size</span> <span class="o">=</span> <span class="n">prednet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">prednet</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">nsamples</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_sequence</span><span class="p">[</span><span class="n">prednet</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">batch_size</span><span class="p">,</span> <span class="n">nsamples</span> <span class="o">=</span> <span class="n">input_size_spec</span>  <span class="c"># pylint: disable=W0633</span>
         <span class="k">if</span> <span class="n">oversample</span><span class="p">:</span>
             <span class="k">assert</span> <span class="n">batch_size</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span>\
                 <span class="p">(</span><span class="s">&quot;If you use the `oversample` argument as `True`, the batch &quot;</span> <span class="o">+</span>
                  <span class="s">&quot;size must be a multiple of 10!&quot;</span><span class="p">)</span>
-        <span class="n">output_images</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="n">before_oversample_resize_to</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="p">(</span><span class="n">before_oversample_resize_to</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">input_image_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span>
-                    <span class="n">before_oversample_resize_to</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">input_image_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">assert</span> <span class="n">input_processing_flags</span><span class="p">[</span><span class="n">prednet</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">==</span> <span class="s">&#39;n&#39;</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s">&#39;Automatic oversampling is only available for &quot;n&quot; as &#39;</span>
+                <span class="s">&#39;preprocessing.&#39;</span><span class="p">)</span>
+        <span class="c">########################################################################</span>
+        <span class="c"># Plausibility checks done.</span>
+        <span class="c"># Start working!</span>
+        <span class="c">########################################################################</span>
+        <span class="n">output_images</span> <span class="o">=</span> <span class="p">{</span><span class="n">output</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">output</span> <span class="ow">in</span> <span class="n">out_blob_names</span><span class="p">}</span>  <span class="c"># pylint: disable=W0612</span>
         <span class="n">cbparams</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
-        <span class="n">max_iter</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">input_sequence</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">oversample</span>
-                    <span class="k">else</span> <span class="mi">10</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_sequence</span><span class="p">))</span>
+        <span class="n">max_iter</span> <span class="o">=</span> <span class="p">(</span><span class="n">nsamples</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">oversample</span>
+                    <span class="k">else</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">nsamples</span><span class="p">)</span>
         <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;max_iter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_iter</span>
         <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">batch_size</span>
         <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">prednet</span>
         <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;X&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
-        <span class="n">chunk_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">input_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">oversample</span>
-                      <span class="k">else</span> <span class="n">input_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">chunk_id</span><span class="p">,</span> <span class="n">im_chunk</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">_chunks</span><span class="p">(</span><span class="n">input_sequence</span><span class="p">,</span>
-                                                    <span class="n">chunk_size</span><span class="p">)):</span>
-            <span class="n">_LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Preparing chunk </span><span class="si">%d</span><span class="s">...&#39;</span><span class="p">,</span> <span class="n">chunk_id</span><span class="p">)</span>
-            <span class="n">net_input</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">input_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-                                   <span class="n">input_sequence</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-                                   <span class="n">input_image_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-                                   <span class="n">input_image_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
-                                  <span class="n">dtype</span><span class="o">=</span><span class="n">_np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">im</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">im_chunk</span><span class="p">):</span>
-                <span class="k">if</span> <span class="n">oversample</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="n">before_oversample_resize_to</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-                        <span class="n">oversampling_prep</span> <span class="o">=</span> <span class="n">_cv2</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span>
-                            <span class="n">_np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
-                            <span class="p">(</span><span class="n">before_oversample_resize_to</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
-                             <span class="n">before_oversample_resize_to</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
-                            <span class="n">interpolation</span><span class="o">=</span><span class="n">_cv2</span><span class="o">.</span><span class="n">INTER_LINEAR</span><span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">oversampling_prep</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
-                    <span class="n">net_input</span><span class="p">[</span><span class="n">idx</span> <span class="o">*</span> <span class="mi">10</span><span class="p">:(</span><span class="n">idx</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">10</span><span class="p">]</span> <span class="o">=</span>\
-                        <span class="n">_np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span>
-                            <span class="n">_caffe</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">oversample</span><span class="p">([</span><span class="n">oversampling_prep</span><span class="p">],</span>
-                                                 <span class="n">input_image_dims</span><span class="p">[:</span><span class="mi">2</span><span class="p">]),</span>
-                            <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="n">chunk_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">batch_size</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">oversample</span> <span class="k">else</span> <span class="n">batch_size</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">chunk_idx</span><span class="p">,</span> <span class="n">sample_ids</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">_chunks</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">nsamples</span><span class="p">)),</span>
+                                                       <span class="n">chunk_size</span><span class="p">)):</span>
+            <span class="k">for</span> <span class="n">inp_name</span> <span class="ow">in</span> <span class="n">prednet</span><span class="o">.</span><span class="n">inputs</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">inp_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">static_inputs</span><span class="p">:</span>
+                    <span class="n">im_chunk</span> <span class="o">=</span> <span class="p">[</span><span class="n">input_sequence</span><span class="p">[</span><span class="n">inp_name</span><span class="p">][</span><span class="n">im_idx</span><span class="p">]</span>
+                                <span class="k">for</span> <span class="n">im_idx</span> <span class="ow">in</span> <span class="n">sample_ids</span><span class="p">]</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="n">pad_instead_of_rescale</span><span class="p">:</span>
-                        <span class="n">net_input</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">_pad</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="n">input_image_dims</span><span class="p">)</span>
+                    <span class="c"># Static input.</span>
+                    <span class="n">im_chunk</span> <span class="o">=</span> <span class="n">input_sequence</span><span class="p">[</span><span class="n">inp_name</span><span class="p">]</span>
+                <span class="n">_LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Preparing chunk </span><span class="si">%d</span><span class="s">...&#39;</span><span class="p">,</span> <span class="n">chunk_idx</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">im</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">im_chunk</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">oversample</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">before_oversample_resize_to</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                            <span class="n">oversampling_prep</span> <span class="o">=</span> <span class="n">_cv2</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span>
+                                <span class="n">_np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
+                                <span class="p">(</span><span class="n">before_oversample_resize_to</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                 <span class="n">before_oversample_resize_to</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                                <span class="n">interpolation</span><span class="o">=</span><span class="n">_cv2</span><span class="o">.</span><span class="n">INTER_LINEAR</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">oversampling_prep</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+                        <span class="n">prednet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">inp_name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span> <span class="o">*</span> <span class="mi">10</span><span class="p">:(</span><span class="n">idx</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">10</span><span class="p">]</span> <span class="o">=</span>\
+                            <span class="n">_np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span>
+                                <span class="n">_caffe</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">oversample</span><span class="p">([</span><span class="n">oversampling_prep</span><span class="p">],</span>
+                                                     <span class="n">input_image_dims_0</span><span class="p">[:</span><span class="mi">2</span><span class="p">]),</span>
+                                <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
                     <span class="k">else</span><span class="p">:</span>
-                        <span class="n">net_input</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span>
-                                             <span class="n">_cv2</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span>
-                                                 <span class="n">_np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
-                                                 <span class="p">(</span><span class="n">input_image_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
-                                                  <span class="n">input_image_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
-                                                 <span class="n">interpolation</span><span class="o">=</span><span class="n">_cv2</span><span class="o">.</span><span class="n">INTER_CUBIC</span><span class="p">),</span>  <span class="c"># noqa</span>
-                                             <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
-            <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">output_images</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">oversample</span>
-                                <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_images</span><span class="p">)</span> <span class="o">*</span> <span class="mi">10</span><span class="p">)</span>
-            <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;X&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">net_input</span>
-            <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">before_batch_callbacks</span><span class="p">:</span>
-                <span class="n">cb</span><span class="p">(</span><span class="o">**</span><span class="n">cbparams</span><span class="p">)</span>
-            <span class="n">to_image</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">output_images</span><span class="p">)</span> <span class="o">+</span> <span class="n">input_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">oversample</span>
-                        <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_images</span><span class="p">)</span> <span class="o">+</span> <span class="n">input_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">inp_name</span> <span class="ow">in</span> <span class="n">static_inputs</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="n">chunk_idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                                <span class="c"># Only copy once.</span>
+                                <span class="n">prednet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">inp_name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">im_chunk</span>
+                            <span class="k">continue</span>
+                        <span class="k">if</span> <span class="n">input_processing_flags</span><span class="p">[</span><span class="n">inp_name</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s">&#39;p&#39;</span><span class="p">:</span>
+                            <span class="n">prednet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">inp_name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">_pad</span><span class="p">(</span>
+                                <span class="n">im</span><span class="p">,</span>
+                                <span class="n">prednet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">inp_name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">])</span>
+                        <span class="k">elif</span> <span class="n">input_processing_flags</span><span class="p">[</span><span class="n">inp_name</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s">&#39;r&#39;</span><span class="p">:</span>
+                            <span class="n">prednet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">inp_name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span>
+                                <span class="n">_cv2</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span>
+                                    <span class="n">_np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
+                                    <span class="p">(</span><span class="n">prednet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">inp_name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+                                     <span class="n">prednet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">inp_name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+                                    <span class="n">interpolation</span><span class="o">=</span><span class="n">_cv2</span><span class="o">.</span><span class="n">INTER_CUBIC</span><span class="p">),</span>
+                                <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="c"># The only remaining case is</span>
+                            <span class="c"># input_processing_flags[inp_name].lower() == &#39;n&#39;.</span>
+                            <span class="n">prednet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">inp_name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">im</span>
+            <span class="c">####################################################################</span>
+            <span class="c"># Data prepared.</span>
+            <span class="c">####################################################################</span>
+            <span class="c"># Callbacks.</span>
+            <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">output_images</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">output_images</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]])</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">oversample</span>
+                                <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_images</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">output_images</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]])</span> <span class="o">*</span> <span class="mi">10</span><span class="p">)</span>
+            <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;X&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">prednet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">blobname</span><span class="p">]</span>
+                             <span class="k">for</span> <span class="n">blobname</span> <span class="ow">in</span> <span class="n">prednet</span><span class="o">.</span><span class="n">inputs</span><span class="p">]</span>
+            <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;pre_train_batch&#39;</span>
+            <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">pre_batch_callbacks</span><span class="p">:</span>
+                <span class="n">cb</span><span class="p">(</span><span class="n">cbparams</span><span class="p">)</span>
+            <span class="c"># Logging.</span>
+            <span class="n">to_image</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">output_images</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">output_images</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]])</span> <span class="o">+</span> <span class="n">batch_size</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">oversample</span>
+                        <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_images</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">output_images</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]])</span> <span class="o">+</span> <span class="n">batch_size</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span>
             <span class="n">_LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Forward propagating chunk </span><span class="si">%d</span><span class="s"> (image </span><span class="si">%d</span><span class="s"> to </span><span class="si">%d</span><span class="s"> of </span><span class="si">%d</span><span class="s">)...&#39;</span><span class="p">,</span>  <span class="c"># noqa</span>
-                         <span class="n">chunk_id</span><span class="p">,</span>
-                         <span class="nb">len</span><span class="p">(</span><span class="n">output_images</span><span class="p">),</span>
+                         <span class="n">chunk_idx</span><span class="p">,</span>
+                         <span class="nb">len</span><span class="p">(</span><span class="n">output_images</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">output_images</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]]),</span>
                          <span class="n">to_image</span><span class="p">,</span>
-                         <span class="nb">len</span><span class="p">(</span><span class="n">input_sequence</span><span class="p">))</span>
-            <span class="n">prednet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">prednet</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">net_input</span>
+                         <span class="n">nsamples</span><span class="p">)</span>
+            <span class="c"># Forward propagation.</span>
             <span class="n">forward_prop_beginpoint</span> <span class="o">=</span> <span class="n">_time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
             <span class="c"># pylint: disable=W0212</span>
             <span class="n">prednet</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">prednet</span><span class="o">.</span><span class="n">layers</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
             <span class="n">forward_prop_duration</span> <span class="o">=</span> <span class="n">_time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">forward_prop_beginpoint</span>
             <span class="n">_LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Done in </span><span class="si">%d</span><span class="s">s.&#39;</span><span class="p">,</span> <span class="n">forward_prop_duration</span><span class="p">)</span>
-            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="n">out</span><span class="p">:</span> <span class="n">prednet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">out</span><span class="p">]</span><span class="o">.</span><span class="n">data</span> <span class="k">for</span> <span class="n">out</span> <span class="ow">in</span> <span class="n">out_layer_names</span><span class="p">}</span>
-
+            <span class="c"># Post processing.</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="n">out</span><span class="p">:</span> <span class="n">prednet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">out</span><span class="p">]</span><span class="o">.</span><span class="n">data</span> <span class="k">for</span> <span class="n">out</span> <span class="ow">in</span> <span class="n">out_blob_names</span><span class="p">}</span>
             <span class="n">_LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Extracting output images...&#39;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">out_layer_names</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="n">output_images</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">out</span><span class="p">[</span><span class="n">outp</span><span class="p">]</span> <span class="k">for</span> <span class="n">outp</span> <span class="ow">in</span> <span class="n">out_layer_names</span><span class="p">])</span>
-                <span class="k">continue</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">full_output_image_blob</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="n">out_layer_names</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
-            <span class="k">if</span> <span class="n">full_output_image_blob</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">output_images</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">full_output_image_blob</span><span class="p">)</span>
-                <span class="k">continue</span>
-            <span class="n">target_output_height</span> <span class="o">=</span> <span class="n">input_image_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="n">target_output_width</span> <span class="o">=</span> <span class="n">input_image_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-            <span class="n">output_dims</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">full_output_image_blob</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-            <span class="n">output_image_dims</span> <span class="o">=</span> <span class="n">output_dims</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_dims</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
-                <span class="n">scale_h</span><span class="p">,</span> <span class="n">scale_w</span> <span class="o">=</span> <span class="p">(</span><span class="n">input_image_dims</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s">&#39;float&#39;</span><span class="p">)</span> <span class="o">/</span>
-                                    <span class="n">output_image_dims</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s">&#39;float&#39;</span><span class="p">))</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">scale_h</span> <span class="o">=</span> <span class="n">scale_w</span> <span class="o">=</span> <span class="mf">1.0</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">return_unprocessed_outputs</span> <span class="ow">and</span> <span class="n">pad_instead_of_rescale</span><span class="p">:</span>
+            <span class="c"># pylint: disable=W0612</span>
+            <span class="n">output_image_parts</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="n">outname</span><span class="p">,</span> <span class="p">[])</span> <span class="k">for</span> <span class="n">outname</span> <span class="ow">in</span> <span class="n">out_blob_names</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">blob_idx</span><span class="p">,</span> <span class="n">blob_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                <span class="n">full_output_image_blob</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="n">blob_name</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">full_output_image_blob</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="c"># Scalar processing.</span>
+                    <span class="n">output_image_parts</span><span class="p">[</span><span class="n">blob_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">full_output_image_blob</span><span class="p">)</span>
+                    <span class="k">continue</span>
+                <span class="k">if</span> <span class="n">output_processing_flags</span><span class="p">[</span><span class="n">blob_name</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&#39;p&#39;</span><span class="p">):</span>
+                    <span class="n">target_output_height</span> <span class="o">=</span> \
+                        <span class="n">prednet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span>
+                            <span class="n">prednet</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span>
+                                <span class="nb">int</span><span class="p">(</span><span class="n">output_processing_flags</span><span class="p">[</span>
+                                    <span class="n">blob_name</span><span class="p">][</span><span class="mi">1</span><span class="p">:])]]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+                    <span class="n">target_output_width</span> <span class="o">=</span> \
+                        <span class="n">prednet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span>
+                            <span class="n">prednet</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span>
+                                <span class="nb">int</span><span class="p">(</span><span class="n">output_processing_flags</span><span class="p">[</span>
+                                    <span class="n">blob_name</span><span class="p">][</span><span class="mi">1</span><span class="p">:])]]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+                    <span class="n">input_image_dims</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">target_output_height</span><span class="p">,</span>
+                                                  <span class="n">target_output_width</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">target_output_height</span> <span class="o">=</span> <span class="bp">None</span>
+                    <span class="n">target_output_width</span> <span class="o">=</span> <span class="bp">None</span>
+                <span class="n">output_dims</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">full_output_image_blob</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                <span class="n">output_image_dims</span> <span class="o">=</span> <span class="n">output_dims</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_dims</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="ow">and</span> <span class="s">&#39;input_image_dims&#39;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="nb">locals</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                    <span class="n">scale_h</span><span class="p">,</span> <span class="n">scale_w</span> <span class="o">=</span> <span class="p">(</span><span class="n">input_image_dims</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s">&#39;float&#39;</span><span class="p">)</span> <span class="o">/</span>
+                                        <span class="n">output_image_dims</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s">&#39;float&#39;</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">scale_h</span> <span class="o">=</span> <span class="n">scale_w</span> <span class="o">=</span> <span class="mf">1.0</span>
                 <span class="k">if</span> <span class="n">scale_h</span> <span class="o">==</span> <span class="mf">1.</span> <span class="ow">and</span> <span class="n">scale_w</span> <span class="o">==</span> <span class="mf">1.</span><span class="p">:</span>
                     <span class="n">_LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;No scaling necessary.&#39;</span><span class="p">)</span>
                     <span class="n">scaling</span> <span class="o">=</span> <span class="bp">False</span>
@@ -521,348 +660,108 @@
                     <span class="n">_LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Scale change by </span><span class="si">%f</span><span class="s">, </span><span class="si">%f</span><span class="s"> (h, w).&#39;</span><span class="p">,</span>
                                  <span class="n">scale_h</span><span class="p">,</span> <span class="n">scale_w</span><span class="p">)</span>
                     <span class="n">scaling</span> <span class="o">=</span> <span class="bp">True</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">scaling</span> <span class="o">=</span> <span class="bp">False</span>
-            <span class="n">oversampled</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="k">for</span> <span class="n">outim</span> <span class="ow">in</span> <span class="n">full_output_image_blob</span><span class="p">:</span>
-                <span class="k">if</span> <span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">output_images</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_sequence</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">oversample</span><span class="p">)</span> <span class="ow">or</span>  <span class="c"># noqa</span>
-                    <span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">output_images</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_sequence</span><span class="p">))</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">batch_size</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span> <span class="ow">and</span>  <span class="c"># noqa</span>
-                     <span class="nb">len</span><span class="p">(</span><span class="n">oversampled</span><span class="p">)</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">oversampled</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_images</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_sequence</span><span class="p">))):</span>  <span class="c"># noqa</span>
-                    <span class="c"># The last blob was not completely used.</span>
-                    <span class="k">break</span>
-                <span class="k">if</span> <span class="n">scaling</span><span class="p">:</span>
-                    <span class="n">outim_resized</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">output_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
-                                               <span class="n">target_output_height</span><span class="p">,</span>
-                                               <span class="n">target_output_width</span><span class="p">))</span>
-                    <span class="k">for</span> <span class="n">layer_idx</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">outim</span><span class="p">):</span>
-                        <span class="n">outim_resized</span><span class="p">[</span><span class="n">layer_idx</span><span class="p">]</span> <span class="o">=</span> \
-                            <span class="n">_cv2</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span>
-                                        <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">target_output_width</span><span class="p">),</span>
-                                         <span class="nb">int</span><span class="p">(</span><span class="n">target_output_height</span><span class="p">)),</span>
-                                        <span class="n">interpolation</span><span class="o">=</span><span class="n">_cv2</span><span class="o">.</span><span class="n">INTER_CUBIC</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">outim_resized</span> <span class="o">=</span> <span class="n">outim</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="n">return_unprocessed_outputs</span> <span class="ow">and</span> <span class="n">pad_instead_of_rescale</span> \
-                   <span class="ow">and</span> <span class="n">outim_resized</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>  <span class="c"># Otherwise it&#39;s not clear...</span>
-                    <span class="n">target_image_dims</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-                        <span class="n">input_sequence</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">output_images</span><span class="p">)]</span><span class="o">.</span>
-                        <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span>
-                        <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;int&#39;</span><span class="p">)</span>
-                    <span class="n">output_pad_height</span> <span class="o">=</span> <span class="p">(</span><span class="n">target_output_height</span> <span class="o">-</span>
-                                         <span class="n">target_image_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="mf">2.0</span>
-                    <span class="n">output_pad_width</span> <span class="o">=</span> <span class="p">(</span><span class="n">target_output_width</span> <span class="o">-</span>
-                                        <span class="n">target_image_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="mf">2.0</span>
-                    <span class="n">extracted_work_image</span> <span class="o">=</span> \
-                        <span class="n">outim_resized</span><span class="p">[:,</span>
-                                      <span class="n">_np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">output_pad_height</span><span class="p">):</span>
-                                      <span class="n">_np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">output_pad_height</span><span class="p">)</span> <span class="o">+</span>
-                                      <span class="n">target_image_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-                                      <span class="n">_np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">output_pad_width</span><span class="p">):</span>
-                                      <span class="n">_np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">output_pad_width</span><span class="p">)</span> <span class="o">+</span>
-                                      <span class="n">target_image_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">extracted_work_image</span> <span class="o">=</span> <span class="n">outim_resized</span>
+                <span class="n">oversampled</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">outim_idx</span><span class="p">,</span> <span class="n">outim</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">full_output_image_blob</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">output_images</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">output_images</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]])</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_image_parts</span><span class="p">[</span><span class="n">blob_name</span><span class="p">])</span> <span class="o">==</span>
+                         <span class="n">nsamples</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">oversample</span><span class="p">)</span> <span class="ow">or</span>
+                        <span class="c"># pylint: disable=C0330</span>
+                        <span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">output_images</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">output_images</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]])</span> <span class="o">+</span> \
+                          <span class="nb">len</span><span class="p">(</span><span class="n">oversampled</span><span class="p">)</span> <span class="o">-</span> <span class="n">nsamples</span><span class="p">)</span> <span class="o">&lt;</span>
+                         <span class="p">(</span><span class="n">batch_size</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span> <span class="ow">and</span>
+                         <span class="nb">len</span><span class="p">(</span><span class="n">oversampled</span><span class="p">)</span> <span class="o">%</span> <span class="mi">10</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span>
+                         <span class="nb">len</span><span class="p">(</span><span class="n">oversampled</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span> <span class="o">==</span> \
+                         <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">output_images</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">output_images</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]])</span> <span class="o">+</span> \
+                         <span class="nb">len</span><span class="p">(</span><span class="n">oversampled</span><span class="p">)</span> <span class="o">-</span> <span class="n">nsamples</span><span class="p">))):</span>
+                        <span class="c"># The last blob was not completely used.</span>
+                        <span class="k">break</span>
+                    <span class="k">if</span> <span class="n">scaling</span><span class="p">:</span>
+                        <span class="n">outim_resized</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">output_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                                   <span class="n">target_output_height</span><span class="p">,</span>
+                                                   <span class="n">target_output_width</span><span class="p">))</span>
+                        <span class="k">for</span> <span class="n">layer_idx</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">outim</span><span class="p">):</span>
+                            <span class="n">outim_resized</span><span class="p">[</span><span class="n">layer_idx</span><span class="p">]</span> <span class="o">=</span> \
+                                <span class="n">_cv2</span><span class="o">.</span><span class="n">resize</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span>
+                                            <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">target_output_width</span><span class="p">),</span>
+                                             <span class="nb">int</span><span class="p">(</span><span class="n">target_output_height</span><span class="p">)),</span>
+                                            <span class="n">interpolation</span><span class="o">=</span><span class="n">_cv2</span><span class="o">.</span><span class="n">INTER_CUBIC</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">outim_resized</span> <span class="o">=</span> <span class="n">outim</span>
+                    <span class="k">if</span> <span class="n">output_processing_flags</span><span class="p">[</span><span class="n">blob_name</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&#39;p&#39;</span><span class="p">)</span> \
+                       <span class="ow">and</span> <span class="n">outim_resized</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>  <span class="c"># Otherwise it&#39;s not clear...</span>
+                        <span class="c"># Padded extraction.</span>
+                        <span class="n">target_image_dims</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                            <span class="n">input_sequence</span><span class="p">[</span>
+                                <span class="n">prednet</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span>
+                                    <span class="nb">int</span><span class="p">(</span><span class="n">output_processing_flags</span><span class="p">[</span><span class="n">blob_name</span><span class="p">][</span><span class="mi">1</span><span class="p">:])]]</span>
+                            <span class="p">[</span><span class="n">outim_idx</span><span class="o">+</span><span class="nb">len</span><span class="p">(</span><span class="n">output_images</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">output_images</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]])]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span>
+                            <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;int&#39;</span><span class="p">)</span>
+                        <span class="n">output_pad_height</span> <span class="o">=</span> <span class="p">(</span><span class="n">target_output_height</span> <span class="o">-</span>
+                                             <span class="n">target_image_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="mf">2.0</span>
+                        <span class="n">output_pad_width</span> <span class="o">=</span> <span class="p">(</span><span class="n">target_output_width</span> <span class="o">-</span>
+                                            <span class="n">target_image_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="mf">2.0</span>
+                        <span class="n">extracted_work_image</span> <span class="o">=</span> \
+                            <span class="n">outim_resized</span><span class="p">[:,</span>
+                                          <span class="n">_np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">output_pad_height</span><span class="p">):</span>
+                                          <span class="n">_np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">output_pad_height</span><span class="p">)</span> <span class="o">+</span>
+                                          <span class="n">target_image_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                          <span class="n">_np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">output_pad_width</span><span class="p">):</span>
+                                          <span class="n">_np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">output_pad_width</span><span class="p">)</span> <span class="o">+</span>
+                                          <span class="n">target_image_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">extracted_work_image</span> <span class="o">=</span> <span class="n">outim_resized</span>
+                    <span class="k">if</span> <span class="n">oversample</span><span class="p">:</span>
+                        <span class="n">oversampled</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">extracted_work_image</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">output_image_parts</span><span class="p">[</span><span class="n">blob_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">extracted_work_image</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>  <span class="c"># noqa</span>
                 <span class="k">if</span> <span class="n">oversample</span><span class="p">:</span>
-                    <span class="n">oversampled</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">extracted_work_image</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">output_images</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">extracted_work_image</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
-            <span class="k">if</span> <span class="n">oversample</span><span class="p">:</span>
-                <span class="k">for</span> <span class="n">os_im_chunk</span> <span class="ow">in</span> <span class="n">_chunks</span><span class="p">(</span><span class="n">oversampled</span><span class="p">,</span> <span class="mi">10</span><span class="p">):</span>
-                    <span class="n">chunk_arr</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">os_im_chunk</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="n">chunk_arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
-                        <span class="k">assert</span> <span class="n">chunk_arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">10</span>
-                        <span class="c"># Flip back the flipped results to average correctly.</span>
-                        <span class="c"># The result shape is N, C, H, W, and the second half</span>
-                        <span class="c"># of the ten samples are horizontally flipped.</span>
-                        <span class="n">chunk_arr</span><span class="p">[</span><span class="mi">5</span><span class="p">:]</span> <span class="o">=</span> <span class="n">chunk_arr</span><span class="p">[</span><span class="mi">5</span><span class="p">:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-                    <span class="n">output_images</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">chunk_arr</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
-            <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">output_images</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">oversample</span>
-                                <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_images</span><span class="p">)</span> <span class="o">*</span> <span class="mi">10</span><span class="p">)</span>
-            <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;out&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">full_output_image_blob</span>
-            <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">after_batch_callbacks</span><span class="p">:</span>
-                <span class="n">cb</span><span class="p">(</span><span class="o">**</span><span class="n">cbparams</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">os_im_chunk</span> <span class="ow">in</span> <span class="n">_chunks</span><span class="p">(</span><span class="n">oversampled</span><span class="p">,</span> <span class="mi">10</span><span class="p">):</span>
+                        <span class="n">chunk_arr</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">os_im_chunk</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">chunk_arr</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                            <span class="k">assert</span> <span class="n">chunk_arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">10</span>
+                            <span class="c"># Flip back the flipped results to average correctly.</span>
+                            <span class="c"># The result shape is N, C, H, W, and the second half</span>
+                            <span class="c"># of the ten samples are horizontally flipped.</span>
+                            <span class="n">chunk_arr</span><span class="p">[</span><span class="mi">5</span><span class="p">:]</span> <span class="o">=</span> <span class="n">chunk_arr</span><span class="p">[</span><span class="mi">5</span><span class="p">:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                        <span class="n">output_image_parts</span><span class="p">[</span><span class="n">blob_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">chunk_arr</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">blob_name</span><span class="p">,</span> <span class="n">part</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">output_image_parts</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                <span class="n">output_images</span><span class="p">[</span><span class="n">blob_name</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">part</span><span class="p">)</span>
+            <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">output_images</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">output_images</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]])</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">oversample</span>
+                                <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_images</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">output_images</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]])</span> <span class="o">*</span> <span class="mi">10</span><span class="p">)</span>
+            <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;out&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">out</span>
+            <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;post_train_batch&#39;</span>
+            <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">post_batch_callbacks</span><span class="p">:</span>
+                <span class="n">cb</span><span class="p">(</span><span class="n">cbparams</span><span class="p">)</span>
             <span class="k">del</span> <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;out&#39;</span><span class="p">]</span>
-        <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">before_batch_callbacks</span> <span class="o">+</span> <span class="n">after_batch_callbacks</span><span class="p">):</span>
-            <span class="n">cb</span><span class="o">.</span><span class="n">finalize</span><span class="p">(</span><span class="o">**</span><span class="n">cbparams</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">output_images</span>
+        <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">pre_batch_callbacks</span> <span class="o">+</span> <span class="n">post_batch_callbacks</span><span class="p">):</span>
+            <span class="n">cb</span><span class="o">.</span><span class="n">finalize</span><span class="p">(</span><span class="n">cbparams</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_images</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">output_images</span><span class="o">.</span><span class="n">items</span><span class="p">())[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">output_images</span>
 </div>
 <div class="viewcode-block" id="Net.fit"><a class="viewcode-back" href="../../barrista.html#barrista.net.Net.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
             <span class="n">iterations</span><span class="p">,</span>
             <span class="n">solver</span><span class="p">,</span>
             <span class="n">X</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-            <span class="n">Y</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
             <span class="n">X_val</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-            <span class="n">Y_val</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
             <span class="n">test_iterations</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
             <span class="n">test_interval</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
             <span class="n">test_initialization</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
-            <span class="n">before_batch_callbacks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-            <span class="n">after_batch_callbacks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-            <span class="n">before_test_callbacks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-            <span class="n">after_test_callbacks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-            <span class="n">before_test_batch_callbacks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-            <span class="n">after_test_batch_callbacks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+            <span class="n">train_callbacks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+            <span class="n">test_callbacks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
             <span class="n">read_input_batch_size_from_blob_name</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
-        <span class="sd">r&quot;&quot;&quot;</span>
-<span class="sd">        Fit the network to specific data.</span>
-
-<span class="sd">        Use monitors from the module :py:mod:`barrista.monitoring` as</span>
-<span class="sd">        callbacks to monitor the state of the net and create checkpoints.</span>
-<span class="sd">        This method offers the following kwargs to monitors (* indicates,</span>
-<span class="sd">        that the values are only available at test time, - indicates, that</span>
-<span class="sd">        the value is not necessarily available):</span>
-
-<span class="sd">        * max_iter,</span>
-<span class="sd">        * iter,</span>
-<span class="sd">        * batch_size,</span>
-<span class="sd">        * loss,</span>
-<span class="sd">        * accuracy-,</span>
-<span class="sd">        * net,</span>
-<span class="sd">        * solver,</span>
-<span class="sd">        * X,</span>
-<span class="sd">        * X_val,</span>
-<span class="sd">        * Y,</span>
-<span class="sd">        * Y_val,</span>
-<span class="sd">        * test_loss\*,</span>
-<span class="sd">        * test_accuracy\*-.</span>
-
-<span class="sd">        :param iterations: int.</span>
-<span class="sd">          The number of training iterations to do. This is the plain number</span>
-<span class="sd">          of iterations, completely disregarding the batch size, i.e., for</span>
-<span class="sd">          ``iterations`` being 10 and ``batch_size`` being 10, just one batch</span>
-<span class="sd">          is forward propagated.</span>
-
-<span class="sd">        :param X: iterable(numpy array) or None.</span>
-<span class="sd">          If specified, is used as input data. It is used sequentially, so</span>
-<span class="sd">          shuffle it before, if required.</span>
-
-<span class="sd">        :param Y: iterable(numpy array) or None.</span>
-<span class="sd">          Required if ``X`` is specified. The annotations of training.</span>
-
-<span class="sd">        :param X_val: iterable(numpy array) or None.</span>
-<span class="sd">          If specified along with ``Y_val`` and ``test_interval&gt;0``, is used</span>
-<span class="sd">          to get validation scores.</span>
-
-<span class="sd">        :param Y_val: iterable(numpy array) or None.</span>
-<span class="sd">          The annotation data for the validation set.</span>
-
-<span class="sd">        :param test_iterations: int.</span>
-<span class="sd">          The number of test iterations to determine the validation score,</span>
-<span class="sd">          if ``test_interval&gt;0``.</span>
-
-<span class="sd">        :param test_interval: int.</span>
-<span class="sd">          The number of iterations between runs on the validation set. Is</span>
-<span class="sd">          specified in plain iterations, disregarding batch size. Hence, it</span>
-<span class="sd">          must be a multiple of the batch size.</span>
-
-<span class="sd">        :param test_initialization: bool.</span>
-<span class="sd">          Whether to do a run on the validation set before the training is</span>
-<span class="sd">          started to get an initial score.</span>
-
-<span class="sd">        :param before_batch_callbacks: list(callable).</span>
-<span class="sd">          List of callback callables. Will be called before a training batch</span>
-<span class="sd">          is processed. Does not provide ``loss`` and ``accuracy`` kwargs.</span>
-
-<span class="sd">        :param after_batch_callbacks: list(callable).</span>
-<span class="sd">          List of callback callables. Will be called after a training batch</span>
-<span class="sd">          was processed.</span>
-
-<span class="sd">        :param before_test_callbacks: list(callable).</span>
-<span class="sd">          List of callback callables. Will be called before starting the test</span>
-<span class="sd">          processing. Does not provide ``loss`` and ``accuracy`` kwargs.</span>
-
-<span class="sd">        :param after_test_callbacks: list(callable).</span>
-<span class="sd">          List of callback callables. Will be called after completing the test</span>
-<span class="sd">          processing. Does not provide ``loss`` and ``accuracy`` kwargs, but</span>
-<span class="sd">          provides ``test_loss`` and, if available, ``test_accuracy``.</span>
-
-<span class="sd">        :param before_test_batch_callbacks: list(callable).</span>
-<span class="sd">          List of callback callables. Will be called before a test batch is</span>
-<span class="sd">          processed. Does not provide ``loss`` and ``accuracy`` kwargs.</span>
-
-<span class="sd">        :param after_test_batch_callbacks: list(callable).</span>
-<span class="sd">          List of callback callables. Will be called after a test batch is</span>
-<span class="sd">          processed. Does not provide ``loss`` and ``accuracy`` kwargs.</span>
-
-<span class="sd">        :param read_input_batch_size_from_blob_name: string.</span>
-<span class="sd">          The name of the layer to take the input batch size from (as the</span>
-<span class="sd">          first dimension of its first blob). Must be specified if the</span>
-<span class="sd">          network does not have explicit inputs (e.g., when trained from</span>
-<span class="sd">          an LMDB).</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">before_batch_callbacks</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="n">before_batch_callbacks</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="n">after_batch_callbacks</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="n">after_batch_callbacks</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="n">before_test_callbacks</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="n">before_test_callbacks</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="n">after_test_callbacks</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="n">after_test_callbacks</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="n">before_test_batch_callbacks</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="n">before_test_batch_callbacks</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="n">after_test_batch_callbacks</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="n">after_test_batch_callbacks</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="c"># Otherwise, a DB backend is used.</span>
-            <span class="n">batch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="k">assert</span> <span class="n">iterations</span> <span class="o">%</span> <span class="n">batch_size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span>\
-                <span class="p">(</span><span class="s">&#39;error iterations do not match {} {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">iterations</span><span class="p">,</span>
-                                                              <span class="n">batch_size</span><span class="p">))</span>
-            <span class="k">assert</span> <span class="n">test_interval</span> <span class="o">%</span> <span class="n">batch_size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span>\
-                <span class="p">(</span><span class="s">&#39;error iterations do not match&#39;</span><span class="p">,</span> <span class="n">test_iterations</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">test_interval</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">test_iterations</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">X_val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>  <span class="c"># noqa</span>
-                <span class="n">test_iterations</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">X_val</span><span class="p">))</span> <span class="o">/</span>
-                                           <span class="nb">float</span><span class="p">(</span><span class="n">batch_size</span><span class="p">))</span>
-            <span class="k">if</span> <span class="n">read_input_batch_size_from_blob_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-                <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">read_input_batch_size_from_blob_name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span>\
-                    <span class="n">batch_size</span><span class="p">,</span> <span class="p">(</span><span class="s">&quot;The input size and the first dimension of &quot;</span>
-                                 <span class="s">&quot;the blob to read the batch size from don&#39;t &quot;</span>
-                                 <span class="s">&quot;match: {}, {}.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">read_input_batch_size_from_blob_name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-                                                         <span class="n">batch_size</span><span class="p">))</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">batch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">read_input_batch_size_from_blob_name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c"># noqa</span>
-        <span class="k">if</span> <span class="n">test_interval</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="n">test_iterations</span> <span class="o">&gt;</span> <span class="mi">0</span>
-        <span class="c"># Set the configurable arguments.</span>
-        <span class="k">assert</span> <span class="n">test_iterations</span> <span class="o">&gt;=</span> <span class="mi">0</span>
-        <span class="k">assert</span> <span class="n">test_interval</span> <span class="o">&gt;=</span> <span class="mi">0</span>
-
-        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">solver</span><span class="p">,</span> <span class="n">_solver</span><span class="o">.</span><span class="n">SolverInterface</span><span class="p">)</span>
-
-        <span class="c"># Training</span>
-        <span class="c"># Check the inputs, if supplied.</span>
-        <span class="k">if</span> <span class="n">X</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">Y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="n">X</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span>
-            <span class="k">assert</span> <span class="n">Y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span>
-            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">Y</span><span class="p">)</span>
-            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">batch_size</span>
-        <span class="k">if</span> <span class="n">test_interval</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">X</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">Y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="n">X</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span>
-            <span class="k">assert</span> <span class="n">Y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span>
-            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">Y</span><span class="p">)</span>
-            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">batch_size</span>
-        <span class="n">testnet</span> <span class="o">=</span> <span class="bp">None</span>
-        <span class="k">if</span> <span class="n">test_interval</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="c"># Setup the test net.</span>
-            <span class="n">test_netspec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_specification</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-            <span class="n">test_netspec</span><span class="o">.</span><span class="n">phase</span> <span class="o">=</span> <span class="n">_Phase</span><span class="o">.</span><span class="n">TEST</span>
-            <span class="n">test_netspec</span><span class="o">.</span><span class="n">predict_inputs</span> <span class="o">=</span> <span class="bp">None</span>
-            <span class="n">test_netspec</span><span class="o">.</span><span class="n">predict_input_shapes</span> <span class="o">=</span> <span class="bp">None</span>
-            <span class="n">testnet</span> <span class="o">=</span> <span class="n">test_netspec</span><span class="o">.</span><span class="n">instantiate</span><span class="p">()</span>
-            <span class="n">testnet</span><span class="o">.</span><span class="n">share_with</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="n">iteration</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">curr_sample_pointer</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">cbparams</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
-        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;max_iter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">iterations</span>
-        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">batch_size</span>
-        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
-        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span>
-        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;testnet&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">testnet</span>
-        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;solver&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">solver</span>
-        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;X&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span>
-        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;X_val&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">X_val</span>
-        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;Y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Y</span>
-        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;Y_val&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Y_val</span>
-        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;current_callback&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
-        <span class="k">while</span> <span class="n">iteration</span> <span class="o">&lt;=</span> <span class="n">iterations</span><span class="p">:</span>
-            <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">iteration</span>
-            <span class="c"># Check whether to test the net.</span>
-            <span class="k">if</span> <span class="p">(</span><span class="n">test_interval</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">iteration</span> <span class="o">%</span> <span class="n">test_interval</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">iteration</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">or</span>  <span class="c"># noqa</span>
-                    <span class="n">iteration</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">test_initialization</span> <span class="ow">or</span>
-                    <span class="n">test_interval</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">iteration</span> <span class="o">+</span> <span class="n">batch_size</span> <span class="o">&gt;=</span> <span class="n">iterations</span><span class="p">):</span>
-
-                <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;current_callback&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;before_test&#39;</span>
-                <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">before_test_callbacks</span><span class="p">:</span>
-                    <span class="n">cb</span><span class="p">(</span><span class="o">**</span><span class="n">cbparams</span><span class="p">)</span>
-
-                <span class="n">test_iter</span> <span class="o">=</span> <span class="mi">0</span>
-                <span class="n">test_loss</span> <span class="o">=</span> <span class="mf">0.</span>
-                <span class="n">test_accuracy</span> <span class="o">=</span> <span class="bp">None</span>
-                <span class="k">if</span> <span class="s">&#39;accuracy&#39;</span> <span class="ow">in</span> <span class="n">testnet</span><span class="o">.</span><span class="n">outputs</span><span class="p">:</span>
-                    <span class="n">test_accuracy</span> <span class="o">=</span> <span class="mf">0.</span>
-                <span class="n">test_sample_pointer</span> <span class="o">=</span> <span class="mi">0</span>
-                <span class="k">while</span> <span class="n">test_iter</span> <span class="o">&lt;</span> <span class="n">test_iterations</span><span class="p">:</span>
-                    <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;current_callback&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;before_test_batch&#39;</span>
-                    <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">before_test_batch_callbacks</span><span class="p">:</span>
-                        <span class="n">cb</span><span class="p">(</span><span class="o">**</span><span class="n">cbparams</span><span class="p">)</span>
-
-                    <span class="k">if</span> <span class="n">X_val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-                        <span class="n">samples</span> <span class="o">=</span> <span class="p">[</span><span class="n">idx</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">X_val</span><span class="p">)</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span>
-                                   <span class="nb">xrange</span><span class="p">(</span><span class="n">test_sample_pointer</span><span class="p">,</span>
-                                   <span class="n">test_sample_pointer</span> <span class="o">+</span>
-                                   <span class="n">testnet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">testnet</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span>  <span class="c"># noqa</span>
-                        <span class="n">test_sample_pointer</span> <span class="o">=</span> <span class="p">((</span><span class="n">test_sample_pointer</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">samples</span><span class="p">))</span> <span class="o">%</span>  <span class="c"># noqa</span>
-                                               <span class="nb">len</span><span class="p">(</span><span class="n">X_val</span><span class="p">))</span>
-                        <span class="n">testnet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">testnet</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> \
-                            <span class="n">X_val</span><span class="p">[</span><span class="n">samples</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-                                <span class="n">testnet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">testnet</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-                        <span class="n">testnet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">testnet</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> \
-                            <span class="n">Y_val</span><span class="p">[</span><span class="n">samples</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-                                <span class="n">testnet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">testnet</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-                    <span class="c"># pylint: disable=W0212</span>
-                    <span class="c"># need to multiply by batch_size since it is normalized</span>
-                    <span class="c"># internally</span>
-                    <span class="n">test_loss</span> <span class="o">+=</span> <span class="n">testnet</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span>
-                        <span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">testnet</span><span class="o">.</span><span class="n">layers</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_size</span>
-                    <span class="k">if</span> <span class="n">test_accuracy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-                        <span class="c"># need to multiply by batch_size since it is normalized</span>
-                        <span class="c"># internally</span>
-                        <span class="n">test_accuracy</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span>
-                            <span class="n">testnet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="s">&#39;accuracy&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_size</span>
-                    <span class="n">test_iter</span> <span class="o">+=</span> <span class="n">batch_size</span>
-
-                    <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;current_callback&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;after_test_batch&#39;</span>
-                    <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">after_test_batch_callbacks</span><span class="p">:</span>
-                        <span class="n">cb</span><span class="p">(</span><span class="o">**</span><span class="n">cbparams</span><span class="p">)</span>
-
-                <span class="n">test_loss</span> <span class="o">/=</span> <span class="nb">float</span><span class="p">(</span><span class="n">test_iterations</span><span class="p">)</span>
-                <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;test_loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">test_loss</span>
-                <span class="k">if</span> <span class="n">test_accuracy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-                    <span class="n">test_accuracy</span> <span class="o">/=</span> <span class="nb">float</span><span class="p">(</span><span class="n">test_iterations</span><span class="p">)</span>
-                    <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;test_accuracy&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">test_accuracy</span>
-                <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;current_callback&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;after_test&#39;</span>
-                <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">after_test_callbacks</span><span class="p">:</span>
-                    <span class="n">cb</span><span class="p">(</span><span class="o">**</span><span class="n">cbparams</span><span class="p">)</span>
-                <span class="k">del</span> <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;test_loss&#39;</span><span class="p">]</span>
-                <span class="k">if</span> <span class="n">test_accuracy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-                    <span class="k">del</span> <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;test_accuracy&#39;</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">iteration</span> <span class="o">==</span> <span class="n">iterations</span><span class="p">:</span>
-                <span class="k">break</span>
-
-            <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;current_callback&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;before_batch&#39;</span>
-            <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">before_batch_callbacks</span><span class="p">:</span>
-                <span class="n">cb</span><span class="p">(</span><span class="o">**</span><span class="n">cbparams</span><span class="p">)</span>
-
-            <span class="c"># If supplied, fill the inputs with the training data.</span>
-            <span class="k">if</span> <span class="n">X</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-                <span class="c"># Here is the right place to implement random sampling for each</span>
-                <span class="c"># SGD iteration.</span>
-                <span class="n">samples</span> <span class="o">=</span> <span class="p">[</span><span class="n">idx</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">)</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">curr_sample_pointer</span><span class="p">,</span>
-                           <span class="n">curr_sample_pointer</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">)]</span>
-                <span class="n">curr_sample_pointer</span> <span class="o">=</span> <span class="p">((</span><span class="n">curr_sample_pointer</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">samples</span><span class="p">))</span> <span class="o">%</span>
-                                       <span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="p">))</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">samples</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">Y</span><span class="p">[</span><span class="n">samples</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-
-            <span class="n">loss</span> <span class="o">=</span> <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;solver&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Step</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">loss</span>
-            <span class="k">if</span> <span class="s">&#39;accuracy&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">:</span>
-                <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;accuracy&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="s">&#39;accuracy&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
-            <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">iteration</span> <span class="o">+</span> <span class="n">batch_size</span>
-
-            <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;current_callback&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;after_batch&#39;</span>
-            <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">after_batch_callbacks</span><span class="p">:</span>
-                <span class="n">cb</span><span class="p">(</span><span class="o">**</span><span class="n">cbparams</span><span class="p">)</span>
-            <span class="k">del</span> <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;loss&#39;</span><span class="p">]</span>
-            <span class="k">if</span> <span class="s">&#39;accuracy&#39;</span> <span class="ow">in</span> <span class="n">cbparams</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-                <span class="k">del</span> <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;accuracy&#39;</span><span class="p">]</span>
-            <span class="n">iteration</span> <span class="o">+=</span> <span class="n">batch_size</span>
-        <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">before_batch_callbacks</span> <span class="o">+</span> <span class="n">after_batch_callbacks</span> <span class="o">+</span>
-                      <span class="n">before_test_callbacks</span> <span class="o">+</span> <span class="n">after_test_callbacks</span><span class="p">):</span>
-            <span class="n">cb</span><span class="o">.</span><span class="n">finalize</span><span class="p">(</span><span class="o">**</span><span class="n">cbparams</span><span class="p">)</span>
+        <span class="sd">&quot;&quot;&quot;See :py:func:`barrista.solver.SolverInterface.fit`.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">solver</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">iterations</span><span class="o">=</span><span class="n">iterations</span><span class="p">,</span>
+                          <span class="n">X</span><span class="o">=</span><span class="n">X</span><span class="p">,</span>
+                          <span class="n">X_val</span><span class="o">=</span><span class="n">X_val</span><span class="p">,</span>
+                          <span class="n">test_iterations</span><span class="o">=</span><span class="n">test_iterations</span><span class="p">,</span>
+                          <span class="n">test_interval</span><span class="o">=</span><span class="n">test_interval</span><span class="p">,</span>
+                          <span class="n">test_initialization</span><span class="o">=</span><span class="n">test_initialization</span><span class="p">,</span>
+                          <span class="n">train_callbacks</span><span class="o">=</span><span class="n">train_callbacks</span><span class="p">,</span>
+                          <span class="n">test_callbacks</span><span class="o">=</span><span class="n">test_callbacks</span><span class="p">,</span>
+                          <span class="n">net</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+                          <span class="n">read_input_batch_size_from_blob_name</span><span class="o">=</span><span class="p">(</span>
+                              <span class="n">read_input_batch_size_from_blob_name</span><span class="p">))</span>
 </div>
 <div class="viewcode-block" id="Net.visualize"><a class="viewcode-back" href="../../barrista.html#barrista.net.Net.visualize">[docs]</a>    <span class="k">def</span> <span class="nf">visualize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                   <span class="n">layout_dir</span><span class="o">=</span><span class="s">&#39;LR&#39;</span><span class="p">,</span>
@@ -899,7 +798,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, The barrista authors.
+        &copy; Copyright 2015, University of Tuebingen.
 
     </p>
   </div>
