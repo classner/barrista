@@ -1,5 +1,6 @@
 """Unittests for the barrista project."""
 # pylint: disable=F0401, C0330, C0302, C0103, R0201, R0914, R0915
+# pylint: disable=no-name-in-module, no-member
 
 import unittest
 import logging
