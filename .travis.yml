@@ -34,9 +34,10 @@ before_script:
   - export USE_LMDB=1
   - export USE_LEVELDB=1
   - export USE_OPENCV=1
+  - export CAFFE_PYTHON_FOLDER=/home/travis/caffe/python
+  - export CAFFE_BIN_FOLDER=/home/travis/caffe/build_release/tools
 
 script:
   - make --jobs=$NUM_THREADS --keep-going all pycaffe
-  - make install
   - cd ..
   - python tests.py

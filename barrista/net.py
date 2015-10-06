@@ -468,16 +468,18 @@ class Net(_caffe.Net):
             # Data prepared.
             ####################################################################
             # Callbacks.
-            cbparams['iter'] = (len(output_images[list(output_images.keys())[0]]) if not oversample
-                                else len(output_images[list(output_images.keys())[0]]) * 10)
+            cbparams['iter'] = (
+                len(output_images[list(output_images.keys())[0]]) if not oversample
+                else len(output_images[list(output_images.keys())[0]]) * 10)
             cbparams['X'] = [prednet.blobs[blobname]
                              for blobname in prednet.inputs]
             cbparams['callback_signal'] = 'pre_train_batch'
             for cb in pre_batch_callbacks:
                 cb(cbparams)
             # Logging.
-            to_image = (len(output_images[list(output_images.keys())[0]]) + batch_size if not oversample
-                        else len(output_images[list(output_images.keys())[0]]) + batch_size / 10)
+            to_image = (
+                len(output_images[list(output_images.keys())[0]]) + batch_size if not oversample
+                else len(output_images[list(output_images.keys())[0]]) + batch_size / 10)
             _LOGGER.info('Forward propagating chunk %d (image %d to %d of %d)...',  # noqa
                          chunk_idx,
                          len(output_images[list(output_images.keys())[0]]),
@@ -532,7 +534,8 @@ class Net(_caffe.Net):
                     scaling = True
                 oversampled = []
                 for outim_idx, outim in enumerate(full_output_image_blob):
-                    if ((len(output_images[list(output_images.keys())[0]]) + len(output_image_parts[blob_name]) ==
+                    if ((len(output_images[list(output_images.keys())[0]]) +\
+                         len(output_image_parts[blob_name]) ==
                          nsamples and not oversample) or
                         # pylint: disable=C0330
                         ((len(output_images[list(output_images.keys())[0]]) + \
