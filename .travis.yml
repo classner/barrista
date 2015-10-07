@@ -43,6 +43,7 @@ before_script:
 script:
   - ../patches/build_support/build.sh
   - cd ..
+  - python example.py
   - python tests.py
   - pylint --disable=star-args,no-member barrista
   - pylint --disable=star-args,no-member example.py
