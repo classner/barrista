@@ -21,8 +21,6 @@ before_install:
   - git apply ../patches/barrista-patch-caffe-6eae122a8eb84f8371dde815986cd7524fc4cbaa.patch
   - export CAFFE_PYTHON_FOLDER=`pwd`/python
   - export CAFFE_BIN_FOLDER=`pwd`/build/install/bin
-  - echo $CAFFE_PYTHON_FOLDER
-  - echo $CAFFE_BIN_FOLDER
   - git checkout 6eae122a8eb84f8371dde815986cd7524fc4cbaa
   - cat src/caffe/proto/caffe.proto
   - export NUM_THREADS=2
