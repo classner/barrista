@@ -1,8 +1,8 @@
 # Use caffe and test barrista.
 env:
   matrix:
-    - WITH_CUDA=false WITH_CMAKE=false WITH_IO=true PYTHON_VERSION=2
-    - WITH_CUDA=false WITH_CMAKE=false WITH_IO=true PYTHON_VERSION=3
+    - WITH_CUDA=false WITH_CMAKE=true WITH_IO=true PYTHON_VERSION=2
+    - WITH_CUDA=false WITH_CMAKE=true WITH_IO=true PYTHON_VERSION=3
 
 language: cpp
 
@@ -19,7 +19,7 @@ before_install:
   - git clone https://github.com/BVLC/caffe.git
   - cd caffe
   - export CAFFE_PYTHON_FOLDER=`pwd`/python
-  - export CAFFE_BIN_FOLDER=`pwd`/build_release/tools
+  - export CAFFE_BIN_FOLDER=`pwd`/build/install/bin
   - echo $CAFFE_PYTHON_FOLDER
   - echo $CAFFE_BIN_FOLDER
   - git checkout 6eae122a8eb84f8371dde815986cd7524fc4cbaa
@@ -37,17 +37,12 @@ before_script:
   - sudo -E $CONDA_DIR/bin/conda install --yes opencv || true
   - sudo -E $CONDA_DIR/bin/conda install --yes scikit-image scikit-learn pylint
   - sudo -E $CONDA_DIR/bin/pip install --upgrade pip
-  - sudo -E $CONDA_DIR/bin/pip --yes uninstall protobuf
+  - sudo -E $CONDA_DIR/bin/pip uninstall protobuf
   - sudo -E $CONDA_DIR/bin/pip install protobuf==2.5
   - sudo -E $CONDA_DIR/bin/pip install progressbar2
-  - $SCRIPTS/travis_setup_makefile_config.sh
-  - export CPU_ONLY=1
-  - export USE_LMDB=1
-  - export USE_LEVELDB=1
-  - export USE_OPENCV=1
 
 script:
-  - make --jobs=$NUM_THREADS --keep-going all pycaffe
+  - ../patches/build_support/build.sh
   - cd ..
   - python tests.py
   - pylint --disable=star-args,no-member barrista
