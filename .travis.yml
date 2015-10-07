@@ -37,6 +37,8 @@ before_script:
   - sudo -E $CONDA_DIR/bin/conda install --yes opencv || true
   - sudo -E $CONDA_DIR/bin/conda install --yes scikit-image scikit-learn pylint
   - sudo -E $CONDA_DIR/bin/pip install --upgrade pip
+  - sudo -E $CONDA_DIR/bin/pip --yes uninstall protobuf
+  - sudo -E $CONDA_DIR/bin/pip install protobuf==2.5
   - sudo -E $CONDA_DIR/bin/pip install progressbar2
   - $SCRIPTS/travis_setup_makefile_config.sh
   - export CPU_ONLY=1
