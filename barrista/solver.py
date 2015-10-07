@@ -427,7 +427,7 @@ class Solver(object):
         solver_message = _caffe_pb2.SolverParameter(**solver_parameter_dict)
         messagestr = _gprototext.MessageToString(solver_message)
         with _NamedTemporaryFile(mode='w+b', suffix='.prototxt') as tmpfile:
-            tmpfile.write(bytes(messagestr, 'utf-8'))
+            tmpfile.write(bytes(messagestr.encode('utf-8')))
             tmpfile.flush()
             return cls.Get_caffe_solver_class(
                 solver_parameter_dict['solver_type'])._caffe_solver_class(

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """An illustrative example of the usage of `barrista`."""
-# pylint: disable=F0401, C0103, E1101, no-name-in-module
+# pylint: disable=F0401, C0103, E1101, W0611, no-name-in-module
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
