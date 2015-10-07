@@ -35,9 +35,9 @@ if _cv2 is None:
 
 
 #: Set CPU processing mode.
-set_mode_cpu = _caffe.set_mode_cpu()
+set_mode_cpu = _caffe.set_mode_cpu
 #: Set GPU processing mode.
-set_mode_gpu = _caffe.set_mode_gpu()
+set_mode_gpu = _caffe.set_mode_gpu
 
 
 class Net(_caffe.Net):

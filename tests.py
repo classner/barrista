@@ -12,8 +12,6 @@ try:
 except ImportError:
     CV2_AVAILABLE = False
 
-import barrista.net
-barrista.net.set_mode_cpu()
 
 class NetSpecificationTestCase(unittest.TestCase):
 
