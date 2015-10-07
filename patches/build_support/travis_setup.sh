@@ -74,5 +74,5 @@ fi
 if [ "$PYTHON_VERSION" -eq "3" ]; then
 	pip install --pre protobuf
 else
-	pip install protobuf==2.5
+	pip install --pre protobuf
 fi
