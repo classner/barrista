@@ -710,8 +710,9 @@ for _layerkey in list(_LAYER_TYPES.keys()):
         exec('_obj_type = _caffe_pb2.' + _param_obj)  # pylint: disable=W0122
         # identify the property name for this parameter.
         _detected = False
+        _tmp_layer_param = _caffe_pb2.LayerParameter()
         for _propname in list(_caffe_pb2.LayerParameter.__dict__.keys()):
-            if isinstance(getattr(_caffe_pb2.LayerParameter(), _propname),
+            if isinstance(getattr(_tmp_layer_param, _propname),
                           _obj_type):
                 _detected = True
                 break

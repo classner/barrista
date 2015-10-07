@@ -416,8 +416,8 @@ class Solver(object):
         """Get a has of the parameter dict."""
         hash_obj = hashlib.md5()
         for key in sorted(solver_parameter_dict.keys()):
-            hash_obj.update(str(key))
-            hash_obj.update(str(solver_parameter_dict[key]))
+            hash_obj.update(str(key).encode('utf-8'))
+            hash_obj.update(str(solver_parameter_dict[key]).encode('utf-8'))
         return str(hash_obj.hexdigest())
 
     @classmethod
@@ -427,7 +427,7 @@ class Solver(object):
         solver_message = _caffe_pb2.SolverParameter(**solver_parameter_dict)
         messagestr = _gprototext.MessageToString(solver_message)
         with _NamedTemporaryFile(mode='w+b', suffix='.prototxt') as tmpfile:
-            tmpfile.write(messagestr)
+            tmpfile.write(bytes(messagestr, 'utf-8'))
             tmpfile.flush()
             return cls.Get_caffe_solver_class(
                 solver_parameter_dict['solver_type'])._caffe_solver_class(

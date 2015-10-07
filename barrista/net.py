@@ -398,7 +398,7 @@ class Net(_caffe.Net):
             static_inputs = []
         covered_inputs = list(set(static_inputs +
                                   list(input_processing_flags.keys())))
-        assert prednet.inputs == covered_inputs,\
+        assert sorted(prednet.inputs) == sorted(covered_inputs),\
             ("The `static_inputs` together with the "
              "`input_processing_flags` must cover all net inputs! "
              "Currently covered: {} of {}."
@@ -429,7 +429,7 @@ class Net(_caffe.Net):
         cbparams['iter'] = 0
         cbparams['net'] = prednet
         cbparams['X'] = None
-        chunk_size = (batch_size if not oversample else batch_size / 10)
+        chunk_size = (batch_size if not oversample else batch_size // 10)
         for chunk_idx, sample_ids in enumerate(_chunks(list(range(nsamples)),
                                                        chunk_size)):
             for inp_name in prednet.inputs:

@@ -88,7 +88,9 @@ with TemporaryDirectory() as tmpdir:
                                     'test_accuracy'],
                            'train': ['train_loss',
                                      'train_accuracy']})
-    checkptr = Checkpointer(os.path.join(tmpdir, 'test_net_'), 50)
+    # This is only commented out to let this example run on the travis worker.
+    # When writing to disk with the program, the process gets killed...
+    # checkptr = Checkpointer(os.path.join(tmpdir, 'test_net_'), 50)
     # Run the training.
     net.fit(100,
             _solver.SGDSolver(base_lr=0.01),
@@ -96,8 +98,8 @@ with TemporaryDirectory() as tmpdir:
             test_interval=50,  # optional
             X_val=X,  # optional
             train_callbacks=[progress,
-                             perforce,
-                             checkptr],
+                             # checkptr,
+                             perforce],
             test_callbacks=[progress,
                             perforce])
     # Note the flexibility you have with the monitors: they may be used for any
@@ -110,7 +112,7 @@ with TemporaryDirectory() as tmpdir:
                           post_batch_callbacks=[ProgressIndicator()])
 
     # Reloading a model.
-    net.load_blobs_from(os.path.join(tmpdir, 'test_net_50.caffemodel'))
+    # net.load_blobs_from(os.path.join(tmpdir, 'test_net_50.caffemodel'))
 
     # Visualizing a model. You can add the parameter `display=True` to directly
     # show it.
