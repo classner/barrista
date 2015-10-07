@@ -13,12 +13,10 @@ apt-get install \
     wget git curl \
     python-dev python-numpy python3-dev\
     libleveldb-dev libsnappy-dev libopencv-dev \
-    libprotobuf-dev protobuf-compiler \
     libatlas-dev libatlas-base-dev \
     libhdf5-serial-dev libgflags-dev libgoogle-glog-dev \
     bc
 
-protoc --version
 # Add a special apt-repository to install CMake 2.8.9 for CMake Caffe build,
 # if needed.  By default, Aptitude in Ubuntu 12.04 installs CMake 2.8.7, but
 # Caffe requires a minimum CMake version of 2.8.8.
@@ -59,18 +57,15 @@ if [ ! -d $CONDA_DIR ]; then
 	conda install --yes -c https://conda.binstar.org/menpo boost=1.56.0
 fi
 
-# install protobuf 3 (just use the miniconda3 directory to avoid having to setup the path again)
-if [ "$PYTHON_VERSION" -eq "3" ] && [ ! -e "$CONDA_DIR/bin/protoc" ]; then
-	pushd .
-	wget https://github.com/google/protobuf/archive/v3.0.0-alpha-3.1.tar.gz -O protobuf-3.tar.gz
-	tar -C /tmp -xzvf protobuf-3.tar.gz
-	cd /tmp/protobuf-3*/
-	./autogen.sh
-	./configure --prefix=$CONDA_DIR
-	$MAKE
-	$MAKE install
-	popd
-fi
+pushd .
+wget https://github.com/google/protobuf/archive/v3.0.0-alpha-3.1.tar.gz -O protobuf-3.tar.gz
+tar -C /tmp -xzvf protobuf-3.tar.gz
+cd /tmp/protobuf-3*/
+./autogen.sh
+./configure --prefix=$CONDA_DIR
+$MAKE
+$MAKE install
+popd
 
 if [ "$PYTHON_VERSION" -eq "3" ]; then
 	pip install --pre protobuf
