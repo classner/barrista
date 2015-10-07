@@ -23,6 +23,7 @@ before_install:
   - echo $CAFFE_PYTHON_FOLDER
   - echo $CAFFE_BIN_FOLDER
   - git checkout 6eae122a8eb84f8371dde815986cd7524fc4cbaa
+  - cat src/caffe/proto/caffe.proto
   - export NUM_THREADS=2
   - export SCRIPTS=./scripts/travis
   - export CONDA_DIR="/home/travis/miniconda$PYTHON_VERSION"
