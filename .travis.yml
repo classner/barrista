@@ -29,7 +29,7 @@ before_install:
   - export CONDA_DIR="/home/travis/miniconda$PYTHON_VERSION"
 
 install:
-  - sudo -E $SCRIPTS/travis_install.sh
+  - sudo -E ../patches/build_support/travis_setup.sh
 
 before_script:
   - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/usr/local/cuda/lib64:$CONDA_DIR/lib
@@ -37,8 +37,6 @@ before_script:
   - sudo -E $CONDA_DIR/bin/conda install --yes opencv || true
   - sudo -E $CONDA_DIR/bin/conda install --yes scikit-image scikit-learn pylint
   - sudo -E $CONDA_DIR/bin/pip install --upgrade pip
-  - sudo -E $CONDA_DIR/bin/pip uninstall protobuf
-  - sudo -E $CONDA_DIR/bin/pip install protobuf==2.5
   - sudo -E $CONDA_DIR/bin/pip install progressbar2
 
 script:
