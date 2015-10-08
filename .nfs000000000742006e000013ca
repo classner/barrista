@@ -1,9 +1,0 @@
-*.pyc
-.nfs*
-
-# The setuptools temp-folders.
-*.egg-info
-*.egg
-
-# Generated documentation.
-documentation/_build
