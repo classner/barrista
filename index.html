@@ -82,7 +82,6 @@
 <li class="toctree-l1"><a class="reference internal" href="setup.html">Setup</a></li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Using <cite>barrista</cite></a></li>
 <li class="toctree-l1"><a class="reference internal" href="barrista.html">API documentation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="about.html">About</a></li>
 </ul>
 
             
@@ -133,10 +132,9 @@
 <div class="section" id="welcome-to-barrista-s-documentation">
 <h1>Welcome to barrista&#8217;s documentation!<a class="headerlink" href="#welcome-to-barrista-s-documentation" title="Permalink to this headline">¶</a></h1>
 <p>Barrista will serve your <a class="reference external" href="https://github.com/BVLC/caffe">caffe</a>
-right! It is a Python library that offers a comparable interface to
-<a class="reference external" href="http://keras.io">keras</a>
-and <a class="reference external" href="http://deeplearning.net/software/theano/">Theano</a>, but using
-standard <cite>caffe</cite>.</p>
+right! It is a Python library that offers a full-featured interface to <cite>caffe</cite>,
+similar to <a class="reference external" href="http://keras.io">keras</a> and
+<a class="reference external" href="http://deeplearning.net/software/theano/">Theano</a>.</p>
 </div>
 <div class="section" id="why-barrista">
 <h1>Why barrista?<a class="headerlink" href="#why-barrista" title="Permalink to this headline">¶</a></h1>
@@ -149,51 +147,63 @@ prediction) in a principled way to Python.</p>
 a network is as easy as:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">barrista.design</span> <span class="kn">as</span> <span class="nn">ds</span>
 <span class="n">netspec</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">NetSpecification</span><span class="p">([[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">51</span><span class="p">,</span> <span class="mi">51</span><span class="p">],</span> <span class="p">[</span><span class="mi">10</span><span class="p">]],</span>
+                              <span class="c"># batchsize 10, 3 dim. of 51x51 signal, 10 labels</span>
                               <span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;data&#39;</span><span class="p">,</span> <span class="s">&#39;annotations&#39;</span><span class="p">])</span>
 <span class="n">netspec</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">ConvolutionLayer</span><span class="p">(</span><span class="n">Convolution_kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
                                           <span class="n">Convolution_pad</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                                           <span class="n">Convolution_num_output</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
-<span class="n">netspec</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">EuclideanLossLayer</span><span class="p">(</span><span class="n">include_stages</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;fit&#39;</span><span class="p">]))</span>
+<span class="c"># The layers are wired together automatically, unless you specify something else:</span>
+<span class="n">netspec</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">InnerProductLayer</span><span class="p">(</span><span class="n">tops</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;net_out&#39;</span><span class="p">],</span>
+                                           <span class="n">InnerProduct_num_output</span><span class="o">=</span><span class="mi">10</span><span class="p">))</span>
+<span class="n">netspec</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">SoftmaxWithLossLayer</span><span class="p">(</span><span class="n">bottoms</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;net_out&#39;</span><span class="p">,</span>
+                                                       <span class="s">&#39;annotations&#39;</span><span class="p">]))</span>
 <span class="n">net</span> <span class="o">=</span> <span class="n">netspec</span><span class="o">.</span><span class="n">instantiate</span><span class="p">()</span>
 </pre></div>
 </div>
 </li>
-<li><p class="first">Use your networks in a principled way from Python. No more intransparent
-preprocessing, but helpful support:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">barrista.solver</span>
-<span class="n">net</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span>
-        <span class="n">barrista</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">SGDSolver</span><span class="p">(</span><span class="n">base_lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">),</span>
-        <span class="n">X</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;data&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">21</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">51</span><span class="p">,</span> <span class="mi">51</span><span class="p">)),</span>  <span class="c"># Autoatically batched.</span>
-           <span class="s">&#39;annotations&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">21</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">51</span><span class="p">,</span> <span class="mi">51</span><span class="p">))})</span>
-<span class="n">net</span><span class="o">.</span><span class="n">predict</span><span class="p">({</span><span class="s">&#39;data&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">51</span><span class="p">,</span> <span class="mi">51</span><span class="p">))})</span>
+<li><p class="first"><cite>barrista</cite> naturally understands and writes every .prototxt
+file your <cite>caffe</cite> version does! Load <cite>.prototxt</cite> files (also from the
+<a class="reference external" href="http://caffe.berkeleyvision.org/model_zoo.html">model zoo</a>!)
+and use or modify the networks with barrista:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">netspec</span><span class="o">.</span><span class="n">to_prototxt</span><span class="p">(</span><span class="n">output_filename</span><span class="o">=</span><span class="s">&#39;net.prototxt&#39;</span><span class="p">)</span>
+<span class="n">net</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s">&#39;net.caffemodel&#39;</span><span class="p">)</span>  <span class="c"># Save the weights.</span>
+<span class="n">new_netspec</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">NetSpecification</span><span class="o">.</span><span class="n">from_prototxt</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s">&#39;net.prototxt&#39;</span><span class="p">)</span>
+<span class="n">new_network</span> <span class="o">=</span> <span class="n">new_netspec</span><span class="o">.</span><span class="n">instantiate</span><span class="p">()</span>
+<span class="n">new_network</span><span class="o">.</span><span class="n">load_blobs_from</span><span class="p">(</span><span class="s">&#39;net.caffemodel&#39;</span><span class="p">)</span>  <span class="c"># Load the weights.</span>
 </pre></div>
 </div>
 </li>
-<li><p class="first">Use callbacks to easily customize training and prediction:</p>
+<li><p class="first">Use your networks in a principled way from Python. You get transparent support
+for repetitive tasks like batching or padding, with a clear separation of
+preprocessing:</p>
+<div class="highlight-python"><div class="highlight"><pre>import barrista.solver
+net.fit(1000,
+        barrista.solver.SGDSolver(base_lr=0.01),
+        X={&#39;data&#39;: np.ones((21, 3, 51, 51)),  # Automatically batched.
+           &#39;annotations&#39;: np.zeros((21,))})
+net.predict({&#39;data&#39;: np.zeros((5, 3, 51, 51)), [...]})
+</pre></div>
+</div>
+</li>
+<li><p class="first">Use callbacks (functions that are called before and after processing a batch)
+to monitor training and prediction, or to dynamically modify
+the data used in the batches. <cite>barrista</cite> comes with a standard set of
+frequently used callbacks and it is very easy to add your own:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">barrista.monitoring</span>
 <span class="n">net</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="c"># ... as before</span>
         <span class="n">train_callbacks</span><span class="o">=</span><span class="p">[</span>
+          <span class="c"># Write the network weights every 100 iterations to disk.</span>
           <span class="n">barrista</span><span class="o">.</span><span class="n">monitoring</span><span class="o">.</span><span class="n">Checkpointer</span><span class="p">(</span><span class="s">&#39;/tmp&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>
+          <span class="c"># Get a progress bar with ETA.</span>
           <span class="n">barrista</span><span class="o">.</span><span class="n">monitoring</span><span class="o">.</span><span class="n">ProgressIndicator</span><span class="p">()])</span>
 </pre></div>
 </div>
 </li>
 <li><p class="first"><cite>barrista</cite> is always fully consistent with <cite>caffe</cite>. We internally inspect the
-protobuf object generated by <cite>caffe</cite> to infer the interface. Adding your
+protobuf module generated by <cite>caffe</cite> to infer the interface. Adding your
 own layers is as easy as:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">barrista.config</span>
 <span class="n">barrista</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">LAYER_TYPES</span><span class="p">[</span><span class="s">&#39;Amazing&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;AmazingParameter&#39;</span><span class="p">]</span>
-</pre></div>
-</div>
-</li>
-<li><p class="first"><cite>barrista</cite> naturally understands and writes every .prototxt
-file your caffe version does! Load <cite>.prototxt</cite> files (also from the
-<a class="reference external" href="http://caffe.berkeleyvision.org/model_zoo.html">model zoo</a>!)
-and use or modify the networks with barrista:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">net</span><span class="o">.</span><span class="n">to_prototxt</span><span class="p">(</span><span class="n">output_filename</span><span class="o">=</span><span class="s">&#39;net.prototxt&#39;</span><span class="p">)</span>
-<span class="n">net</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s">&#39;net.caffmodel&#39;</span><span class="p">)</span>  <span class="c"># Save the weights.</span>
-<span class="n">new_network</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">NetSpecification</span><span class="o">.</span><span class="n">from_prototxt</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s">&#39;net.prototxt&#39;</span><span class="p">)</span>
-<span class="n">new_network</span><span class="o">.</span><span class="n">load_blobs_from</span><span class="p">(</span><span class="s">&#39;net.caffemodel&#39;</span><span class="p">)</span>  <span class="c"># Load the weights.</span>
 </pre></div>
 </div>
 </li>
@@ -204,10 +214,11 @@ and use or modify the networks with barrista:</p>
 <div class="section" id="what-s-the-license">
 <h1>What&#8217;s the license?<a class="headerlink" href="#what-s-the-license" title="Permalink to this headline">¶</a></h1>
 <p>You can use barrista under the MIT License, which means you may use it freely
-in any projects.</p>
+in any projects. The full license can be found in the main folder of the
+<cite>barrista</cite> repository.</p>
 </div>
-<div class="section" id="where-do-i-get-it">
-<h1>Where do I get it?<a class="headerlink" href="#where-do-i-get-it" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="get-the-source-documentation">
+<h1>Get the source &amp; documentation<a class="headerlink" href="#get-the-source-documentation" title="Permalink to this headline">¶</a></h1>
 <p>The source is hosted on <a class="reference external" href="https://github.com/classner/barrista">github</a> and the
 documentation/homepage is available on github pages at
 <a class="reference external" href="http://classner.github.io/barrista">http://classner.github.io/barrista</a>.</p>
@@ -250,10 +261,6 @@ documentation/homepage is available on github pages at
 <li class="toctree-l2"><a class="reference internal" href="barrista.html#module-barrista">Module contents</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="about.html">About</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="about.html#license">License</a></li>
-</ul>
-</li>
 </ul>
 </div>
 </div>
@@ -263,6 +270,22 @@ documentation/homepage is available on github pages at
 <li><a class="reference internal" href="genindex.html"><span>Index</span></a></li>
 <li><a class="reference internal" href="py-modindex.html"><span>Module Index</span></a></li>
 </ul>
+</div>
+<div class="section" id="about">
+<h1>About<a class="headerlink" href="#about" title="Permalink to this headline">¶</a></h1>
+<p>This software was created at the <a class="reference external" href="http://www.bccn-tuebingen.de">Bernstein Center for Computational
+Neuroscience</a> at the <a class="reference external" href="http://www.uni-tuebingen.de">University of Tuebingen</a> and
+the <a class="reference external" href="http://www.is.mpg.de">Max Planck Institute for Intelligent Systems</a>
+Tuebingen. The main contributors are:</p>
+<ul class="simple">
+<li><a class="reference external" href="http://www.christophlassner.de">Christoph Lassner</a>,</li>
+<li><a class="reference external" href="https://am.is.tuebingen.mpg.de/person/dkappler">Daniel Kappler</a>,</li>
+<li><a class="reference external" href="mailto:mk(at)nopw(dot)de">Martin Kiefel</a> and</li>
+<li><a class="reference external" href="http://files.is.tue.mpg.de/pgehler/">Peter Gehler</a>.</li>
+</ul>
+<p>We thank <a class="reference external" href="http://daggerfs.com/">Yangqing Jia</a> and the
+<a class="reference external" href="http://bvlc.eecs.berkeley.edu/">BVLC vision group</a> for creating the great
+<cite>caffe</cite> package!</p>
 </div>
 
 
