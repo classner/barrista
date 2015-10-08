@@ -268,12 +268,15 @@ class MonitoringTestCase(unittest.TestCase):
                 X,
                 train_callbacks=[
                     fitpi])
-        self.assertEqual(fitpi.pbar.finished, True)
+        if hasattr(fitpi.pbar, 'finished'):
+            # progressbar2 compatibility.
+            self.assertEqual(fitpi.pbar.finished, True)
         # For predict.
         predpi = ProgressIndicator()
         net.predict(np.zeros((10, 3, 3, 3)),
                     post_batch_callbacks=[predpi])
-        self.assertEqual(predpi.pbar.finished, True)
+        if hasattr(fitpi.pbar, 'finished'):
+            self.assertEqual(predpi.pbar.finished, True)
 
     def test_JSONLogger(self):
         """Test the ``JSONLogger``."""

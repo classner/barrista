@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Defines several tools for monitoring net activity."""
-# pylint: disable=F0401
+# pylint: disable=F0401, E1101
 import logging as _logging
 import os as _os
 import numpy as _np
@@ -165,6 +165,10 @@ class _LossIndicator(object):  # pylint: disable=R0903
 
     def __init__(self, progress_indicator):
         self.progress_indicator = progress_indicator
+
+    def __call__(self, pbar, stats):
+        r"""Compatibility with new versions of ``progressbar2``."""
+        return self.update(pbar)
 
     def update(self, pbar):  # pylint: disable=W0613
         """The update method to implement by the ``progressbar`` interface."""
