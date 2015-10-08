@@ -145,7 +145,6 @@
 <span class="kn">from</span> <span class="nn">tempfile</span> <span class="kn">import</span> <span class="n">NamedTemporaryFile</span> <span class="k">as</span> <span class="n">_NamedTemporaryFile</span>
 <span class="kn">import</span> <span class="nn">os</span> <span class="kn">as</span> <span class="nn">_os</span>
 <span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">itemgetter</span> <span class="k">as</span> <span class="n">_itemgetter</span>
-<span class="kn">import</span> <span class="nn">cv2</span> <span class="kn">as</span> <span class="nn">_cv2</span>
 <span class="kn">import</span> <span class="nn">google.protobuf.text_format</span> <span class="kn">as</span> <span class="nn">_gprototext</span>
 
 <span class="c"># CAREFUL! This must be imported before any caffe-related import!</span>
@@ -157,8 +156,10 @@
 <span class="kn">import</span> <span class="nn">caffe.proto.caffe_pb2</span> <span class="kn">as</span> <span class="nn">_caffe_pb2</span>
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">caffe.draw</span> <span class="kn">as</span> <span class="nn">_draw</span>
+    <span class="kn">import</span> <span class="nn">cv2</span> <span class="kn">as</span> <span class="nn">_cv2</span>
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
     <span class="n">_draw</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">_cv2</span> <span class="o">=</span> <span class="bp">None</span>
 <span class="kn">from</span> <span class="nn">.net</span> <span class="kn">import</span> <span class="n">Net</span> <span class="k">as</span> <span class="n">_Net</span>
 
 
@@ -175,7 +176,7 @@
 <span class="n">_init</span><span class="p">()</span>
 <span class="n">_LOGGER</span> <span class="o">=</span> <span class="n">_logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
 <span class="k">if</span> <span class="n">_draw</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-    <span class="n">_LOGGER</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&#39;Could not import caffe.draw! Drawing is not available. &#39;</span> <span class="o">+</span>
+    <span class="n">_LOGGER</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&#39;Could not import caffe.draw or cv2! Drawing is not available. &#39;</span> <span class="o">+</span>
                  <span class="s">&#39;Probably this is due to the package pydot not being &#39;</span> <span class="o">+</span>
                  <span class="s">&#39;available.&#39;</span><span class="p">)</span>
 
@@ -492,7 +493,7 @@
 <span class="sd">        :returns: 3D numpy array.</span>
 <span class="sd">          Graphic of the visualization as (H, W, C) image in BGR format.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">_draw</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">_draw</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">_cv2</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&#39;Drawing is not available!&#39;</span><span class="p">)</span>
         <span class="k">with</span> <span class="n">_NamedTemporaryFile</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s">&#39;w+b&#39;</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s">&#39;.png&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">tmpfile</span><span class="p">:</span>
             <span class="n">_draw</span><span class="o">.</span><span class="n">draw_net_to_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">to_pbuf_message</span><span class="p">(),</span>
@@ -839,21 +840,24 @@
         <span class="k">exec</span><span class="p">(</span><span class="s">&#39;_obj_type = _caffe_pb2.&#39;</span> <span class="o">+</span> <span class="n">_param_obj</span><span class="p">)</span>  <span class="c"># pylint: disable=W0122</span>
         <span class="c"># identify the property name for this parameter.</span>
         <span class="n">_detected</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="n">_tmp_layer_param</span> <span class="o">=</span> <span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">LayerParameter</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">_propname</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">LayerParameter</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">LayerParameter</span><span class="p">(),</span> <span class="n">_propname</span><span class="p">),</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">_tmp_layer_param</span><span class="p">,</span> <span class="n">_propname</span><span class="p">),</span>
                           <span class="n">_obj_type</span><span class="p">):</span>
                 <span class="n">_detected</span> <span class="o">=</span> <span class="bp">True</span>
                 <span class="k">break</span>
         <span class="k">assert</span> <span class="n">_detected</span><span class="p">,</span> <span class="p">(</span><span class="s">&#39;The parameter name of the layer property {0} &#39;</span> <span class="o">+</span>
                            <span class="s">&#39;could not be found!&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_param_obj</span><span class="p">)</span>
-        <span class="n">_func_spec</span> <span class="o">+=</span> <span class="s">&#39;    _ret_obj._additional_parameters.append(&quot;{_propname}&quot;)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="nb">locals</span><span class="p">())</span> <span class="o">+</span> <span class="n">_os</span><span class="o">.</span><span class="n">linesep</span>  <span class="c"># noqa</span>
-        <span class="n">_func_spec</span> <span class="o">+=</span> <span class="s">&#39;    {_propname}_dummy = _caffe_pb2.{_param_obj}()&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="nb">locals</span><span class="p">())</span> <span class="o">+</span> <span class="n">_os</span><span class="o">.</span><span class="n">linesep</span>  <span class="c"># noqa</span>
-        <span class="n">_func_spec</span> <span class="o">+=</span> <span class="s">&#39;    {_propname}_kwargs = dict()&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="nb">locals</span><span class="p">())</span> <span class="o">+</span> <span class="n">_os</span><span class="o">.</span><span class="n">linesep</span>  <span class="c"># noqa</span>
+        <span class="n">_func_spec</span> <span class="o">+=</span> <span class="s">r&#39;&#39;&#39;</span>
+<span class="s">    _ret_obj._additional_parameters.append(&quot;{_propname}&quot;)</span>
+<span class="s">    {_propname}_dummy = _caffe_pb2.{_param_obj}()</span>
+<span class="s">    {_propname}_kwargs = dict()&#39;&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="nb">locals</span><span class="p">())</span> <span class="o">+</span> <span class="n">_os</span><span class="o">.</span><span class="n">linesep</span>
         <span class="k">for</span> <span class="n">_ptpl</span> <span class="ow">in</span> <span class="n">_parameters</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">_ptpl</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="n">_param_obj</span><span class="p">:</span>
                 <span class="c"># Stay compatible with older caffe version where some fields</span>
                 <span class="c"># were scalars that are now repeated fields.</span>
-                <span class="n">_func_spec</span> <span class="o">+=</span> <span class="p">(</span><span class="s">r&#39;&#39;&#39;    if {_ptpl[0]} is not None:</span>
+                <span class="n">_func_spec</span> <span class="o">+=</span> <span class="p">(</span><span class="s">r&#39;&#39;&#39;</span>
+<span class="s">    if {_ptpl[0]} is not None:</span>
 <span class="s">        try:</span>
 <span class="s">            _ = {_ptpl[0]} + 1  # Python version independent integer check</span>
 <span class="s">            if (hasattr(getattr({_propname}_dummy, &#39;{_ptpl[3]}&#39;), &#39;append&#39;)):</span>
@@ -864,9 +868,9 @@
 <span class="s">            pass</span>
 <span class="s">        {_propname}_kwargs[&quot;{_ptpl[3]}&quot;] = {_ptpl[0]}{_os.linesep}&#39;&#39;&#39;</span><span class="p">)</span>\
             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="nb">locals</span><span class="p">())</span>
-        <span class="n">_func_spec</span> <span class="o">+=</span> <span class="p">(</span>
-            <span class="s">&#39;    _ret_obj.{_propname} = _caffe_pb2.{_param_obj}(**{_propname}_kwargs){_os.linesep}&#39;</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="nb">locals</span><span class="p">())</span>  <span class="c"># noqa</span>
+        <span class="n">_func_spec</span> <span class="o">+=</span> <span class="s">r&#39;&#39;&#39;</span>
+<span class="s">    _ret_obj.{_propname} = _caffe_pb2.{_param_obj}(**{_propname}_kwargs)&#39;&#39;&#39;</span>\
+            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="nb">locals</span><span class="p">())</span> <span class="o">+</span> <span class="n">_os</span><span class="o">.</span><span class="n">linesep</span>
     <span class="n">_func_spec</span> <span class="o">+=</span> <span class="s">&#39;    _ret_obj.type = &quot;{}&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_layerkey</span><span class="p">)</span> <span class="o">+</span> <span class="n">_os</span><span class="o">.</span><span class="n">linesep</span>
     <span class="n">_func_spec</span> <span class="o">+=</span> <span class="s">&#39;    return _ret_obj&#39;</span>
     <span class="n">_LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">_func_spec</span><span class="p">)</span>

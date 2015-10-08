@@ -130,7 +130,8 @@
   <h1>Source code for barrista.solver</h1><div class="highlight"><pre>
 <span class="c"># -*- coding: utf-8 -*-</span>
 <span class="sd">&quot;&quot;&quot;Exposes the caffe solvers.&quot;&quot;&quot;</span>
-<span class="c"># pylint: disable=E1101, F0401, C0103, R0913, R0914, W0212, E1121</span>
+<span class="c"># pylint: disable=E1101, F0401, C0103, R0913, R0914, W0212, E1121, E0611, W0406</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 <span class="kn">import</span> <span class="nn">hashlib</span>
 <span class="kn">import</span> <span class="nn">copy</span>
 <span class="kn">from</span> <span class="nn">tempfile</span> <span class="kn">import</span> <span class="n">NamedTemporaryFile</span> <span class="k">as</span> <span class="n">_NamedTemporaryFile</span>
@@ -545,8 +546,8 @@
         <span class="sd">&quot;&quot;&quot;Get a has of the parameter dict.&quot;&quot;&quot;</span>
         <span class="n">hash_obj</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">solver_parameter_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
-            <span class="n">hash_obj</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
-            <span class="n">hash_obj</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">solver_parameter_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]))</span>
+            <span class="n">hash_obj</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&#39;utf-8&#39;</span><span class="p">))</span>
+            <span class="n">hash_obj</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">solver_parameter_dict</span><span class="p">[</span><span class="n">key</span><span class="p">])</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&#39;utf-8&#39;</span><span class="p">))</span>
         <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">hash_obj</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">())</span>
 </div>
     <span class="nd">@classmethod</span>
@@ -556,7 +557,7 @@
         <span class="n">solver_message</span> <span class="o">=</span> <span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">SolverParameter</span><span class="p">(</span><span class="o">**</span><span class="n">solver_parameter_dict</span><span class="p">)</span>
         <span class="n">messagestr</span> <span class="o">=</span> <span class="n">_gprototext</span><span class="o">.</span><span class="n">MessageToString</span><span class="p">(</span><span class="n">solver_message</span><span class="p">)</span>
         <span class="k">with</span> <span class="n">_NamedTemporaryFile</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s">&#39;w+b&#39;</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s">&#39;.prototxt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">tmpfile</span><span class="p">:</span>
-            <span class="n">tmpfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">messagestr</span><span class="p">)</span>
+            <span class="n">tmpfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">bytes</span><span class="p">(</span><span class="n">messagestr</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&#39;utf-8&#39;</span><span class="p">)))</span>
             <span class="n">tmpfile</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
             <span class="k">return</span> <span class="n">cls</span><span class="o">.</span><span class="n">Get_caffe_solver_class</span><span class="p">(</span>
                 <span class="n">solver_parameter_dict</span><span class="p">[</span><span class="s">&#39;solver_type&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">_caffe_solver_class</span><span class="p">(</span>
