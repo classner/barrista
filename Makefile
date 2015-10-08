@@ -1,5 +1,5 @@
 GH_PAGES_SOURCES = barrista documentation Makefile
-GH_PAGES_BUILD_BRANCH = unstable
+GH_PAGES_BUILD_BRANCH = master
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
