@@ -394,6 +394,13 @@ class Net(_caffe.Net):
         if output_processing_flags is None:
             output_processing_flags = dict(
                 [(out_name, 'n') for out_name in out_blob_names])
+        else:
+            for blob_name in out_blob_names:
+                assert blob_name in output_processing_flags.keys(), (
+                    'If you specify `output_processing_flags`, you have to '
+                    'specify them for every blob in `out_blob_names`! The '
+                    'flag for blob {} was not found, only for {}.'
+                ).format(blob_name, output_processing_flags.keys())
         if static_inputs is None:
             static_inputs = []
         covered_inputs = list(set(static_inputs +
