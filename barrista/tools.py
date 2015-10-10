@@ -65,8 +65,8 @@ def pad(image, input_dims, get_padding=False, val=0):
     # only to subtract the mean of the entire image, resulting in
     # 0. values in the padded areas. We're doing that here directly.
     padding = ((0, 0),
-               (np.floor(PAD_HEIGHT), np.ceil(PAD_HEIGHT)),
-               (np.floor(PAD_WIDTH), np.ceil(PAD_WIDTH)))
+               (int(np.floor(PAD_HEIGHT)), int(np.ceil(PAD_HEIGHT))),
+               (int(np.floor(PAD_WIDTH)), int(np.ceil(PAD_WIDTH))))
     padded = np.pad(WORK_SCALE_IMAGE, padding, 'constant', constant_values=val)
     if get_padding:
         return padded, padding
