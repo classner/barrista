@@ -26,7 +26,6 @@ if not _os.path.exists(_os.path.join(_PYCAFFE_FOLDER, 'caffe')):
     except ImportError:
         raise Exception('Failed to add the CAFFE_PYTHON_FOLDER and caffe is ' +
                         'not on the PYTHONPATH!')
-        _sys.exit(1)
 else:
     _sys.path.insert(0, _PYCAFFE_FOLDER)
 

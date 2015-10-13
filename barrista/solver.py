@@ -533,7 +533,7 @@ class Solver(object):
                      'the network has to remain the same']))
         self._net = net
 
-    def _Get_batch_size(self,
+    def _Get_batch_size(self,  # pylint: disable=R0201
                         net,
                         test_interval,
                         test_iterations,
