@@ -28,7 +28,7 @@ def chunks(seq, size):
     return (seq[pos:pos + size] for pos in range(0, len(seq), size))
 
 
-def pad(image, input_dims, get_padding=False, val=0):
+def pad(image, input_dims, get_padding=False, val=0, pad_at_least=False):
     r"""
     Pad an image with given scale to the appropriate dimensions.
 
@@ -50,6 +50,10 @@ def pad(image, input_dims, get_padding=False, val=0):
     :param val: float.
       The value to pad with.
 
+    :param pad_at_least: bool.
+      If set to True, allows input_dims that are smaller than the image size.
+      Otherwise, it throws in this case.
+
     :returns: 3D array, padded or, if ``get_padding``,
       (3D array, tuple(two-tuples)).
     """
@@ -60,7 +64,11 @@ def pad(image, input_dims, get_padding=False, val=0):
     WORK_SCALE_IMAGE = image
     PAD_WIDTH = (input_dims[1] - SCALED_DIMS[1]) / 2.0
     PAD_HEIGHT = (input_dims[0] - SCALED_DIMS[0]) / 2.0
-    assert PAD_WIDTH >= 0. and PAD_HEIGHT >= 0.
+    if not pad_at_least:
+        assert PAD_WIDTH >= 0. and PAD_HEIGHT >= 0.
+    else:
+        PAD_WIDTH = max(0, PAD_WIDTH)
+        PAD_HEIGHT = max(0, PAD_HEIGHT)
     # Padding is done, e.g., in deeplab, first with the mean values,
     # only to subtract the mean of the entire image, resulting in
     # 0. values in the padded areas. We're doing that here directly.

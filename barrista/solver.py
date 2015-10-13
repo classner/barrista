@@ -560,7 +560,7 @@ class Solver(object):
         # some kind of backend is used
         assert read_input_batch_size_from_blob_name is not None, (
             'no inputs thus the batch_size must be determined from a blob')
-        batch_size = self.blobs[
+        batch_size = net.blobs[
             read_input_batch_size_from_blob_name].data.shape[0]
         return batch_size, test_iterations
 
