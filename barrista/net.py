@@ -38,7 +38,8 @@ if _cv2 is None:
 set_mode_cpu = _caffe.set_mode_cpu
 #: Set GPU processing mode.
 set_mode_gpu = _caffe.set_mode_gpu
-
+#: Set id of GPU device.
+set_device = _caffe.set_device
 
 class Net(_caffe.Net):
 
