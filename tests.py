@@ -773,6 +773,24 @@ class SolverTestCase(unittest.TestCase):
         accy = new_net.predict(X)['accuracy'][0]
         self.assertEqual(accy, 1.0)
 
+        new_net = netspec.instantiate()
+        new_solver = _solver.SGDSolver(net=new_net,
+                                       base_lr=0.01)
+        new_solver.fit(20,
+                       X,
+                       use_fit_phase_for_validation=True)
+        accy = new_net.predict(X)['accuracy'][0]
+        self.assertEqual(accy, 1.0)
+
+        new_solver.fit(20,
+                       X,
+                       X_val=X,
+                       test_initialization=True,
+                       test_interval=10,
+                       use_fit_phase_for_validation=True)
+        accy = new_net.predict(X)['accuracy'][0]
+        self.assertEqual(accy, 1.0)
+
     def test_sgd(self):
         """Test the stochastic gradient descent."""
         import numpy as np

@@ -643,7 +643,8 @@ class Net(_caffe.Net):
             test_initialization=False,
             train_callbacks=None,
             test_callbacks=None,
-            read_input_batch_size_from_blob_name=None):
+            read_input_batch_size_from_blob_name=None,
+            use_fit_phase_for_validation=False):
         """See :py:func:`barrista.solver.SolverInterface.fit`."""
         return solver.fit(iterations=iterations,
                           X=X,
@@ -655,7 +656,10 @@ class Net(_caffe.Net):
                           test_callbacks=test_callbacks,
                           net=self,
                           read_input_batch_size_from_blob_name=(
-                              read_input_batch_size_from_blob_name))
+                              read_input_batch_size_from_blob_name),
+                          use_fit_phase_for_validation=(
+                              use_fit_phase_for_validation
+                          ))
 
     def visualize(self,
                   layout_dir='LR',
