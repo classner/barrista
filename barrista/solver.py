@@ -170,7 +170,8 @@ class Solver(object):
             train_callbacks=None,
             test_callbacks=None,
             net=None,
-            read_input_batch_size_from_blob_name=None):
+            read_input_batch_size_from_blob_name=None,
+            use_fit_phase_for_validation=False):
         r"""
         fit the network to specific data.
 
@@ -247,6 +248,12 @@ class Solver(object):
           network does not have explicit inputs (e.g., when trained from
           an LMDB).
 
+        :param use_fit_phase_for_validation: bool.
+          If set to True, use do not change the phase of the net for running
+          a validation step during training. This can be helpful to reduce
+          memory consumption. This ignores the TEST phase of the net completely,
+          but it's not necessary to use it if the data is provided by the
+          Python layers.
         """
         if net is not None:
             from barrista import net as _net
@@ -285,7 +292,8 @@ class Solver(object):
                                    train_callbacks,
                                    test_callbacks)
 
-        testnet = self._Init_testnet(test_interval)
+        testnet = self._Init_testnet(test_interval,
+                                     use_fit_phase_for_validation)
 
         iteration = 0
         cbparams = dict()
@@ -533,7 +541,7 @@ class Solver(object):
                      'the network has to remain the same']))
         self._net = net
 
-    def _Get_batch_size(self,
+    def _Get_batch_size(self,  # pylint: disable=R0201
                         net,
                         test_interval,
                         test_iterations,
@@ -560,7 +568,7 @@ class Solver(object):
         # some kind of backend is used
         assert read_input_batch_size_from_blob_name is not None, (
             'no inputs thus the batch_size must be determined from a blob')
-        batch_size = self.blobs[
+        batch_size = net.blobs[
             read_input_batch_size_from_blob_name].data.shape[0]
         return batch_size, test_iterations
 
@@ -646,17 +654,20 @@ class Solver(object):
             tmp_data_monitor = _monitoring.CyclingDataMonitor(X=X_val)
             test_callbacks.append(tmp_data_monitor)
 
-    def _Init_testnet(self, test_interval):
+    def _Init_testnet(self, test_interval, use_fit_phase_for_validation):
         """Initialize the test phase network."""
         testnet = None
         if test_interval > 0:
-            # Setup the test net.
-            test_netspec = self._net._specification.copy()
-            test_netspec.phase = _Phase.TEST
-            test_netspec.predict_inputs = None
-            test_netspec.predict_input_shapes = None
-            testnet = test_netspec.instantiate()
-            testnet.share_with(self._net)
+            if use_fit_phase_for_validation:
+                testnet = self._net
+            else:
+                # Setup the test net.
+                test_netspec = self._net._specification.copy()
+                test_netspec.phase = _Phase.TEST
+                test_netspec.predict_inputs = None
+                test_netspec.predict_input_shapes = None
+                testnet = test_netspec.instantiate()
+                testnet.share_with(self._net)
         return testnet
 
 

@@ -24,9 +24,8 @@ if not _os.path.exists(_os.path.join(_PYCAFFE_FOLDER, 'caffe')):
         # pylint: disable=W0611
         import caffe as _caffe
     except ImportError:
-        _LOGGER.fatal('Failed to add the CAFFE_PYTHON_FOLDER and caffe is ' +
-                      'not on the PYTHONPATH!')
-        _sys.exit(1)
+        raise Exception('Failed to add the CAFFE_PYTHON_FOLDER and caffe is ' +
+                        'not on the PYTHONPATH!')
 else:
     _sys.path.insert(0, _PYCAFFE_FOLDER)
 

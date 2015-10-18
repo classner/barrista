@@ -18,11 +18,10 @@ compiler: gcc
 before_install:
   - git clone https://github.com/BVLC/caffe.git
   - cd caffe
+  - git checkout 6eae122a8eb84f8371dde815986cd7524fc4cbaa
   - git apply ../patches/barrista-patch-caffe-6eae122a8eb84f8371dde815986cd7524fc4cbaa.patch
   - export CAFFE_PYTHON_FOLDER=`pwd`/python
   - export CAFFE_BIN_FOLDER=`pwd`/build/install/bin
-  - git checkout 6eae122a8eb84f8371dde815986cd7524fc4cbaa
-  - cat src/caffe/proto/caffe.proto
   - export NUM_THREADS=2
   - export SCRIPTS=./scripts/travis
   - export CONDA_DIR="/home/travis/miniconda$PYTHON_VERSION"
@@ -37,13 +36,15 @@ before_script:
   - sudo -E $CONDA_DIR/bin/conda install --yes scikit-image scikit-learn pylint
   - sudo -E $CONDA_DIR/bin/pip install --upgrade pip
   - sudo -E $CONDA_DIR/bin/pip install progressbar2
+  - cd ..
+  - pylint --disable=star-args,no-member barrista
+  - pylint --disable=star-args,no-member example.py
+  - pylint --disable=star-args,no-member setup.py
+  - pylint --disable=star-args,no-member tests.py
+  - cd caffe
 
 script:
   - ../patches/build_support/build.sh
   - cd ..
   - python example.py
   - python tests.py
-  - pylint --disable=star-args,no-member barrista
-  - pylint --disable=star-args,no-member example.py
-  - pylint --disable=star-args,no-member setup.py
-  - pylint --disable=star-args,no-member tests.py
