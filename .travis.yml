@@ -18,10 +18,10 @@ compiler: gcc
 before_install:
   - git clone https://github.com/BVLC/caffe.git
   - cd caffe
+  - git checkout 6eae122a8eb84f8371dde815986cd7524fc4cbaa
   - git apply ../patches/barrista-patch-caffe-6eae122a8eb84f8371dde815986cd7524fc4cbaa.patch
   - export CAFFE_PYTHON_FOLDER=`pwd`/python
   - export CAFFE_BIN_FOLDER=`pwd`/build/install/bin
-  - git checkout 6eae122a8eb84f8371dde815986cd7524fc4cbaa
   - export NUM_THREADS=2
   - export SCRIPTS=./scripts/travis
   - export CONDA_DIR="/home/travis/miniconda$PYTHON_VERSION"
