@@ -350,8 +350,6 @@ class Solver(object):
                     for cb in test_callbacks:
                         cb(cbparams)
 
-                    # need to multiply by batch_size since it is normalized
-                    # internally
                     # pylint: disable=W0212
                     testnet._forward(0, len(testnet.layers) - 1)
 
