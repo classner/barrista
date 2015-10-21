@@ -171,7 +171,8 @@ class Solver(object):
             test_callbacks=None,
             net=None,
             read_input_batch_size_from_blob_name=None,
-            use_fit_phase_for_validation=False):
+            use_fit_phase_for_validation=False,
+            allow_test_phase_for_train=False):
         r"""
         fit the network to specific data.
 
@@ -254,6 +255,14 @@ class Solver(object):
           memory consumption. This ignores the TEST phase of the net completely,
           but it's not necessary to use it if the data is provided by the
           Python layers.
+
+        :param allow_test_phase_for_train: bool.
+          If set to True, allow using a network in its TEST phase to be trained.
+          May make sense in exotic settings, but should prevent bugs. If not
+          set to True, an AssertionError is raised in this scenario.
+          Why is this so important? The ``DropoutLayer`` and ``PoolLayer`` (in
+          the case of stochastic pooling) are sensitive to this parameter and
+          results are very different for the two settings.
         """
         if net is not None:
             from barrista import net as _net
@@ -264,6 +273,12 @@ class Solver(object):
         assert self._net is not None, (
             'neither the solver was initialized with a net nor',
             'the fit function was called with one')
+
+        assert self._net._mode == _Phase.TRAIN or allow_test_phase_for_train, (
+            'The network must be in TRAIN phase for fitting! If you really '
+            'want to, you can override this requirement by setting '
+            'the optional parameter `allow_test_phase_for_train` to True.'
+        )
 
         train_callbacks = self._Assert_callbacks(self._net,
                                                  train_callbacks,

@@ -106,8 +106,10 @@ class NetSpecification(object):
       Whether to force a backward pass for all layers only useful during
       training.
 
-    :param phase: :py:data:`barrista.design.Phase`.
-      The phase to have the network in.
+    :param phase: :py:data:`barrista.design.Phase` or None.
+      The phase to have the network in. If it is None, it is set to either
+      ``TRAIN`` if ``predict_inputs`` and ``predict_inputs_shapes`` is given,
+      or ``TEST`` otherwise. Default: None.
 
     :param level: int.
       The level of the network. Can be used to in- or exclude layers depending
@@ -139,7 +141,7 @@ class NetSpecification(object):
                  inputs=None,
                  layers=None,
                  force_backward=False,
-                 phase=Phase.TEST,
+                 phase=None,
                  level=0,
                  stages=None,
                  debug_info=False,
@@ -151,6 +153,11 @@ class NetSpecification(object):
             inputs = ['data']
         if layers is None:
             layers = []
+        if phase is None:
+            if predict_inputs is not None and predict_input_shapes is not None:
+                phase = Phase.TRAIN
+            else:
+                phase = Phase.TEST
         if stages is None:
             stages = ['fit']
         assert len(inputs) == len(input_shape)
@@ -344,6 +351,7 @@ class NetSpecification(object):
             tmpfile.flush()
             _specification = self.copy()
             net = _Net(tmpfile.name,
+                       mode=self.phase,
                        specification=_specification)
         return net
 

@@ -291,7 +291,8 @@ class MonitoringTestCase(unittest.TestCase):
         from barrista.monitoring import JSONLogger
         from barrista import solver as _solver
         netspec = design.NetSpecification([[10, 3, 3, 3], [10]],
-                                          inputs=['data', 'annotations'])
+                                          inputs=['data', 'annotations'],
+                                          phase=design.Phase.TRAIN)
         layers = []
         conv_params = {'Convolution_kernel_size': 3,
                        'Convolution_num_output': 3,
@@ -349,7 +350,8 @@ class MonitoringTestCase(unittest.TestCase):
         from barrista.monitoring import Checkpointer
         from barrista import solver as _solver
         netspec = design.NetSpecification([[10, 3, 3, 3], [10]],
-                                          inputs=['data', 'annotations'])
+                                          inputs=['data', 'annotations'],
+                                          phase=design.Phase.TRAIN)
         layers = []
         conv_params = {'Convolution_kernel_size': 3,
                        'Convolution_num_output': 3,
@@ -386,7 +388,7 @@ class NetTestCase(unittest.TestCase):
     def test_instantiation(self):
         """Test ``Net`` constructors."""
         import barrista.design as design
-        from barrista.design import ConvolutionLayer, ReLULayer
+        from barrista.design import ConvolutionLayer, ReLULayer, Phase
         from barrista.net import Net
         import tempfile
         netspec = design.NetSpecification([[10, 3, 3, 3], [10]],
@@ -405,7 +407,7 @@ class NetTestCase(unittest.TestCase):
                                          suffix=".prototxt") as tmpfile:
             netspec.to_prototxt(output_filename=tmpfile.name)
             tmpfile.file.flush()
-            net = Net(tmpfile.name)
+            net = Net(tmpfile.name, Phase.TEST)
         self.assertEqual(len(net.layers), 2)
         self.assertEqual(net.blobs[net.inputs[0]].data.shape, (10, 3, 3, 3))
         self.assertTrue(net.blobs[net.inputs[1]].data.shape == (10,) or
@@ -454,7 +456,9 @@ class NetTestCase(unittest.TestCase):
         predictions = np.argmax(predictions, axis=1)
         self.assertEqual(np.sum(predictions == 1), 10)
         # Force to use the fit network.
-        accy = net.predict(X, use_fit_network=True)['accuracy'][0]
+        accy = net.predict(X,
+                           use_fit_network=True,
+                           allow_train_phase_for_test=True)['accuracy'][0]
         self.assertEqual(accy, 1.0)
 
     def test_multiinput(self):
@@ -465,7 +469,8 @@ class NetTestCase(unittest.TestCase):
                                      SoftmaxWithLossLayer, AccuracyLayer)
         from barrista import solver as _solver
         netspec = design.NetSpecification([[10, 3, 3, 3], [10]],
-                                          inputs=['data', 'annotations'])
+                                          inputs=['data', 'annotations'],
+                                          phase=design.Phase.TRAIN)
         layers = []
         conv_params = {'Convolution_kernel_size': 3,
                        'Convolution_num_output': 3,
@@ -488,15 +493,18 @@ class NetTestCase(unittest.TestCase):
         net.fit(20,
                 solver,
 				X)
-        accy = net.predict(X)['accuracy'][0]
+        accy = net.predict(X,
+                           allow_train_phase_for_test=True)['accuracy'][0]
         self.assertEqual(accy, 1.0)
         if CV2_AVAILABLE:
             accy = net.predict(X,
                                input_processing_flags={'data': 'r',
-                                                       'annotations': 'n'})['accuracy'][0]
+                                                       'annotations': 'n'},
+                               allow_train_phase_for_test=True)['accuracy'][0]
             self.assertEqual(accy, 1.0)
         accy = net.predict(X, input_processing_flags={'data': 'p',
-                                                      'annotations': 'n'})['accuracy'][0]
+                                                      'annotations': 'n'},
+                           allow_train_phase_for_test=True)['accuracy'][0]
         self.assertEqual(accy, 1.0)
 
     def test_multioutput(self):
@@ -740,7 +748,8 @@ class SolverTestCase(unittest.TestCase):
                                      SoftmaxWithLossLayer, AccuracyLayer)
         from barrista import solver as _solver
         netspec = design.NetSpecification([[10, 3, 3, 3], [10]],
-                                          inputs=['data', 'annotations'])
+                                          inputs=['data', 'annotations'],
+                                          phase=design.Phase.TRAIN)
         layers = []
         conv_params = {'Convolution_kernel_size': 3,
                        'Convolution_num_output': 3,
@@ -762,7 +771,8 @@ class SolverTestCase(unittest.TestCase):
         solver.fit(20,
                    net=net,
                    X=X)
-        accy = net.predict(X)['accuracy'][0]
+        accy = net.predict(X,
+                           allow_train_phase_for_test=True)['accuracy'][0]
         self.assertEqual(accy, 1.0)
 
         new_net = netspec.instantiate()
@@ -770,7 +780,8 @@ class SolverTestCase(unittest.TestCase):
                                        base_lr=0.01)
         new_solver.fit(20,
                        X)
-        accy = new_net.predict(X)['accuracy'][0]
+        accy = new_net.predict(X,
+                               allow_train_phase_for_test=True)['accuracy'][0]
         self.assertEqual(accy, 1.0)
 
         new_net = netspec.instantiate()
@@ -779,7 +790,8 @@ class SolverTestCase(unittest.TestCase):
         new_solver.fit(20,
                        X,
                        use_fit_phase_for_validation=True)
-        accy = new_net.predict(X)['accuracy'][0]
+        accy = new_net.predict(X,
+                               allow_train_phase_for_test=True)['accuracy'][0]
         self.assertEqual(accy, 1.0)
 
         new_solver.fit(20,
@@ -788,7 +800,8 @@ class SolverTestCase(unittest.TestCase):
                        test_initialization=True,
                        test_interval=10,
                        use_fit_phase_for_validation=True)
-        accy = new_net.predict(X)['accuracy'][0]
+        accy = new_net.predict(X,
+                               allow_train_phase_for_test=True)['accuracy'][0]
         self.assertEqual(accy, 1.0)
 
     def test_sgd(self):
@@ -799,7 +812,8 @@ class SolverTestCase(unittest.TestCase):
                                      SoftmaxWithLossLayer, AccuracyLayer)
 
         netspec = design.NetSpecification([[10, 3, 3, 3], [10]],
-                                          inputs=['data', 'annotations'])
+                                          inputs=['data', 'annotations'],
+                                          phase=design.Phase.TRAIN)
         layers = []
         conv_params = {'Convolution_kernel_size': 3,
                        'Convolution_num_output': 3,
@@ -904,7 +918,8 @@ class SolverTestCase(unittest.TestCase):
         solver.fit(20,
                    X,
                    net=net)
-        accy = net.predict(X)['accuracy'][0]
+        accy = net.predict(X,
+                           allow_train_phase_for_test=True)['accuracy'][0]
         self.assertEqual(accy, 1.0)
 
         solver = tmp(net=net,
@@ -916,7 +931,8 @@ class SolverTestCase(unittest.TestCase):
         net.fit(20,
                 solver,
                 X)
-        accy = net.predict(X)['accuracy'][0]
+        accy = net.predict(X,
+                           allow_train_phase_for_test=True)['accuracy'][0]
         self.assertEqual(accy, 1.0)
 
     def test_nesterov(self):
@@ -927,7 +943,8 @@ class SolverTestCase(unittest.TestCase):
                                      SoftmaxWithLossLayer, AccuracyLayer)
 
         netspec = design.NetSpecification([[10, 3, 3, 3], [10]],
-                                          inputs=['data', 'annotations'])
+                                          inputs=['data', 'annotations'],
+                                          phase=design.Phase.TRAIN)
         layers = []
         conv_params = {'Convolution_kernel_size': 3,
                        'Convolution_num_output': 3,
@@ -1049,7 +1066,8 @@ class SolverTestCase(unittest.TestCase):
         net.fit(20,
                 solver,
                 X)
-        accy = net.predict(X)['accuracy'][0]
+        accy = net.predict(X,
+                           allow_train_phase_for_test=True)['accuracy'][0]
         self.assertEqual(accy, 1.0)
 
     def test_rmsprop(self):
@@ -1060,7 +1078,8 @@ class SolverTestCase(unittest.TestCase):
                                      SoftmaxWithLossLayer, AccuracyLayer)
 
         netspec = design.NetSpecification([[10, 3, 3, 3], [10]],
-                                          inputs=['data', 'annotations'])
+                                          inputs=['data', 'annotations'],
+                                          phase=design.Phase.TRAIN)
         layers = []
         conv_params = {'Convolution_kernel_size': 3,
                        'Convolution_num_output': 3,
@@ -1204,7 +1223,8 @@ class SolverTestCase(unittest.TestCase):
         net.fit(20,
                 solver,
                 X)
-        accy = net.predict(X)['accuracy'][0]
+        accy = net.predict(X,
+                           allow_train_phase_for_test=True)['accuracy'][0]
         self.assertEqual(accy, 1.0)
 
     def test_adadelta(self):
@@ -1215,7 +1235,8 @@ class SolverTestCase(unittest.TestCase):
                                      SoftmaxWithLossLayer, AccuracyLayer)
 
         netspec = design.NetSpecification([[10, 3, 3, 3], [10]],
-                                          inputs=['data', 'annotations'])
+                                          inputs=['data', 'annotations'],
+                                          phase=design.Phase.TRAIN)
         layers = []
         conv_params = {'Convolution_kernel_size': 3,
                        'Convolution_num_output': 3,
@@ -1291,7 +1312,8 @@ class SolverTestCase(unittest.TestCase):
         net.fit(20,
                 solver,
                 X)
-        accy = net.predict(X)['accuracy'][0]
+        accy = net.predict(X,
+                           allow_train_phase_for_test=True)['accuracy'][0]
         self.assertEqual(accy, 1.0)
 
     def test_adam(self):
@@ -1302,7 +1324,8 @@ class SolverTestCase(unittest.TestCase):
                                      SoftmaxWithLossLayer, AccuracyLayer)
 
         netspec = design.NetSpecification([[10, 3, 3, 3], [10]],
-                                          inputs=['data', 'annotations'])
+                                          inputs=['data', 'annotations'],
+                                          phase=design.Phase.TRAIN)
         layers = []
         conv_params = {'Convolution_kernel_size': 3,
                        'Convolution_num_output': 3,
@@ -1386,7 +1409,8 @@ class SolverTestCase(unittest.TestCase):
         net.fit(20,
                 solver,
                 X)
-        accy = net.predict(X)['accuracy'][0]
+        accy = net.predict(X,
+                           allow_train_phase_for_test=True)['accuracy'][0]
         self.assertEqual(accy, 1.0)
 
 
