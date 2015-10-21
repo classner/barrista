@@ -249,9 +249,8 @@ class ResultExtractor(Monitor):  # pylint: disable=R0903
     def _post_test_batch(self, kwargs):
         # need to multiply by batch_size since it is normalized
         # internally
-        self._test_data.append(
-            float(kwargs['testnet'].blobs[
-                self._layer_name].data[...].ravel()[0]) * kwargs['batch_size'])
+        self._test_data.append(float(
+            kwargs['testnet'].blobs[self._layer_name].data[...].ravel()[0]))
         kwargs[self._cbparam_key] = self._test_data[-1]
 
 
