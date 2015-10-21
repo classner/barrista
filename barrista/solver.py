@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Exposes the caffe solvers."""
 # pylint: disable=E1101, F0401, C0103, R0913, R0914, W0212, E1121, E0611, W0406
+# pylint: disable=duplicate-code
 from __future__ import print_function
 import hashlib
 import copy
