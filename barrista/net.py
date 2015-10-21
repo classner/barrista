@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=E1101, F0401, R0912, R0913, R0914, C0103
+# pylint: disable=E1101, F0401, R0912, R0913, R0914, C0103, duplicate-code
 """Implements an extended Net object."""
 
 
