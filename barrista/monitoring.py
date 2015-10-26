@@ -130,7 +130,7 @@ class CyclingDataMonitor(Monitor):  # pylint: disable=R0903
 
     def _pre_batch(self, net, kwargs):  # pylint: disable=C0111, W0613
         # this will simply cycle through the data.
-        samples_ids = [idx % len(self._X) for idx in
+        samples_ids = [idx % self._len_data for idx in
                        range(self._sample_pointer,
                              self._sample_pointer + self._batch_size)]
 
@@ -213,7 +213,7 @@ class ResultExtractor(Monitor):  # pylint: disable=R0903
         self._cbparam_key = cbparam_key
         self._init = False
         self._not_layer_available = True
-        self._test_iterations = None
+        self._test_data = None
 
     def __call__(self, kwargs):
         """Callback implementation."""
@@ -241,19 +241,17 @@ class ResultExtractor(Monitor):  # pylint: disable=R0903
             kwargs['net'].blobs[self._layer_name].data[...].ravel()[0])
 
     def _pre_test(self, kwargs):
-        kwargs[self._cbparam_key] = 0
-        self._test_iterations = 0
+        self._test_data = []
 
     def _post_test(self, kwargs):
-        kwargs[self._cbparam_key] /= self._test_iterations
-
-    def _pre_test_batch(self, kwargs):
-        self._test_iterations += kwargs['batch_size']
+        kwargs[self._cbparam_key] = _np.mean(self._test_data)
 
     def _post_test_batch(self, kwargs):
-        kwargs[self._cbparam_key] += (
-            float(kwargs['testnet'].blobs[
-                self._layer_name].data[...].ravel()[0]) * kwargs['batch_size'])
+        # need to multiply by batch_size since it is normalized
+        # internally
+        self._test_data.append(float(
+            kwargs['testnet'].blobs[self._layer_name].data[...].ravel()[0]))
+        kwargs[self._cbparam_key] = self._test_data[-1]
 
 
 class ProgressIndicator(Monitor):  # pylint: disable=R0903

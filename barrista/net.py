@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=E1101, F0401, R0912, R0913, R0914, C0103
+# pylint: disable=E1101, F0401, R0912, R0913, R0914, C0103, duplicate-code
 """Implements an extended Net object."""
 
 
@@ -9,12 +9,14 @@ import logging as _logging
 import numpy as _np
 from sklearn.feature_extraction.image import extract_patches as _extract_patches
 
-from .tools import chunks as _chunks, pad as _pad
+from .tools import chunks as _chunks, pad as _pad, pbufToPyEnum as _pbufToPyEnum
 
 # CAREFUL! This must be imported before any caffe-related import!
 from .initialization import init as _init
 
 import caffe as _caffe
+import caffe.proto.caffe_pb2 as _caffe_pb2
+_Phase = _pbufToPyEnum(_caffe_pb2.Phase)
 try:
     import cv2 as _cv2
     _cv2INTER_CUBIC = _cv2.INTER_CUBIC
@@ -69,12 +71,13 @@ class Net(_caffe.Net):
 
     def __init__(self,
                  specification_filename,
-                 mode=_caffe.TEST,
+                 mode,
                  specification=None):
         """See class documentation."""
         _caffe.Net.__init__(self, specification_filename, mode)
         self._specification = specification
         self._predict_variant = None
+        self._mode = mode
         if self._specification is not None:
             if (self._specification.predict_inputs is not None and
                     self._specification.predict_input_shapes is not None):
@@ -183,13 +186,13 @@ class Net(_caffe.Net):
             sampled_shape = patches.shape[1:3]
             patches = patches.reshape(_np.hstack((_np.prod(patches.shape[:3]),
                                                   patches.shape[3:])))
-            results = self.predict(patches,
-                                   pre_batch_callbacks=pre_batch_callbacks,  # noqa
-                                   post_batch_callbacks=post_batch_callbacks,
-                                   out_blob_names=out_blob_names,
-                                   use_fit_network=use_fit_network,
-                                   oversample=oversample,
-                                   before_oversample_resize_to=None)
+            results = prednet.predict(patches,
+                                      pre_batch_callbacks=pre_batch_callbacks,  # noqa
+                                      post_batch_callbacks=post_batch_callbacks,
+                                      out_blob_names=out_blob_names,
+                                      use_fit_network=use_fit_network,
+                                      oversample=oversample,
+                                      before_oversample_resize_to=None)
             if account_for_step or extraction_step == (1, 1):
                 out_im = _np.zeros((results[0].shape[0],
                                     im.shape[1],
@@ -264,7 +267,8 @@ class Net(_caffe.Net):
                 input_processing_flags=None,
                 output_processing_flags=None,
                 static_inputs=None,
-                input_size_spec=None):
+                input_size_spec=None,
+                allow_train_phase_for_test=False):
         r"""
         Predict samples in the spirit of `scikit-learn`.
 
@@ -336,6 +340,15 @@ class Net(_caffe.Net):
         :returns : dict(string:np.array) or np.array.
           Returns a dictionary of arrays if multiple outputs are returned
           or directly the array in the case of just one output.
+
+        :param allow_train_phase_for_test: bool.
+          If set to True, allow using a network in its TRAIN phase for
+          prediction.
+          May make sense in exotic settings, but should prevent bugs. If not
+          set to True, an AssertionError is raised in this scenario.
+          Why is this so important? The ``DropoutLayer`` and ``PoolLayer`` (in
+          the case of stochastic pooling) are sensitive to this parameter and
+          results are very different for the two settings.
         """
         # Parameter checks.
         if not use_fit_network and self._predict_variant is not None:
@@ -343,6 +356,12 @@ class Net(_caffe.Net):
             prednet = self._predict_variant
         else:
             prednet = self
+        # pylint: disable=W0212
+        assert prednet._mode == _Phase.TEST or\
+          allow_train_phase_for_test, (
+              'The net must be in TEST phase for prediction or the optional '
+              'parameter `allow_train_phase_for_test` must be set to override!'
+          )
         if isinstance(input_sequence, dict):
             # We have multiple input dicts specified.
             for input_blob_name in list(input_sequence.keys()):
@@ -644,7 +663,8 @@ class Net(_caffe.Net):
             train_callbacks=None,
             test_callbacks=None,
             read_input_batch_size_from_blob_name=None,
-            use_fit_phase_for_validation=False):
+            use_fit_phase_for_validation=False,
+            allow_test_phase_for_train=False):
         """See :py:func:`barrista.solver.SolverInterface.fit`."""
         return solver.fit(iterations=iterations,
                           X=X,
@@ -659,7 +679,8 @@ class Net(_caffe.Net):
                               read_input_batch_size_from_blob_name),
                           use_fit_phase_for_validation=(
                               use_fit_phase_for_validation
-                          ))
+                          ),
+                          allow_test_phase_for_train=allow_test_phase_for_train)
 
     def visualize(self,
                   layout_dir='LR',

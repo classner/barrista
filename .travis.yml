@@ -37,10 +37,10 @@ before_script:
   - sudo -E $CONDA_DIR/bin/pip install --upgrade pip
   - sudo -E $CONDA_DIR/bin/pip install progressbar2
   - cd ..
-  - pylint --disable=star-args,no-member barrista
-  - pylint --disable=star-args,no-member example.py
-  - pylint --disable=star-args,no-member setup.py
-  - pylint --disable=star-args,no-member tests.py
+  - pylint --disable=star-args,no-member,duplicate-code barrista
+  - pylint --disable=star-args,no-member,duplicate-code example.py
+  - pylint --disable=star-args,no-member,duplicate-code setup.py
+  - pylint --disable=star-args,no-member,duplicate-code tests.py
   - cd caffe
 
 script:
