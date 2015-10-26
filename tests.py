@@ -1,5 +1,5 @@
 """Unittests for the barrista project."""
-# pylint: disable=F0401, C0330, C0302, C0103, R0201, R0914, R0915
+# pylint: disable=F0401, C0330, C0302, C0103, R0201, R0914, R0915, W0212
 # pylint: disable=no-name-in-module, no-member
 
 import unittest
@@ -337,6 +337,34 @@ class MonitoringTestCase(unittest.TestCase):
         self.assertEqual(len(json_load['train']), 6)
         self.assertEqual(len(json_load['test']), 6)
         shutil.rmtree(dirpath)
+
+    def test_CyclingDataMonitor(self):
+        """Test the cycling data monitor."""
+        import barrista.design as design
+        import numpy as np
+        from barrista.monitoring import CyclingDataMonitor
+
+        netspec = design.NetSpecification([[3], [3]],
+                                          inputs=['a', 'b'],
+                                          phase=design.Phase.TRAIN)
+        layers = []
+
+        netspec.layers.extend(layers)
+        net = netspec.instantiate()
+
+        tmon = CyclingDataMonitor(X={'a': np.array(range(4)),
+                                     'b': np.array(range(5, 9))})
+        tmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
+        tmon._pre_train_batch({'net': net})
+        assert np.all(net.blobs['a'].data[...] == [0, 1, 2])
+        assert np.all(net.blobs['b'].data[...] == [5, 6, 7])
+        tmon._pre_train_batch({'net': net})
+        assert np.all(net.blobs['a'].data[...] == [3, 0, 1])
+        assert np.all(net.blobs['b'].data[...] == [8, 5, 6])
+        tmon._pre_test_batch({'testnet': net})
+        assert np.all(net.blobs['a'].data[...] == [2, 3, 0])
+        assert np.all(net.blobs['b'].data[...] == [7, 8, 5])
+
 
     def test_Checkpointer(self):
         """Test the ``Checkpointer``."""

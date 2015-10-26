@@ -130,7 +130,7 @@ class CyclingDataMonitor(Monitor):  # pylint: disable=R0903
 
     def _pre_batch(self, net, kwargs):  # pylint: disable=C0111, W0613
         # this will simply cycle through the data.
-        samples_ids = [idx % len(self._X) for idx in
+        samples_ids = [idx % self._len_data for idx in
                        range(self._sample_pointer,
                              self._sample_pointer + self._batch_size)]
 
