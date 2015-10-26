@@ -658,7 +658,7 @@ class Solver(object):
 
         if test_interval > 0 and X_val is not None:
             assert X_val is not None
-            assert len(list(X_val.values())[0]) == len(list(X.values())[0])
+            assert len(list(X_val.values())) == len(list(X.values()))
 
             # safety measure, we do not want to have two different data
             # monitors in the same callback list
