@@ -266,9 +266,9 @@ class ProgressIndicator(Monitor):  # pylint: disable=R0903
 
     * ``iter``\*,
     * ``max_iter``\*,
-    * ``loss``,
+    * ``train_loss``,
     * ``test_loss``,
-    * ``accuracy``,
+    * ``train_accuracy``,
     * ``test_accuracy``.
     """
 
