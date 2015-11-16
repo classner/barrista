@@ -459,6 +459,7 @@ class Net(_caffe.Net):
         chunk_size = (batch_size if not oversample else batch_size // 10)
         for chunk_idx, sample_ids in enumerate(_chunks(list(range(nsamples)),
                                                        chunk_size)):
+            _LOGGER.info('Preparing chunk %d...', chunk_idx)
             for inp_name in prednet.inputs:
                 if inp_name not in static_inputs:
                     im_chunk = [input_sequence[inp_name][im_idx]
@@ -466,7 +467,6 @@ class Net(_caffe.Net):
                 else:
                     # Static input.
                     im_chunk = input_sequence[inp_name]
-                _LOGGER.info('Preparing chunk %d...', chunk_idx)
                 for idx, im in enumerate(im_chunk):
                     if oversample:
                         if before_oversample_resize_to is not None:
