@@ -195,7 +195,7 @@ class NetSpecification(object):
                                 self.debug_info,
                                 self.name)
 
-    def to_pbuf_message(self):
+    def to_pbuf_message(self, drop_phase=False):
         r"""
         Create a plain protobuf message from this object.
 
@@ -211,9 +211,13 @@ class NetSpecification(object):
                 pblayers.append(layer.to_pbuf_message(idx,
                                                       self.layers[idx-1],
                                                       self.inputs))
-        pbstate = _caffe_pb2.NetState(phase=self.phase,
-                                      level=self.level,
-                                      stage=self.stages)
+
+        if drop_phase:
+          pbstate = _caffe_pb2.NetState()
+        else:
+          pbstate = _caffe_pb2.NetState(phase=self.phase,
+                                        level=self.level,
+                                        stage=self.stages)
         if _HAS_BLOB_SHAPE:
             pbinput_shape = [_caffe_pb2.BlobShape(dim=dims)
                              for dims in self.input_shape]
@@ -240,7 +244,7 @@ class NetSpecification(object):
         assert netmessage.IsInitialized()
         return netmessage
 
-    def to_prototxt(self, output_filename=None):
+    def to_prototxt(self, output_filename=None, drop_phase=False):
         r"""
         Create a plain, human readable, prototxt representation.
 
@@ -252,7 +256,7 @@ class NetSpecification(object):
         will have to take care of that (there is no way of inferring
         the semantics then).
         """
-        messagestr = _gprototext.MessageToString(self.to_pbuf_message())
+        messagestr = _gprototext.MessageToString(self.to_pbuf_message(drop_phase=drop_phase))
         if output_filename is not None:
             with open(output_filename, 'w') as outf:
                 outf.write(messagestr)
