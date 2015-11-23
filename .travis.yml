@@ -46,5 +46,4 @@ before_script:
 script:
   - ../patches/build_support/build.sh
   - cd ..
-  - python example.py
   - python tests.py
