@@ -213,11 +213,11 @@ class NetSpecification(object):
                                                       self.inputs))
 
         if drop_phase:
-          pbstate = _caffe_pb2.NetState()
+            pbstate = _caffe_pb2.NetState()
         else:
-          pbstate = _caffe_pb2.NetState(phase=self.phase,
-                                        level=self.level,
-                                        stage=self.stages)
+            pbstate = _caffe_pb2.NetState(phase=self.phase,
+                                          level=self.level,
+                                          stage=self.stages)
         if _HAS_BLOB_SHAPE:
             pbinput_shape = [_caffe_pb2.BlobShape(dim=dims)
                              for dims in self.input_shape]
