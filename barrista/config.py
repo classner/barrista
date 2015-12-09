@@ -32,6 +32,7 @@ else:
 LAYER_TYPES = {'AbsVal': [],
                'Accuracy': ['AccuracyParameter'],
                'ArgMax': ['ArgMaxParameter'],
+               'BatchNorm': ['BatchNormParameter'],
                'Concat': ['ConcatParameter'],
                'ContrastiveLoss': ['ContrastiveLossParameter'],
                'Convolution': ['ConvolutionParameter'],
