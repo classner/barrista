@@ -489,6 +489,55 @@ class NetTestCase(unittest.TestCase):
                            allow_train_phase_for_test=True)['accuracy'][0]
         self.assertEqual(accy, 1.0)
 
+    def test_reshape_blob(self):
+        """Test the reshaping of a blob across nets."""
+        import numpy as np
+        import barrista.design as design
+        from barrista.design import (ConvolutionLayer,
+                                     SoftmaxWithLossLayer, AccuracyLayer,
+                                     SoftmaxLayer)
+        from barrista import solver as _solver
+        netspec = design.NetSpecification([[10, 3, 3, 3], [10, 1, 3, 3]],
+                                          inputs=['data', 'annotations'],
+                                          predict_inputs=['data'],
+                                          predict_input_shapes=[[10, 3, 3, 3]])
+        layers = []
+        conv_params = {'Convolution_kernel_size': 3,
+                       'Convolution_num_output': 3,
+                       'Convolution_pad': 1,
+                       'name': 'out'}
+
+        layers.append(ConvolutionLayer(**conv_params))
+        layers.append(SoftmaxLayer(bottoms=['out'],
+                                   include_stages=['predict'],
+                                   name='softmax'))
+        layers.append(SoftmaxWithLossLayer(bottoms=['out', 'annotations'],
+                                           include_stages=['fit']))
+        layers.append(AccuracyLayer(name='accuracy',
+                                    bottoms=['out', 'annotations'],
+                                    include_stages=['fit']))
+        netspec.layers.extend(layers)
+        net = netspec.instantiate()
+        net.reshape_blob('data', 10, 3, 5, 5)
+        net.blobs['annotations'].reshape(10, 1, 5, 5)
+
+        X = {'data': np.zeros((10, 3, 5, 5), dtype='float32'),
+             'annotations': np.ones((10, 1, 5, 5), dtype='float32')}
+
+        solver = _solver.SGDSolver(
+            base_lr=0.01)
+        net.fit(20,
+                solver,
+                X)
+        predictions = np.array(net.predict(np.zeros((10, 3, 5, 5))))
+        predictions = np.argmax(predictions, axis=1)
+        self.assertEqual(np.sum(predictions == 1), 250)
+        # Force to use the fit network.
+        accy = net.predict(X,
+                           use_fit_network=True,
+                           allow_train_phase_for_test=True)['accuracy'][0]
+        self.assertEqual(accy, 1.0)
+
     def test_multiinput(self):
         """Test multiinput prediction."""
         import numpy as np

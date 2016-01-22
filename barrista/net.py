@@ -86,6 +86,26 @@ class Net(_caffe.Net):
                 # Use the blobs of this net.
                 self._predict_variant.share_with(self)
 
+    def reshape_blob(self, name, *args):
+        """
+        Reshapes a blob for train and predict net variants.
+
+        Convenience method to reshape a blob for all network variants in use.
+        Calls the caffe ``blob.reshape`` method internally. The blob must exist
+        in both networks. To change a blob shape only in one variant, use
+        ``net.blobs[name].reshape`` or
+        ``net._predict_variant.blobs[name].reshape`` directly.
+
+        :param name: string.
+            The name of the blob to reshape.
+
+        :param *args: int.
+            The shape-defining sizes.
+        """
+        self.blobs[name].reshape(*args)
+        if self._predict_variant is not None:
+            self._predict_variant.blobs[name].reshape(*args)
+
     def predict_sliding_window(self,
                                input_sequence,
                                pre_batch_callbacks=None,
