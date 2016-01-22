@@ -30,8 +30,6 @@
   
 
   
-        <link rel="author" title="About these documents"
-              href="about.html"/>
     <link rel="top" title="barrista  documentation" href="index.html"/>
         <link rel="prev" title="Using barrista" href="usage.html"/> 
 
@@ -144,7 +142,7 @@
 of the submodules. The configuration change is then taken into account.</p>
 <dl class="data">
 <dt id="barrista.config.LAYER_TYPES">
-<code class="descclassname">barrista.config.</code><code class="descname">LAYER_TYPES</code><em class="property"> = {'Log': ['LogParameter'], 'SoftmaxWithLoss': ['SoftmaxParameter', 'LossParameter'], 'HingeLoss': ['HingeLossParameter'], 'ReLU': ['ReLUParameter'], 'Reduction': ['ReductionParameter'], 'InnerProduct': ['InnerProductParameter'], 'Accuracy': ['AccuracyParameter'], 'SPP': ['SPPParameter'], 'Dropout': ['DropoutParameter'], 'InfogainLoss': ['InfogainLossParameter'], 'DummyData': ['DummyDataParameter'], 'WindowData': ['WindowDataParameter'], 'Data': ['DataParameter'], 'Concat': ['ConcatParameter'], 'MultinomialLogisticLoss': ['LossParameter'], 'VariableHingeLoss': ['LossParameter'], 'ContrastiveLoss': ['ContrastiveLossParameter'], 'Filter': [], 'Softmax': ['SoftmaxParameter'], 'Embed': ['EmbedParameter'], 'MVN': ['MVNParameter'], 'TanH': ['TanHParameter'], 'EuclideanLoss': ['LossParameter'], 'SigmoidCrossEntropyLoss': ['LossParameter'], 'HDF5Output': ['HDF5OutputParameter'], 'Slice': ['SliceParameter'], 'Reshape': ['ReshapeParameter'], 'Split': [], 'PReLU': ['PReLUParameter'], 'Power': ['PowerParameter'], 'Python': ['PythonParameter'], 'Resample': [], 'Flatten': ['FlattenParameter'], 'ImageData': ['ImageDataParameter'], 'ArgMax': ['ArgMaxParameter'], 'Pooling': ['PoolingParameter'], 'AbsVal': [], 'Exp': ['ExpParameter'], 'Eltwise': ['EltwiseParameter'], 'HDF5Data': ['HDF5DataParameter'], 'Silence': [], 'Convolution': ['ConvolutionParameter'], 'Sigmoid': ['SigmoidParameter'], 'LRN': ['LRNParameter'], 'Threshold': ['ThresholdParameter']}</em><a class="headerlink" href="#barrista.config.LAYER_TYPES" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">barrista.config.</code><code class="descname">LAYER_TYPES</code><em class="property"> = {'Log': ['LogParameter'], 'SoftmaxWithLoss': ['SoftmaxParameter', 'LossParameter'], 'HingeLoss': ['HingeLossParameter'], 'ReLU': ['ReLUParameter'], 'Reduction': ['ReductionParameter'], 'InnerProduct': ['InnerProductParameter'], 'Accuracy': ['AccuracyParameter'], 'SPP': ['SPPParameter'], 'Dropout': ['DropoutParameter'], 'InfogainLoss': ['InfogainLossParameter'], 'DummyData': ['DummyDataParameter'], 'WindowData': ['WindowDataParameter'], 'BatchNorm': ['BatchNormParameter'], 'Data': ['DataParameter'], 'Concat': ['ConcatParameter'], 'MultinomialLogisticLoss': ['LossParameter'], 'VariableHingeLoss': ['LossParameter'], 'ContrastiveLoss': ['ContrastiveLossParameter'], 'Filter': [], 'Softmax': ['SoftmaxParameter'], 'Embed': ['EmbedParameter'], 'MVN': ['MVNParameter'], 'TanH': ['TanHParameter'], 'EuclideanLoss': ['LossParameter'], 'SigmoidCrossEntropyLoss': ['LossParameter'], 'HDF5Output': ['HDF5OutputParameter'], 'Slice': ['SliceParameter'], 'Reshape': ['ReshapeParameter'], 'Split': [], 'PReLU': ['PReLUParameter'], 'Power': ['PowerParameter'], 'Python': ['PythonParameter'], 'Resample': [], 'Flatten': ['FlattenParameter'], 'ImageData': ['ImageDataParameter'], 'ArgMax': ['ArgMaxParameter'], 'Pooling': ['PoolingParameter'], 'AbsVal': [], 'Exp': ['ExpParameter'], 'Eltwise': ['EltwiseParameter'], 'HDF5Data': ['HDF5DataParameter'], 'Silence': [], 'Convolution': ['ConvolutionParameter'], 'Sigmoid': ['SigmoidParameter'], 'LRN': ['LRNParameter'], 'Threshold': ['ThresholdParameter']}</em><a class="headerlink" href="#barrista.config.LAYER_TYPES" title="Permalink to this definition">¶</a></dt>
 <dd><p>This dictionary specifies the layer types and their configuration
 parameters. The keys are the layer keys, and the values a list of
 strings, where each string is the name of a parameter prefixed with
@@ -169,7 +167,12 @@ as unset (this is important in protobuf)!</p>
 
 <dl class="function">
 <dt id="barrista.design.ArgMaxLayer">
-<code class="descclassname">barrista.design.</code><code class="descname">ArgMaxLayer</code><span class="sig-paren">(</span><em>bottoms=None</em>, <em>tops=None</em>, <em>name=None</em>, <em>phase=None</em>, <em>include_phase=None</em>, <em>include_stages=None</em>, <em>include_min_level=None</em>, <em>include_max_level=None</em>, <em>params=None</em>, <em>propagate_down=None</em>, <em>loss_param=None</em>, <em>loss_weights=None</em>, <em>ArgMax_top_k=None</em>, <em>ArgMax_out_max_val=None</em><span class="sig-paren">)</span><a class="headerlink" href="#barrista.design.ArgMaxLayer" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">barrista.design.</code><code class="descname">ArgMaxLayer</code><span class="sig-paren">(</span><em>bottoms=None</em>, <em>tops=None</em>, <em>name=None</em>, <em>phase=None</em>, <em>include_phase=None</em>, <em>include_stages=None</em>, <em>include_min_level=None</em>, <em>include_max_level=None</em>, <em>params=None</em>, <em>propagate_down=None</em>, <em>loss_param=None</em>, <em>loss_weights=None</em>, <em>ArgMax_axis=None</em>, <em>ArgMax_top_k=None</em>, <em>ArgMax_out_max_val=None</em><span class="sig-paren">)</span><a class="headerlink" href="#barrista.design.ArgMaxLayer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="barrista.design.BatchNormLayer">
+<code class="descclassname">barrista.design.</code><code class="descname">BatchNormLayer</code><span class="sig-paren">(</span><em>bottoms=None</em>, <em>tops=None</em>, <em>name=None</em>, <em>phase=None</em>, <em>include_phase=None</em>, <em>include_stages=None</em>, <em>include_min_level=None</em>, <em>include_max_level=None</em>, <em>params=None</em>, <em>propagate_down=None</em>, <em>loss_param=None</em>, <em>loss_weights=None</em>, <em>BatchNorm_use_global_stats=None</em>, <em>BatchNorm_eps=None</em>, <em>BatchNorm_moving_average_fraction=None</em><span class="sig-paren">)</span><a class="headerlink" href="#barrista.design.BatchNormLayer" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -214,7 +217,7 @@ as unset (this is important in protobuf)!</p>
 
 <dl class="function">
 <dt id="barrista.design.EuclideanLossLayer">
-<code class="descclassname">barrista.design.</code><code class="descname">EuclideanLossLayer</code><span class="sig-paren">(</span><em>bottoms=None</em>, <em>tops=None</em>, <em>name=None</em>, <em>phase=None</em>, <em>include_phase=None</em>, <em>include_stages=None</em>, <em>include_min_level=None</em>, <em>include_max_level=None</em>, <em>params=None</em>, <em>propagate_down=None</em>, <em>loss_param=None</em>, <em>loss_weights=None</em>, <em>Loss_normalize=None</em>, <em>Loss_ignore_label=None</em><span class="sig-paren">)</span><a class="headerlink" href="#barrista.design.EuclideanLossLayer" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">barrista.design.</code><code class="descname">EuclideanLossLayer</code><span class="sig-paren">(</span><em>bottoms=None</em>, <em>tops=None</em>, <em>name=None</em>, <em>phase=None</em>, <em>include_phase=None</em>, <em>include_stages=None</em>, <em>include_min_level=None</em>, <em>include_max_level=None</em>, <em>params=None</em>, <em>propagate_down=None</em>, <em>loss_param=None</em>, <em>loss_weights=None</em>, <em>Loss_normalize=None</em>, <em>Loss_ignore_label=None</em>, <em>Loss_normalization=None</em><span class="sig-paren">)</span><a class="headerlink" href="#barrista.design.EuclideanLossLayer" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -264,7 +267,7 @@ as unset (this is important in protobuf)!</p>
 
 <dl class="function">
 <dt id="barrista.design.LRNLayer">
-<code class="descclassname">barrista.design.</code><code class="descname">LRNLayer</code><span class="sig-paren">(</span><em>bottoms=None</em>, <em>tops=None</em>, <em>name=None</em>, <em>phase=None</em>, <em>include_phase=None</em>, <em>include_stages=None</em>, <em>include_min_level=None</em>, <em>include_max_level=None</em>, <em>params=None</em>, <em>propagate_down=None</em>, <em>loss_param=None</em>, <em>loss_weights=None</em>, <em>LRN_norm_region=None</em>, <em>LRN_beta=None</em>, <em>LRN_alpha=None</em>, <em>LRN_k=None</em>, <em>LRN_local_size=None</em><span class="sig-paren">)</span><a class="headerlink" href="#barrista.design.LRNLayer" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">barrista.design.</code><code class="descname">LRNLayer</code><span class="sig-paren">(</span><em>bottoms=None</em>, <em>tops=None</em>, <em>name=None</em>, <em>phase=None</em>, <em>include_phase=None</em>, <em>include_stages=None</em>, <em>include_min_level=None</em>, <em>include_max_level=None</em>, <em>params=None</em>, <em>propagate_down=None</em>, <em>loss_param=None</em>, <em>loss_weights=None</em>, <em>LRN_norm_region=None</em>, <em>LRN_engine=None</em>, <em>LRN_beta=None</em>, <em>LRN_alpha=None</em>, <em>LRN_k=None</em>, <em>LRN_local_size=None</em><span class="sig-paren">)</span><a class="headerlink" href="#barrista.design.LRNLayer" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="class">
@@ -358,12 +361,12 @@ The name of the network input (used for the first layer input).</li>
 
 <dl class="function">
 <dt id="barrista.design.MultinomialLogisticLossLayer">
-<code class="descclassname">barrista.design.</code><code class="descname">MultinomialLogisticLossLayer</code><span class="sig-paren">(</span><em>bottoms=None</em>, <em>tops=None</em>, <em>name=None</em>, <em>phase=None</em>, <em>include_phase=None</em>, <em>include_stages=None</em>, <em>include_min_level=None</em>, <em>include_max_level=None</em>, <em>params=None</em>, <em>propagate_down=None</em>, <em>loss_param=None</em>, <em>loss_weights=None</em>, <em>Loss_normalize=None</em>, <em>Loss_ignore_label=None</em><span class="sig-paren">)</span><a class="headerlink" href="#barrista.design.MultinomialLogisticLossLayer" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">barrista.design.</code><code class="descname">MultinomialLogisticLossLayer</code><span class="sig-paren">(</span><em>bottoms=None</em>, <em>tops=None</em>, <em>name=None</em>, <em>phase=None</em>, <em>include_phase=None</em>, <em>include_stages=None</em>, <em>include_min_level=None</em>, <em>include_max_level=None</em>, <em>params=None</em>, <em>propagate_down=None</em>, <em>loss_param=None</em>, <em>loss_weights=None</em>, <em>Loss_normalize=None</em>, <em>Loss_ignore_label=None</em>, <em>Loss_normalization=None</em><span class="sig-paren">)</span><a class="headerlink" href="#barrista.design.MultinomialLogisticLossLayer" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="class">
 <dt id="barrista.design.NetSpecification">
-<em class="property">class </em><code class="descclassname">barrista.design.</code><code class="descname">NetSpecification</code><span class="sig-paren">(</span><em>input_shape</em>, <em>inputs=None</em>, <em>layers=None</em>, <em>force_backward=False</em>, <em>phase=1</em>, <em>level=0</em>, <em>stages=None</em>, <em>debug_info=False</em>, <em>name='DCNN'</em>, <em>predict_inputs=None</em>, <em>predict_input_shapes=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/design.html#NetSpecification"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.design.NetSpecification" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">barrista.design.</code><code class="descname">NetSpecification</code><span class="sig-paren">(</span><em>input_shape</em>, <em>inputs=None</em>, <em>layers=None</em>, <em>force_backward=False</em>, <em>phase=None</em>, <em>level=0</em>, <em>stages=None</em>, <em>debug_info=False</em>, <em>name='DCNN'</em>, <em>predict_inputs=None</em>, <em>predict_input_shapes=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/design.html#NetSpecification"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.design.NetSpecification" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
 <p>Represents a network specification.</p>
 <p>Initializes the fields with similar semantics as the
@@ -409,8 +412,10 @@ The layer specifications. If None is used, this is initialized as <code class="d
 <li><strong>force_backward</strong> &#8211; bool.
 Whether to force a backward pass for all layers only useful during
 training.</li>
-<li><strong>phase</strong> &#8211; <a class="reference internal" href="#barrista.design.Phase" title="barrista.design.Phase"><code class="xref py py-data docutils literal"><span class="pre">barrista.design.Phase</span></code></a>.
-The phase to have the network in.</li>
+<li><strong>phase</strong> &#8211; <a class="reference internal" href="#barrista.design.Phase" title="barrista.design.Phase"><code class="xref py py-data docutils literal"><span class="pre">barrista.design.Phase</span></code></a> or None.
+The phase to have the network in. If it is None, it is set to either
+<code class="docutils literal"><span class="pre">TRAIN</span></code> if <code class="docutils literal"><span class="pre">predict_inputs</span></code> and <code class="docutils literal"><span class="pre">predict_inputs_shapes</span></code> is given,
+or <code class="docutils literal"><span class="pre">TEST</span></code> otherwise. Default: None.</li>
 <li><strong>level</strong> &#8211; int.
 The level of the network. Can be used to in- or exclude layers depending
 on the level.</li>
@@ -464,7 +469,7 @@ Files may be of any caffe prototxt version.</p>
 
 <dl class="method">
 <dt id="barrista.design.NetSpecification.to_pbuf_message">
-<code class="descname">to_pbuf_message</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/design.html#NetSpecification.to_pbuf_message"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.design.NetSpecification.to_pbuf_message" title="Permalink to this definition">¶</a></dt>
+<code class="descname">to_pbuf_message</code><span class="sig-paren">(</span><em>drop_phase=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/design.html#NetSpecification.to_pbuf_message"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.design.NetSpecification.to_pbuf_message" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a plain protobuf message from this object.</p>
 <p>Since this object is not derived from the protobuf objects, it is
 necessary to have this converter. Deriving is discouraged by the
@@ -473,7 +478,7 @@ protobuf documentation and this object offers a lot more functionality.</p>
 
 <dl class="method">
 <dt id="barrista.design.NetSpecification.to_prototxt">
-<code class="descname">to_prototxt</code><span class="sig-paren">(</span><em>output_filename=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/design.html#NetSpecification.to_prototxt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.design.NetSpecification.to_prototxt" title="Permalink to this definition">¶</a></dt>
+<code class="descname">to_prototxt</code><span class="sig-paren">(</span><em>output_filename=None</em>, <em>drop_phase=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/design.html#NetSpecification.to_prototxt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.design.NetSpecification.to_prototxt" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a plain, human readable, prototxt representation.</p>
 <p>If <code class="docutils literal"><span class="pre">output_filename</span></code> is set, the resulting text is written into
 that file, as well as returned. Otherwise, only the text is returned.</p>
@@ -574,7 +579,7 @@ no problem to test a network in TRAIN mode, but it will be less efficient.</p>
 
 <dl class="function">
 <dt id="barrista.design.SigmoidCrossEntropyLossLayer">
-<code class="descclassname">barrista.design.</code><code class="descname">SigmoidCrossEntropyLossLayer</code><span class="sig-paren">(</span><em>bottoms=None</em>, <em>tops=None</em>, <em>name=None</em>, <em>phase=None</em>, <em>include_phase=None</em>, <em>include_stages=None</em>, <em>include_min_level=None</em>, <em>include_max_level=None</em>, <em>params=None</em>, <em>propagate_down=None</em>, <em>loss_param=None</em>, <em>loss_weights=None</em>, <em>Loss_normalize=None</em>, <em>Loss_ignore_label=None</em><span class="sig-paren">)</span><a class="headerlink" href="#barrista.design.SigmoidCrossEntropyLossLayer" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">barrista.design.</code><code class="descname">SigmoidCrossEntropyLossLayer</code><span class="sig-paren">(</span><em>bottoms=None</em>, <em>tops=None</em>, <em>name=None</em>, <em>phase=None</em>, <em>include_phase=None</em>, <em>include_stages=None</em>, <em>include_min_level=None</em>, <em>include_max_level=None</em>, <em>params=None</em>, <em>propagate_down=None</em>, <em>loss_param=None</em>, <em>loss_weights=None</em>, <em>Loss_normalize=None</em>, <em>Loss_ignore_label=None</em>, <em>Loss_normalization=None</em><span class="sig-paren">)</span><a class="headerlink" href="#barrista.design.SigmoidCrossEntropyLossLayer" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -599,7 +604,7 @@ no problem to test a network in TRAIN mode, but it will be less efficient.</p>
 
 <dl class="function">
 <dt id="barrista.design.SoftmaxWithLossLayer">
-<code class="descclassname">barrista.design.</code><code class="descname">SoftmaxWithLossLayer</code><span class="sig-paren">(</span><em>bottoms=None</em>, <em>tops=None</em>, <em>name=None</em>, <em>phase=None</em>, <em>include_phase=None</em>, <em>include_stages=None</em>, <em>include_min_level=None</em>, <em>include_max_level=None</em>, <em>params=None</em>, <em>propagate_down=None</em>, <em>loss_param=None</em>, <em>loss_weights=None</em>, <em>Softmax_axis=None</em>, <em>Softmax_engine=None</em>, <em>Loss_normalize=None</em>, <em>Loss_ignore_label=None</em><span class="sig-paren">)</span><a class="headerlink" href="#barrista.design.SoftmaxWithLossLayer" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">barrista.design.</code><code class="descname">SoftmaxWithLossLayer</code><span class="sig-paren">(</span><em>bottoms=None</em>, <em>tops=None</em>, <em>name=None</em>, <em>phase=None</em>, <em>include_phase=None</em>, <em>include_stages=None</em>, <em>include_min_level=None</em>, <em>include_max_level=None</em>, <em>params=None</em>, <em>propagate_down=None</em>, <em>loss_param=None</em>, <em>loss_weights=None</em>, <em>Softmax_axis=None</em>, <em>Softmax_engine=None</em>, <em>Loss_normalize=None</em>, <em>Loss_ignore_label=None</em>, <em>Loss_normalization=None</em><span class="sig-paren">)</span><a class="headerlink" href="#barrista.design.SoftmaxWithLossLayer" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -619,7 +624,7 @@ no problem to test a network in TRAIN mode, but it will be less efficient.</p>
 
 <dl class="function">
 <dt id="barrista.design.VariableHingeLossLayer">
-<code class="descclassname">barrista.design.</code><code class="descname">VariableHingeLossLayer</code><span class="sig-paren">(</span><em>bottoms=None</em>, <em>tops=None</em>, <em>name=None</em>, <em>phase=None</em>, <em>include_phase=None</em>, <em>include_stages=None</em>, <em>include_min_level=None</em>, <em>include_max_level=None</em>, <em>params=None</em>, <em>propagate_down=None</em>, <em>loss_param=None</em>, <em>loss_weights=None</em>, <em>Loss_normalize=None</em>, <em>Loss_ignore_label=None</em><span class="sig-paren">)</span><a class="headerlink" href="#barrista.design.VariableHingeLossLayer" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">barrista.design.</code><code class="descname">VariableHingeLossLayer</code><span class="sig-paren">(</span><em>bottoms=None</em>, <em>tops=None</em>, <em>name=None</em>, <em>phase=None</em>, <em>include_phase=None</em>, <em>include_stages=None</em>, <em>include_min_level=None</em>, <em>include_max_level=None</em>, <em>params=None</em>, <em>propagate_down=None</em>, <em>loss_param=None</em>, <em>loss_weights=None</em>, <em>Loss_normalize=None</em>, <em>Loss_ignore_label=None</em>, <em>Loss_normalization=None</em><span class="sig-paren">)</span><a class="headerlink" href="#barrista.design.VariableHingeLossLayer" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -740,7 +745,7 @@ currently logged scores are loss, accuracy, test loss and test accuracy.</p>
 <li><strong>path</strong> &#8211; string.
 The path to store the file in.</li>
 <li><strong>name</strong> &#8211; string.
-The filename. Will be prefixed with &#8216;<a href="#id1"><span class="problematic" id="id2">barrista_</span></a>&#8216; and &#8216;.json&#8217; will be
+The filename. Will be prefixed with &#8216;<a href="#id3"><span class="problematic" id="id4">barrista_</span></a>&#8216; and &#8216;.json&#8217; will be
 appended.</li>
 <li><strong>logging</strong> &#8211; dict of lists.
 The two keys in the dict which are used are test, train.
@@ -788,9 +793,9 @@ available, it also displays loss, accuracy, test loss and test accuracy.</p>
 <ul class="simple">
 <li><code class="docutils literal"><span class="pre">iter</span></code>*,</li>
 <li><code class="docutils literal"><span class="pre">max_iter</span></code>*,</li>
-<li><code class="docutils literal"><span class="pre">loss</span></code>,</li>
+<li><code class="docutils literal"><span class="pre">train_loss</span></code>,</li>
 <li><code class="docutils literal"><span class="pre">test_loss</span></code>,</li>
-<li><code class="docutils literal"><span class="pre">accuracy</span></code>,</li>
+<li><code class="docutils literal"><span class="pre">train_accuracy</span></code>,</li>
 <li><code class="docutils literal"><span class="pre">test_accuracy</span></code>.</li>
 </ul>
 <dl class="method">
@@ -829,7 +834,7 @@ The key we will overwrite/set in the cbparams dict</td>
 <p>Implements an extended Net object.</p>
 <dl class="class">
 <dt id="barrista.net.Net">
-<em class="property">class </em><code class="descclassname">barrista.net.</code><code class="descname">Net</code><span class="sig-paren">(</span><em>specification_filename</em>, <em>mode=1</em>, <em>specification=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/net.html#Net"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.net.Net" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">barrista.net.</code><code class="descname">Net</code><span class="sig-paren">(</span><em>specification_filename</em>, <em>mode</em>, <em>specification=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/net.html#Net"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.net.Net" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">caffe._caffe.Net</span></code></p>
 <p>An extended Net specification.</p>
 <p><code class="docutils literal"><span class="pre">mode</span></code> specifies the network mode. May be <code class="docutils literal"><span class="pre">caffe.TRAIN</span></code> or
@@ -860,13 +865,13 @@ in stage <code class="docutils literal"><span class="pre">predict</span></code> 
 </table>
 <dl class="method">
 <dt id="barrista.net.Net.fit">
-<code class="descname">fit</code><span class="sig-paren">(</span><em>iterations</em>, <em>solver</em>, <em>X=None</em>, <em>X_val=None</em>, <em>test_iterations=0</em>, <em>test_interval=0</em>, <em>test_initialization=False</em>, <em>train_callbacks=None</em>, <em>test_callbacks=None</em>, <em>read_input_batch_size_from_blob_name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/net.html#Net.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.net.Net.fit" title="Permalink to this definition">¶</a></dt>
+<code class="descname">fit</code><span class="sig-paren">(</span><em>iterations</em>, <em>solver</em>, <em>X=None</em>, <em>X_val=None</em>, <em>test_iterations=0</em>, <em>test_interval=0</em>, <em>test_initialization=False</em>, <em>train_callbacks=None</em>, <em>test_callbacks=None</em>, <em>read_input_batch_size_from_blob_name=None</em>, <em>use_fit_phase_for_validation=False</em>, <em>allow_test_phase_for_train=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/net.html#Net.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.net.Net.fit" title="Permalink to this definition">¶</a></dt>
 <dd><p>See <code class="xref py py-func docutils literal"><span class="pre">barrista.solver.SolverInterface.fit()</span></code>.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="barrista.net.Net.predict">
-<code class="descname">predict</code><span class="sig-paren">(</span><em>input_sequence</em>, <em>pre_batch_callbacks=None</em>, <em>post_batch_callbacks=None</em>, <em>out_blob_names=None</em>, <em>use_fit_network=None</em>, <em>oversample=False</em>, <em>before_oversample_resize_to=None</em>, <em>input_processing_flags=None</em>, <em>output_processing_flags=None</em>, <em>static_inputs=None</em>, <em>input_size_spec=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/net.html#Net.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.net.Net.predict" title="Permalink to this definition">¶</a></dt>
+<code class="descname">predict</code><span class="sig-paren">(</span><em>input_sequence</em>, <em>pre_batch_callbacks=None</em>, <em>post_batch_callbacks=None</em>, <em>out_blob_names=None</em>, <em>use_fit_network=None</em>, <em>oversample=False</em>, <em>before_oversample_resize_to=None</em>, <em>input_processing_flags=None</em>, <em>output_processing_flags=None</em>, <em>static_inputs=None</em>, <em>input_size_spec=None</em>, <em>allow_train_phase_for_test=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/net.html#Net.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.net.Net.predict" title="Permalink to this definition">¶</a></dt>
 <dd><p>Predict samples in the spirit of <cite>scikit-learn</cite>.</p>
 <ul class="simple">
 <li>It is YOUR responsibility to prepare the data in an iterable object
@@ -938,6 +943,21 @@ inputs as amount of samples.</li>
 <dd>Returns a dictionary of arrays if multiple outputs are returned
 or directly the array in the case of just one output.</dd>
 </dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>allow_train_phase_for_test</strong> &#8211; bool.
+If set to True, allow using a network in its TRAIN phase for
+prediction.
+May make sense in exotic settings, but should prevent bugs. If not
+set to True, an AssertionError is raised in this scenario.
+Why is this so important? The <code class="docutils literal"><span class="pre">DropoutLayer</span></code> and <code class="docutils literal"><span class="pre">PoolLayer</span></code> (in
+the case of stochastic pooling) are sensitive to this parameter and
+results are very different for the two settings.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -985,12 +1005,38 @@ Window step size in y and x direction.</li>
 <li><strong>account_for_step</strong> &#8211; bool.
 If set to True, the output is resized with nearest neighbor
 interpolation to get a full-sized image.</li>
-<li><strong>interpolation_method</strong> &#8211; int in {<a href="#id3"><span class="problematic" id="id4">cv2.INTER_</span></a>...}.
+<li><strong>interpolation_method</strong> &#8211; int in {<a href="#id5"><span class="problematic" id="id6">cv2.INTER_</span></a>...}.
 The interpolation strategy used, if <code class="docutils literal"><span class="pre">account_for_step</span></code> is set and
 the <code class="docutils literal"><span class="pre">extraction_step</span></code> is not <code class="docutils literal"><span class="pre">(1,</span> <span class="pre">1)</span></code>.</li>
 <li><strong>pad_border</strong> &#8211; bool.
 Whether to return images in the original image size, by adding zero
 padded borders.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="barrista.net.Net.reshape_blob">
+<code class="descname">reshape_blob</code><span class="sig-paren">(</span><em>name</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/net.html#Net.reshape_blob"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.net.Net.reshape_blob" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reshapes a blob for train and predict net variants.</p>
+<p>Convenience method to reshape a blob for all network variants in use.
+Calls the caffe <code class="docutils literal"><span class="pre">blob.reshape</span></code> method internally. The blob must exist
+in both networks. To change a blob shape only in one variant, use
+<code class="docutils literal"><span class="pre">net.blobs[name].reshape</span></code> or
+<code class="docutils literal"><span class="pre">net._predict_variant.blobs[name].reshape</span></code> directly.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> &#8211; string.
+The name of the blob to reshape.</li>
+<li><strong>*args</strong> &#8211; <p>int.
+The shape-defining sizes.</p>
+</li>
 </ul>
 </td>
 </tr>
@@ -1026,6 +1072,12 @@ Graphic of the visualization as (H, W, C) image in BGR format.</p>
 </table>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="function">
+<dt id="barrista.net.set_device">
+<code class="descclassname">barrista.net.</code><code class="descname">set_device</code><span class="sig-paren">(</span><em>(int)arg1</em><span class="sig-paren">)</span> &rarr; None :<a class="headerlink" href="#barrista.net.set_device" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set id of GPU device.</p>
 </dd></dl>
 
 <dl class="function">
@@ -1330,7 +1382,7 @@ asserts when calling Get_parameter_dict().</p>
 
 <dl class="method">
 <dt id="barrista.solver.Solver.fit">
-<code class="descname">fit</code><span class="sig-paren">(</span><em>iterations</em>, <em>X=None</em>, <em>X_val=None</em>, <em>test_iterations=0</em>, <em>test_interval=0</em>, <em>test_initialization=False</em>, <em>train_callbacks=None</em>, <em>test_callbacks=None</em>, <em>net=None</em>, <em>read_input_batch_size_from_blob_name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#Solver.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.Solver.fit" title="Permalink to this definition">¶</a></dt>
+<code class="descname">fit</code><span class="sig-paren">(</span><em>iterations</em>, <em>X=None</em>, <em>X_val=None</em>, <em>test_iterations=0</em>, <em>test_interval=0</em>, <em>test_initialization=False</em>, <em>train_callbacks=None</em>, <em>test_callbacks=None</em>, <em>net=None</em>, <em>read_input_batch_size_from_blob_name=None</em>, <em>use_fit_phase_for_validation=False</em>, <em>allow_test_phase_for_train=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#Solver.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.Solver.fit" title="Permalink to this definition">¶</a></dt>
 <dd><p>fit the network to specific data.</p>
 <p>Use monitors from the module <a class="reference internal" href="#module-barrista.monitoring" title="barrista.monitoring"><code class="xref py py-mod docutils literal"><span class="pre">barrista.monitoring</span></code></a> as
 callbacks to monitor the state of the net and create checkpoints.
@@ -1418,6 +1470,19 @@ The name of the layer to take the input batch size from (as the
 first dimension of its first blob). Must be specified if the
 network does not have explicit inputs (e.g., when trained from
 an LMDB).</li>
+<li><strong>use_fit_phase_for_validation</strong> &#8211; bool.
+If set to True, use do not change the phase of the net for running
+a validation step during training. This can be helpful to reduce
+memory consumption. This ignores the TEST phase of the net completely,
+but it&#8217;s not necessary to use it if the data is provided by the
+Python layers.</li>
+<li><strong>allow_test_phase_for_train</strong> &#8211; bool.
+If set to True, allow using a network in its TEST phase to be trained.
+May make sense in exotic settings, but should prevent bugs. If not
+set to True, an AssertionError is raised in this scenario.
+Why is this so important? The <code class="docutils literal"><span class="pre">DropoutLayer</span></code> and <code class="docutils literal"><span class="pre">PoolLayer</span></code> (in
+the case of stochastic pooling) are sensitive to this parameter and
+results are very different for the two settings.</li>
 </ul>
 </td>
 </tr>
@@ -1487,7 +1552,7 @@ what-is-the-most-pythonic-way-to-iterate-over-a-list-in-chunks.</p>
 
 <dl class="function">
 <dt id="barrista.tools.pad">
-<code class="descclassname">barrista.tools.</code><code class="descname">pad</code><span class="sig-paren">(</span><em>image</em>, <em>input_dims</em>, <em>get_padding=False</em>, <em>val=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/tools.html#pad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.tools.pad" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">barrista.tools.</code><code class="descname">pad</code><span class="sig-paren">(</span><em>image</em>, <em>input_dims</em>, <em>get_padding=False</em>, <em>val=0</em>, <em>pad_at_least=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/tools.html#pad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.tools.pad" title="Permalink to this definition">¶</a></dt>
 <dd><p>Pad an image with given scale to the appropriate dimensions.</p>
 <p>The scaled image must fit into the input_dims, otherwise an exception is
 thrown!</p>
@@ -1507,6 +1572,9 @@ where each tuple contains the two values for left-right paddings for
 one of the image dimensions.</li>
 <li><strong>val</strong> &#8211; float.
 The value to pad with.</li>
+<li><strong>pad_at_least</strong> &#8211; bool.
+If set to True, allows input_dims that are smaller than the image size.
+Otherwise, it throws in this case.</li>
 </ul>
 </td>
 </tr>

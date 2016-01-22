@@ -30,8 +30,6 @@
   
 
   
-        <link rel="author" title="About these documents"
-              href="../../about.html"/>
     <link rel="top" title="barrista  documentation" href="../../index.html"/>
         <link rel="up" title="Module code" href="../index.html"/> 
 
@@ -130,6 +128,7 @@
 <span class="c"># -*- coding: utf-8 -*-</span>
 <span class="sd">&quot;&quot;&quot;Exposes the caffe solvers.&quot;&quot;&quot;</span>
 <span class="c"># pylint: disable=E1101, F0401, C0103, R0913, R0914, W0212, E1121, E0611, W0406</span>
+<span class="c"># pylint: disable=duplicate-code</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 <span class="kn">import</span> <span class="nn">hashlib</span>
 <span class="kn">import</span> <span class="nn">copy</span>
@@ -299,7 +298,9 @@
             <span class="n">train_callbacks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
             <span class="n">test_callbacks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
             <span class="n">net</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-            <span class="n">read_input_batch_size_from_blob_name</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+            <span class="n">read_input_batch_size_from_blob_name</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+            <span class="n">use_fit_phase_for_validation</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+            <span class="n">allow_test_phase_for_train</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">        fit the network to specific data.</span>
 
@@ -376,6 +377,20 @@
 <span class="sd">          network does not have explicit inputs (e.g., when trained from</span>
 <span class="sd">          an LMDB).</span>
 
+<span class="sd">        :param use_fit_phase_for_validation: bool.</span>
+<span class="sd">          If set to True, use do not change the phase of the net for running</span>
+<span class="sd">          a validation step during training. This can be helpful to reduce</span>
+<span class="sd">          memory consumption. This ignores the TEST phase of the net completely,</span>
+<span class="sd">          but it&#39;s not necessary to use it if the data is provided by the</span>
+<span class="sd">          Python layers.</span>
+
+<span class="sd">        :param allow_test_phase_for_train: bool.</span>
+<span class="sd">          If set to True, allow using a network in its TEST phase to be trained.</span>
+<span class="sd">          May make sense in exotic settings, but should prevent bugs. If not</span>
+<span class="sd">          set to True, an AssertionError is raised in this scenario.</span>
+<span class="sd">          Why is this so important? The ``DropoutLayer`` and ``PoolLayer`` (in</span>
+<span class="sd">          the case of stochastic pooling) are sensitive to this parameter and</span>
+<span class="sd">          results are very different for the two settings.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">net</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="kn">from</span> <span class="nn">barrista</span> <span class="kn">import</span> <span class="n">net</span> <span class="k">as</span> <span class="n">_net</span>
@@ -386,6 +401,12 @@
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_net</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">,</span> <span class="p">(</span>
             <span class="s">&#39;neither the solver was initialized with a net nor&#39;</span><span class="p">,</span>
             <span class="s">&#39;the fit function was called with one&#39;</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_net</span><span class="o">.</span><span class="n">_mode</span> <span class="o">==</span> <span class="n">_Phase</span><span class="o">.</span><span class="n">TRAIN</span> <span class="ow">or</span> <span class="n">allow_test_phase_for_train</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s">&#39;The network must be in TRAIN phase for fitting! If you really &#39;</span>
+            <span class="s">&#39;want to, you can override this requirement by setting &#39;</span>
+            <span class="s">&#39;the optional parameter `allow_test_phase_for_train` to True.&#39;</span>
+        <span class="p">)</span>
 
         <span class="n">train_callbacks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Assert_callbacks</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_net</span><span class="p">,</span>
                                                  <span class="n">train_callbacks</span><span class="p">,</span>
@@ -414,7 +435,8 @@
                                    <span class="n">train_callbacks</span><span class="p">,</span>
                                    <span class="n">test_callbacks</span><span class="p">)</span>
 
-        <span class="n">testnet</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Init_testnet</span><span class="p">(</span><span class="n">test_interval</span><span class="p">)</span>
+        <span class="n">testnet</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Init_testnet</span><span class="p">(</span><span class="n">test_interval</span><span class="p">,</span>
+                                     <span class="n">use_fit_phase_for_validation</span><span class="p">)</span>
 
         <span class="n">iteration</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">cbparams</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
@@ -455,8 +477,6 @@
                     <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">test_callbacks</span><span class="p">:</span>
                         <span class="n">cb</span><span class="p">(</span><span class="n">cbparams</span><span class="p">)</span>
 
-                    <span class="c"># need to multiply by batch_size since it is normalized</span>
-                    <span class="c"># internally</span>
                     <span class="c"># pylint: disable=W0212</span>
                     <span class="n">testnet</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">testnet</span><span class="o">.</span><span class="n">layers</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
 
@@ -662,7 +682,7 @@
                      <span class="s">&#39;the network has to remain the same&#39;</span><span class="p">]))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_net</span> <span class="o">=</span> <span class="n">net</span>
 
-    <span class="k">def</span> <span class="nf">_Get_batch_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+    <span class="k">def</span> <span class="nf">_Get_batch_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>  <span class="c"># pylint: disable=R0201</span>
                         <span class="n">net</span><span class="p">,</span>
                         <span class="n">test_interval</span><span class="p">,</span>
                         <span class="n">test_iterations</span><span class="p">,</span>
@@ -689,7 +709,7 @@
         <span class="c"># some kind of backend is used</span>
         <span class="k">assert</span> <span class="n">read_input_batch_size_from_blob_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">,</span> <span class="p">(</span>
             <span class="s">&#39;no inputs thus the batch_size must be determined from a blob&#39;</span><span class="p">)</span>
-        <span class="n">batch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span>
             <span class="n">read_input_batch_size_from_blob_name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">test_iterations</span>
 
@@ -765,7 +785,7 @@
 
         <span class="k">if</span> <span class="n">test_interval</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">X_val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="k">assert</span> <span class="n">X_val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span>
-            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">X_val</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">X_val</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
 
             <span class="c"># safety measure, we do not want to have two different data</span>
             <span class="c"># monitors in the same callback list</span>
@@ -775,17 +795,20 @@
             <span class="n">tmp_data_monitor</span> <span class="o">=</span> <span class="n">_monitoring</span><span class="o">.</span><span class="n">CyclingDataMonitor</span><span class="p">(</span><span class="n">X</span><span class="o">=</span><span class="n">X_val</span><span class="p">)</span>
             <span class="n">test_callbacks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp_data_monitor</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_Init_testnet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_interval</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_Init_testnet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_interval</span><span class="p">,</span> <span class="n">use_fit_phase_for_validation</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize the test phase network.&quot;&quot;&quot;</span>
         <span class="n">testnet</span> <span class="o">=</span> <span class="bp">None</span>
         <span class="k">if</span> <span class="n">test_interval</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="c"># Setup the test net.</span>
-            <span class="n">test_netspec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_net</span><span class="o">.</span><span class="n">_specification</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-            <span class="n">test_netspec</span><span class="o">.</span><span class="n">phase</span> <span class="o">=</span> <span class="n">_Phase</span><span class="o">.</span><span class="n">TEST</span>
-            <span class="n">test_netspec</span><span class="o">.</span><span class="n">predict_inputs</span> <span class="o">=</span> <span class="bp">None</span>
-            <span class="n">test_netspec</span><span class="o">.</span><span class="n">predict_input_shapes</span> <span class="o">=</span> <span class="bp">None</span>
-            <span class="n">testnet</span> <span class="o">=</span> <span class="n">test_netspec</span><span class="o">.</span><span class="n">instantiate</span><span class="p">()</span>
-            <span class="n">testnet</span><span class="o">.</span><span class="n">share_with</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_net</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">use_fit_phase_for_validation</span><span class="p">:</span>
+                <span class="n">testnet</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_net</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c"># Setup the test net.</span>
+                <span class="n">test_netspec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_net</span><span class="o">.</span><span class="n">_specification</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">test_netspec</span><span class="o">.</span><span class="n">phase</span> <span class="o">=</span> <span class="n">_Phase</span><span class="o">.</span><span class="n">TEST</span>
+                <span class="n">test_netspec</span><span class="o">.</span><span class="n">predict_inputs</span> <span class="o">=</span> <span class="bp">None</span>
+                <span class="n">test_netspec</span><span class="o">.</span><span class="n">predict_input_shapes</span> <span class="o">=</span> <span class="bp">None</span>
+                <span class="n">testnet</span> <span class="o">=</span> <span class="n">test_netspec</span><span class="o">.</span><span class="n">instantiate</span><span class="p">()</span>
+                <span class="n">testnet</span><span class="o">.</span><span class="n">share_with</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_net</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">testnet</span>
 
 </div>

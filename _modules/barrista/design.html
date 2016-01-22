@@ -30,8 +30,6 @@
   
 
   
-        <link rel="author" title="About these documents"
-              href="../../about.html"/>
     <link rel="top" title="barrista  documentation" href="../../index.html"/>
         <link rel="up" title="Module code" href="../index.html"/> 
 
@@ -235,8 +233,10 @@
 <span class="sd">      Whether to force a backward pass for all layers only useful during</span>
 <span class="sd">      training.</span>
 
-<span class="sd">    :param phase: :py:data:`barrista.design.Phase`.</span>
-<span class="sd">      The phase to have the network in.</span>
+<span class="sd">    :param phase: :py:data:`barrista.design.Phase` or None.</span>
+<span class="sd">      The phase to have the network in. If it is None, it is set to either</span>
+<span class="sd">      ``TRAIN`` if ``predict_inputs`` and ``predict_inputs_shapes`` is given,</span>
+<span class="sd">      or ``TEST`` otherwise. Default: None.</span>
 
 <span class="sd">    :param level: int.</span>
 <span class="sd">      The level of the network. Can be used to in- or exclude layers depending</span>
@@ -268,7 +268,7 @@
                  <span class="n">inputs</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                  <span class="n">layers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                  <span class="n">force_backward</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
-                 <span class="n">phase</span><span class="o">=</span><span class="n">Phase</span><span class="o">.</span><span class="n">TEST</span><span class="p">,</span>
+                 <span class="n">phase</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                  <span class="n">level</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
                  <span class="n">stages</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                  <span class="n">debug_info</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
@@ -280,6 +280,11 @@
             <span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;data&#39;</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">layers</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">layers</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">phase</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">predict_inputs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">predict_input_shapes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">phase</span> <span class="o">=</span> <span class="n">Phase</span><span class="o">.</span><span class="n">TRAIN</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">phase</span> <span class="o">=</span> <span class="n">Phase</span><span class="o">.</span><span class="n">TEST</span>
         <span class="k">if</span> <span class="n">stages</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">stages</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;fit&#39;</span><span class="p">]</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
@@ -317,7 +322,7 @@
                                 <span class="bp">self</span><span class="o">.</span><span class="n">debug_info</span><span class="p">,</span>
                                 <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 </div>
-<div class="viewcode-block" id="NetSpecification.to_pbuf_message"><a class="viewcode-back" href="../../barrista.html#barrista.design.NetSpecification.to_pbuf_message">[docs]</a>    <span class="k">def</span> <span class="nf">to_pbuf_message</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="NetSpecification.to_pbuf_message"><a class="viewcode-back" href="../../barrista.html#barrista.design.NetSpecification.to_pbuf_message">[docs]</a>    <span class="k">def</span> <span class="nf">to_pbuf_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">drop_phase</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">        Create a plain protobuf message from this object.</span>
 
@@ -333,9 +338,13 @@
                 <span class="n">pblayers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">to_pbuf_message</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span>
                                                       <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="n">idx</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
                                                       <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">))</span>
-        <span class="n">pbstate</span> <span class="o">=</span> <span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">NetState</span><span class="p">(</span><span class="n">phase</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">phase</span><span class="p">,</span>
-                                      <span class="n">level</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">level</span><span class="p">,</span>
-                                      <span class="n">stage</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stages</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">drop_phase</span><span class="p">:</span>
+            <span class="n">pbstate</span> <span class="o">=</span> <span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">NetState</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pbstate</span> <span class="o">=</span> <span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">NetState</span><span class="p">(</span><span class="n">phase</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">phase</span><span class="p">,</span>
+                                          <span class="n">level</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">level</span><span class="p">,</span>
+                                          <span class="n">stage</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stages</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">_HAS_BLOB_SHAPE</span><span class="p">:</span>
             <span class="n">pbinput_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">BlobShape</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">dims</span><span class="p">)</span>
                              <span class="k">for</span> <span class="n">dims</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span><span class="p">]</span>
@@ -362,7 +371,7 @@
         <span class="k">assert</span> <span class="n">netmessage</span><span class="o">.</span><span class="n">IsInitialized</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">netmessage</span>
 </div>
-<div class="viewcode-block" id="NetSpecification.to_prototxt"><a class="viewcode-back" href="../../barrista.html#barrista.design.NetSpecification.to_prototxt">[docs]</a>    <span class="k">def</span> <span class="nf">to_prototxt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_filename</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+<div class="viewcode-block" id="NetSpecification.to_prototxt"><a class="viewcode-back" href="../../barrista.html#barrista.design.NetSpecification.to_prototxt">[docs]</a>    <span class="k">def</span> <span class="nf">to_prototxt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_filename</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">drop_phase</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">        Create a plain, human readable, prototxt representation.</span>
 
@@ -374,7 +383,7 @@
 <span class="sd">        will have to take care of that (there is no way of inferring</span>
 <span class="sd">        the semantics then).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">messagestr</span> <span class="o">=</span> <span class="n">_gprototext</span><span class="o">.</span><span class="n">MessageToString</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">to_pbuf_message</span><span class="p">())</span>
+        <span class="n">messagestr</span> <span class="o">=</span> <span class="n">_gprototext</span><span class="o">.</span><span class="n">MessageToString</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">to_pbuf_message</span><span class="p">(</span><span class="n">drop_phase</span><span class="o">=</span><span class="n">drop_phase</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">output_filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_filename</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outf</span><span class="p">:</span>
                 <span class="n">outf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">messagestr</span><span class="p">)</span>
@@ -473,6 +482,7 @@
             <span class="n">tmpfile</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
             <span class="n">_specification</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
             <span class="n">net</span> <span class="o">=</span> <span class="n">_Net</span><span class="p">(</span><span class="n">tmpfile</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                       <span class="n">mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">phase</span><span class="p">,</span>
                        <span class="n">specification</span><span class="o">=</span><span class="n">_specification</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">net</span>
 </div>

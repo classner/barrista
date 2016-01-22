@@ -40,13 +40,19 @@ a simple, `VGG`-like model::
                                   AccuracyLayer)
 
     # The only required parameter is a list of lists with the input shape
-    # specification for the network.
-    netspec = design.NetSpecification([[10, 3, 51, 51]])
+    # specification for the network. In this case, we also specify names
+    # for the inputs layers.
+    netspec = design.NetSpecification([[10, 3, 51, 51], [10]],
+                                      inputs=['data', 'annotations'])
 
     layers = []
     conv_params = {'Convolution_kernel_size': 3,
                    'Convolution_num_output': 32,
                    'Convolution_pad': 1}
+
+    # If not specified, the first top blob for each layer is automatically
+    # wired with the first bottom of the preceeding layer. If your are using
+    # multi-in/out layers, you have to manually specify tops and bottoms.
 
     layers.append(ConvolutionLayer(**conv_params))
     layers.append(ReLULayer())
@@ -149,7 +155,7 @@ Training a network
 To train a network, you can use the `scikit-learn` like method
 :py:func:`barrista.net.Net.fit`. It is very powerful and can be used in many
 different ways! While maintaining nearly all configurability of the caffe
-solvers, it adds powerful callback functionality and is a lot easier to use.
+solvers, it adds callback functionality and is a lot easier to use.
 
 The only required method parameter is the number of iterations that you want
 to train your network with. If you configured it with data-layers that are
@@ -159,23 +165,24 @@ we use in-memory data from Python for the training, and some monitors to
 generate outputs::
 
     from barrista import solver
-    from barrista.monitoring import ProgressIndicator, Checkpointer, JSONLogger
+    from barrista.monitoring import ProgressIndicator, Checkpointer
 
     X = np.zeros((11, 3, 51, 51), dtype='float32')
     Y = np.ones((11, 1), dtype='float32')
 
     # Configure our monitors.
     progress = ProgressIndicator()
-    perforce = JSONLogger(json_filename='test.json')
     checkptr = Checkpointer('test_net_', 50)
     # Run the training.
     net.fit(100,
             solver.SGDSolver(base_lr=0.01),
-            X, Y,
+            {'data': X,  # 'data' and 'annotations' are the input layer names.
+             'annotations': Y}, # optional (if you have, e.g., a DataLayer)
             test_interval=50,  # optional
-            X_val=X, Y_val=Y,  # optional
-            after_batch_callbacks=[progress, perforce, checkptr],
-            after_test_callbacks=[progress, perforce])
+            X_val={'data': X,  # optional
+                   'annotations': Y},
+            after_batch_callbacks=[progress, checkptr],  # optional
+            after_test_callbacks=[progress])  # optional
 
 The parameters ``test_interval``, ``X_val`` and ``Y_val`` are optional. If they
 are specified, there is a test performed on the validation set in
@@ -221,6 +228,11 @@ update progress indicators::
     inputs = np.zeros((20, 3, 10, 10))
     results = net.predict(inputs,
                           after_batch_callbacks=[ProgressIndicator()])
+    # This works for single-input networks. If you have multiple inputs, just
+    # provide a dicitonary of layer-names with arrays, as for the fit-method.
+    # Similarly, in case of a single-output network, this method returns a
+    # single list of predictions, or, in case of a multi-output network,
+    # a dictionary of output layer names with their respective output lists.
     print(results)
 
 ========================================================

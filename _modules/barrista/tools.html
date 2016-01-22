@@ -30,8 +30,6 @@
   
 
   
-        <link rel="author" title="About these documents"
-              href="../../about.html"/>
     <link rel="top" title="barrista  documentation" href="../../index.html"/>
         <link rel="up" title="Module code" href="../index.html"/> 
 
@@ -157,7 +155,7 @@
     <span class="k">return</span> <span class="p">(</span><span class="n">seq</span><span class="p">[</span><span class="n">pos</span><span class="p">:</span><span class="n">pos</span> <span class="o">+</span> <span class="n">size</span><span class="p">]</span> <span class="k">for</span> <span class="n">pos</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq</span><span class="p">),</span> <span class="n">size</span><span class="p">))</span>
 
 </div>
-<div class="viewcode-block" id="pad"><a class="viewcode-back" href="../../barrista.html#barrista.design.pad">[docs]</a><span class="k">def</span> <span class="nf">pad</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">input_dims</span><span class="p">,</span> <span class="n">get_padding</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="pad"><a class="viewcode-back" href="../../barrista.html#barrista.design.pad">[docs]</a><span class="k">def</span> <span class="nf">pad</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">input_dims</span><span class="p">,</span> <span class="n">get_padding</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">pad_at_least</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
     <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">    Pad an image with given scale to the appropriate dimensions.</span>
 
@@ -179,6 +177,10 @@
 <span class="sd">    :param val: float.</span>
 <span class="sd">      The value to pad with.</span>
 
+<span class="sd">    :param pad_at_least: bool.</span>
+<span class="sd">      If set to True, allows input_dims that are smaller than the image size.</span>
+<span class="sd">      Otherwise, it throws in this case.</span>
+
 <span class="sd">    :returns: 3D array, padded or, if ``get_padding``,</span>
 <span class="sd">      (3D array, tuple(two-tuples)).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -189,13 +191,17 @@
     <span class="n">WORK_SCALE_IMAGE</span> <span class="o">=</span> <span class="n">image</span>
     <span class="n">PAD_WIDTH</span> <span class="o">=</span> <span class="p">(</span><span class="n">input_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">SCALED_DIMS</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="mf">2.0</span>
     <span class="n">PAD_HEIGHT</span> <span class="o">=</span> <span class="p">(</span><span class="n">input_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">SCALED_DIMS</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="mf">2.0</span>
-    <span class="k">assert</span> <span class="n">PAD_WIDTH</span> <span class="o">&gt;=</span> <span class="mf">0.</span> <span class="ow">and</span> <span class="n">PAD_HEIGHT</span> <span class="o">&gt;=</span> <span class="mf">0.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">pad_at_least</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">PAD_WIDTH</span> <span class="o">&gt;=</span> <span class="mf">0.</span> <span class="ow">and</span> <span class="n">PAD_HEIGHT</span> <span class="o">&gt;=</span> <span class="mf">0.</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">PAD_WIDTH</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">PAD_WIDTH</span><span class="p">)</span>
+        <span class="n">PAD_HEIGHT</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">PAD_HEIGHT</span><span class="p">)</span>
     <span class="c"># Padding is done, e.g., in deeplab, first with the mean values,</span>
     <span class="c"># only to subtract the mean of the entire image, resulting in</span>
     <span class="c"># 0. values in the padded areas. We&#39;re doing that here directly.</span>
     <span class="n">padding</span> <span class="o">=</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
-               <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">PAD_HEIGHT</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">PAD_HEIGHT</span><span class="p">)),</span>
-               <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">PAD_WIDTH</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">PAD_WIDTH</span><span class="p">)))</span>
+               <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">PAD_HEIGHT</span><span class="p">)),</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">PAD_HEIGHT</span><span class="p">))),</span>
+               <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">PAD_WIDTH</span><span class="p">)),</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">PAD_WIDTH</span><span class="p">))))</span>
     <span class="n">padded</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">WORK_SCALE_IMAGE</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="s">&#39;constant&#39;</span><span class="p">,</span> <span class="n">constant_values</span><span class="o">=</span><span class="n">val</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">get_padding</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">padded</span><span class="p">,</span> <span class="n">padding</span>

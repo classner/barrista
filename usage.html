@@ -30,8 +30,6 @@
   
 
   
-        <link rel="author" title="About these documents"
-              href="about.html"/>
     <link rel="top" title="barrista  documentation" href="index.html"/>
         <link rel="next" title="API documentation" href="barrista.html"/>
         <link rel="prev" title="Setup" href="setup.html"/> 
@@ -173,13 +171,19 @@ a simple, <cite>VGG</cite>-like model:</p>
                               <span class="n">AccuracyLayer</span><span class="p">)</span>
 
 <span class="c"># The only required parameter is a list of lists with the input shape</span>
-<span class="c"># specification for the network.</span>
-<span class="n">netspec</span> <span class="o">=</span> <span class="n">design</span><span class="o">.</span><span class="n">NetSpecification</span><span class="p">([[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">51</span><span class="p">,</span> <span class="mi">51</span><span class="p">]])</span>
+<span class="c"># specification for the network. In this case, we also specify names</span>
+<span class="c"># for the inputs layers.</span>
+<span class="n">netspec</span> <span class="o">=</span> <span class="n">design</span><span class="o">.</span><span class="n">NetSpecification</span><span class="p">([[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">51</span><span class="p">,</span> <span class="mi">51</span><span class="p">],</span> <span class="p">[</span><span class="mi">10</span><span class="p">]],</span>
+                                  <span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;data&#39;</span><span class="p">,</span> <span class="s">&#39;annotations&#39;</span><span class="p">])</span>
 
 <span class="n">layers</span> <span class="o">=</span> <span class="p">[]</span>
 <span class="n">conv_params</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;Convolution_kernel_size&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
                <span class="s">&#39;Convolution_num_output&#39;</span><span class="p">:</span> <span class="mi">32</span><span class="p">,</span>
                <span class="s">&#39;Convolution_pad&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span>
+
+<span class="c"># If not specified, the first top blob for each layer is automatically</span>
+<span class="c"># wired with the first bottom of the preceeding layer. If your are using</span>
+<span class="c"># multi-in/out layers, you have to manually specify tops and bottoms.</span>
 
 <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ConvolutionLayer</span><span class="p">(</span><span class="o">**</span><span class="n">conv_params</span><span class="p">))</span>
 <span class="n">layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ReLULayer</span><span class="p">())</span>
@@ -276,7 +280,7 @@ blobs, but be careful when remaining your layers!</p>
 <p>To train a network, you can use the <cite>scikit-learn</cite> like method
 <a class="reference internal" href="barrista.html#barrista.net.Net.fit" title="barrista.net.Net.fit"><code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.fit()</span></code></a>. It is very powerful and can be used in many
 different ways! While maintaining nearly all configurability of the caffe
-solvers, it adds powerful callback functionality and is a lot easier to use.</p>
+solvers, it adds callback functionality and is a lot easier to use.</p>
 <p>The only required method parameter is the number of iterations that you want
 to train your network with. If you configured it with data-layers that are
 loading data from external sources, you just have to decide about the kind
@@ -284,23 +288,24 @@ of solver to use and probably specify its learning rate. For this example,
 we use in-memory data from Python for the training, and some monitors to
 generate outputs:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">barrista</span> <span class="kn">import</span> <span class="n">solver</span>
-<span class="kn">from</span> <span class="nn">barrista.monitoring</span> <span class="kn">import</span> <span class="n">ProgressIndicator</span><span class="p">,</span> <span class="n">Checkpointer</span><span class="p">,</span> <span class="n">JSONLogger</span>
+<span class="kn">from</span> <span class="nn">barrista.monitoring</span> <span class="kn">import</span> <span class="n">ProgressIndicator</span><span class="p">,</span> <span class="n">Checkpointer</span>
 
 <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">11</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">51</span><span class="p">,</span> <span class="mi">51</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;float32&#39;</span><span class="p">)</span>
 <span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">11</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;float32&#39;</span><span class="p">)</span>
 
 <span class="c"># Configure our monitors.</span>
 <span class="n">progress</span> <span class="o">=</span> <span class="n">ProgressIndicator</span><span class="p">()</span>
-<span class="n">perforce</span> <span class="o">=</span> <span class="n">JSONLogger</span><span class="p">(</span><span class="n">json_filename</span><span class="o">=</span><span class="s">&#39;test.json&#39;</span><span class="p">)</span>
 <span class="n">checkptr</span> <span class="o">=</span> <span class="n">Checkpointer</span><span class="p">(</span><span class="s">&#39;test_net_&#39;</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span>
 <span class="c"># Run the training.</span>
 <span class="n">net</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span>
         <span class="n">solver</span><span class="o">.</span><span class="n">SGDSolver</span><span class="p">(</span><span class="n">base_lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">),</span>
-        <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span>
+        <span class="p">{</span><span class="s">&#39;data&#39;</span><span class="p">:</span> <span class="n">X</span><span class="p">,</span>  <span class="c"># &#39;data&#39; and &#39;annotations&#39; are the input layer names.</span>
+         <span class="s">&#39;annotations&#39;</span><span class="p">:</span> <span class="n">Y</span><span class="p">},</span> <span class="c"># optional (if you have, e.g., a DataLayer)</span>
         <span class="n">test_interval</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>  <span class="c"># optional</span>
-        <span class="n">X_val</span><span class="o">=</span><span class="n">X</span><span class="p">,</span> <span class="n">Y_val</span><span class="o">=</span><span class="n">Y</span><span class="p">,</span>  <span class="c"># optional</span>
-        <span class="n">after_batch_callbacks</span><span class="o">=</span><span class="p">[</span><span class="n">progress</span><span class="p">,</span> <span class="n">perforce</span><span class="p">,</span> <span class="n">checkptr</span><span class="p">],</span>
-        <span class="n">after_test_callbacks</span><span class="o">=</span><span class="p">[</span><span class="n">progress</span><span class="p">,</span> <span class="n">perforce</span><span class="p">])</span>
+        <span class="n">X_val</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;data&#39;</span><span class="p">:</span> <span class="n">X</span><span class="p">,</span>  <span class="c"># optional</span>
+               <span class="s">&#39;annotations&#39;</span><span class="p">:</span> <span class="n">Y</span><span class="p">},</span>
+        <span class="n">after_batch_callbacks</span><span class="o">=</span><span class="p">[</span><span class="n">progress</span><span class="p">,</span> <span class="n">checkptr</span><span class="p">],</span>  <span class="c"># optional</span>
+        <span class="n">after_test_callbacks</span><span class="o">=</span><span class="p">[</span><span class="n">progress</span><span class="p">])</span>  <span class="c"># optional</span>
 </pre></div>
 </div>
 <p>The parameters <code class="docutils literal"><span class="pre">test_interval</span></code>, <code class="docutils literal"><span class="pre">X_val</span></code> and <code class="docutils literal"><span class="pre">Y_val</span></code> are optional. If they
@@ -342,6 +347,11 @@ update progress indicators:</p>
 <span class="n">inputs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">20</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
 <span class="n">results</span> <span class="o">=</span> <span class="n">net</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span>
                       <span class="n">after_batch_callbacks</span><span class="o">=</span><span class="p">[</span><span class="n">ProgressIndicator</span><span class="p">()])</span>
+<span class="c"># This works for single-input networks. If you have multiple inputs, just</span>
+<span class="c"># provide a dicitonary of layer-names with arrays, as for the fit-method.</span>
+<span class="c"># Similarly, in case of a single-output network, this method returns a</span>
+<span class="c"># single list of predictions, or, in case of a multi-output network,</span>
+<span class="c"># a dictionary of output layer names with their respective output lists.</span>
 <span class="k">print</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
 </pre></div>
 </div>

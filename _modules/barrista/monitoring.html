@@ -30,8 +30,6 @@
   
 
   
-        <link rel="author" title="About these documents"
-              href="../../about.html"/>
     <link rel="top" title="barrista  documentation" href="../../index.html"/>
         <link rel="up" title="Module code" href="../index.html"/> 
 
@@ -129,7 +127,7 @@
   <h1>Source code for barrista.monitoring</h1><div class="highlight"><pre>
 <span class="c"># -*- coding: utf-8 -*-</span>
 <span class="sd">&quot;&quot;&quot;Defines several tools for monitoring net activity.&quot;&quot;&quot;</span>
-<span class="c"># pylint: disable=F0401</span>
+<span class="c"># pylint: disable=F0401, E1101</span>
 <span class="kn">import</span> <span class="nn">logging</span> <span class="kn">as</span> <span class="nn">_logging</span>
 <span class="kn">import</span> <span class="nn">os</span> <span class="kn">as</span> <span class="nn">_os</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">_np</span>
@@ -259,7 +257,7 @@
 
     <span class="k">def</span> <span class="nf">_pre_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">net</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pylint: disable=C0111, W0613</span>
         <span class="c"># this will simply cycle through the data.</span>
-        <span class="n">samples_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">idx</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="p">)</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span>
+        <span class="n">samples_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">idx</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_len_data</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span>
                        <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sample_pointer</span><span class="p">,</span>
                              <span class="bp">self</span><span class="o">.</span><span class="n">_sample_pointer</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span><span class="p">)]</span>
 
@@ -294,6 +292,10 @@
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">progress_indicator</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">progress_indicator</span> <span class="o">=</span> <span class="n">progress_indicator</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pbar</span><span class="p">,</span> <span class="n">stats</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;Compatibility with new versions of ``progressbar2``.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">pbar</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pbar</span><span class="p">):</span>  <span class="c"># pylint: disable=W0613</span>
         <span class="sd">&quot;&quot;&quot;The update method to implement by the ``progressbar`` interface.&quot;&quot;&quot;</span>
@@ -338,7 +340,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_cbparam_key</span> <span class="o">=</span> <span class="n">cbparam_key</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_init</span> <span class="o">=</span> <span class="bp">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_not_layer_available</span> <span class="o">=</span> <span class="bp">True</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_test_iterations</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_data</span> <span class="o">=</span> <span class="bp">None</span>
 
     <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Callback implementation.&quot;&quot;&quot;</span>
@@ -366,19 +368,17 @@
             <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_layer_name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
 
     <span class="k">def</span> <span class="nf">_pre_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
-        <span class="n">kwargs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cbparam_key</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_test_iterations</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_data</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="k">def</span> <span class="nf">_post_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
-        <span class="n">kwargs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cbparam_key</span><span class="p">]</span> <span class="o">/=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_test_iterations</span>
-
-    <span class="k">def</span> <span class="nf">_pre_test_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_test_iterations</span> <span class="o">+=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cbparam_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_test_data</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_post_test_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
-        <span class="n">kwargs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cbparam_key</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span>
-            <span class="nb">float</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;testnet&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_layer_name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">])</span>
+        <span class="c"># need to multiply by batch_size since it is normalized</span>
+        <span class="c"># internally</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;testnet&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_layer_name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cbparam_key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_test_data</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
 </div>
 <div class="viewcode-block" id="ProgressIndicator"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.ProgressIndicator">[docs]</a><span class="k">class</span> <span class="nc">ProgressIndicator</span><span class="p">(</span><span class="n">Monitor</span><span class="p">):</span>  <span class="c"># pylint: disable=R0903</span>
@@ -393,9 +393,9 @@
 
 <span class="sd">    * ``iter``\*,</span>
 <span class="sd">    * ``max_iter``\*,</span>
-<span class="sd">    * ``loss``,</span>
+<span class="sd">    * ``train_loss``,</span>
 <span class="sd">    * ``test_loss``,</span>
-<span class="sd">    * ``accuracy``,</span>
+<span class="sd">    * ``train_accuracy``,</span>
 <span class="sd">    * ``test_accuracy``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 

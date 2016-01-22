@@ -30,8 +30,6 @@
   
 
   
-        <link rel="author" title="About these documents"
-              href="../../about.html"/>
     <link rel="top" title="barrista  documentation" href="../../index.html"/>
         <link rel="up" title="Module code" href="../index.html"/> 
 
@@ -153,9 +151,8 @@
         <span class="c"># pylint: disable=W0611</span>
         <span class="kn">import</span> <span class="nn">caffe</span> <span class="kn">as</span> <span class="nn">_caffe</span>
     <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-        <span class="n">_LOGGER</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s">&#39;Failed to add the CAFFE_PYTHON_FOLDER and caffe is &#39;</span> <span class="o">+</span>
-                      <span class="s">&#39;not on the PYTHONPATH!&#39;</span><span class="p">)</span>
-        <span class="n">_sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&#39;Failed to add the CAFFE_PYTHON_FOLDER and caffe is &#39;</span> <span class="o">+</span>
+                        <span class="s">&#39;not on the PYTHONPATH!&#39;</span><span class="p">)</span>
 <span class="k">else</span><span class="p">:</span>
     <span class="n">_sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">_PYCAFFE_FOLDER</span><span class="p">)</span>
 
