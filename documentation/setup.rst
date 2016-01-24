@@ -16,7 +16,7 @@ This package has the following requirements:
 Caffe modifications
 ===================
 
-While barrista only 'serves' caffe right, some beans must be added for the
+While barrista 'serves' caffe right, some beans must be added for the
 perfect flavor. This translates to just a few lines of C++ code that must
 be changed in the core library.
 

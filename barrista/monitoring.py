@@ -398,9 +398,17 @@ class Checkpointer(Monitor):  # pylint: disable=R0903
     * ``net``\*,
     * ``batch_size``\*.
 
-    :param name_prefix: string.
-      The first part of the output filenames to generate. The current
-      iteration is added, as well as '.caffemodel'.
+    :param name_prefix: string or None.
+      The first part of the output filenames to generate. The prefix '_iter_,
+      the current iteration, as well as '.caffemodel' is added.
+    
+      If you are using a caffe version from later than Dec. 2015, caffe's
+      internal snapshot method is exposed to Python and also snapshots the
+      solver. If it's available, then this method will be used. However,
+      in that case, it's not possible to influence the storage location
+      from Python. Please use the solver parameter ``snapshot_prefix``
+      when constructing the solver instead (this parameter may be None
+      and is unused then).
 
     :param iterations: int > 0.
       Always if the current number of iterations is divisible by iterations,
@@ -423,12 +431,30 @@ class Checkpointer(Monitor):  # pylint: disable=R0903
             'iterations not multiple of batch_size, {} vs {}'.format(
                 self.iterations, kwargs['batch_size']))
 
-        if kwargs['iter'] % self.iterations == 0:
-            checkpoint_filename = (
-                self.name_prefix + str(kwargs['iter']) + '.caffemodel')
-            _LOGGER.debug("Writing checkpoint to file '%s'.",
-                          checkpoint_filename)
-            kwargs['net'].save(checkpoint_filename)
+        if kwargs['iter'] % self.iterations == 0 and kwargs['iter'] > 0:
+            if not hasattr(kwargs['solver']._solver, 'snapshot'):
+                checkpoint_filename = (
+                    self.name_prefix + '_iter_' +
+                    str(kwargs['iter'] /
+                        kwargs['batch_size'] + 1) +
+                    '.caffemodel')
+                _LOGGER.debug("Writing checkpoint to file '%s'.",
+                              checkpoint_filename)
+                kwargs['net'].save(checkpoint_filename)
+            else:
+                kwargs['solver']._solver.snapshot()
+                caffe_checkpoint_filename = ('_iter_' +
+                                             str(kwargs['iter'] /
+                                                 kwargs['batch_size'] + 1) +
+                                             '.caffemodel')
+                caffe_sstate_filename = ('_iter_' +
+                                         str(kwargs['iter'] /
+                                             kwargs['batch_size'] + 1) +
+                                         '.solverstate')
+                _LOGGER.debug('Writing checkpoint to file "[solverprefix]%s" ' +
+                              'and "[solverprefix]%s".',
+                              caffe_checkpoint_filename,
+                              caffe_sstate_filename)
 
     def finalize(self, kwargs):
         """Write a final checkpoint."""

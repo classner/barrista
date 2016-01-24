@@ -393,19 +393,23 @@ class MonitoringTestCase(unittest.TestCase):
         net = netspec.instantiate()
 
         dirpath = tempfile.mkdtemp()
-        chckptr = Checkpointer(dirpath + os.sep, 10)
+        chckptr = Checkpointer(dirpath+os.sep, 10)
         X = {'data': np.zeros((10, 3, 3, 3), dtype='float32'),
              'annotations': np.ones((10, 1), dtype='float32')}
 
         solver = _solver.SGDSolver(
-            base_lr=0.01)
+            base_lr=0.01,
+            snapshot_prefix=dirpath+os.sep)
         net.fit(20,
                 solver,
                 X=X,
                 train_callbacks=[chckptr])
         dircontents = os.listdir(dirpath)
-        self.assertIn('10.caffemodel', dircontents)
-        self.assertIn('20.caffemodel', dircontents)
+        self.assertIn('_iter_2.caffemodel', dircontents)
+        self.assertIn('_iter_3.caffemodel', dircontents)
+        if hasattr(solver._solver, 'snapshot'):
+            self.assertIn('_iter_2.solverstate', dircontents)
+            self.assertIn('_iter_3.solverstate', dircontents)
         shutil.rmtree(dirpath)
 
 
@@ -538,6 +542,55 @@ class NetTestCase(unittest.TestCase):
                            allow_train_phase_for_test=True)['accuracy'][0]
         self.assertEqual(accy, 1.0)
 
+    def test_load_blobs_from(self):
+        """Test the loading method."""
+        import tempfile
+        import shutil
+        import os
+        import barrista.design as design
+        import numpy as np
+        from barrista.design import (ConvolutionLayer, InnerProductLayer,
+                                     SoftmaxWithLossLayer)
+        from barrista.monitoring import Checkpointer
+        from barrista import solver as _solver
+        netspec = design.NetSpecification([[10, 3, 3, 3], [10]],
+                                          inputs=['data', 'annotations'],
+                                          phase=design.Phase.TRAIN)
+        layers = []
+        conv_params = {'Convolution_kernel_size': 3,
+                       'Convolution_num_output': 3,
+                       'Convolution_pad': 1}
+
+        layers.append(ConvolutionLayer(**conv_params))
+        layers.append(InnerProductLayer(InnerProduct_num_output=2,
+                                        tops=['out']))
+        layers.append(SoftmaxWithLossLayer(bottoms=['out', 'annotations']))
+        netspec.layers.extend(layers)
+        net = netspec.instantiate()
+
+        dirpath = tempfile.mkdtemp()
+        chckptr = Checkpointer(dirpath + os.sep, 10)
+        X = {'data': np.zeros((10, 3, 3, 3), dtype='float32'),
+             'annotations': np.ones((10, 1), dtype='float32')}
+
+        solver = _solver.SGDSolver(
+            base_lr=0.01,
+            snapshot_prefix=dirpath+os.sep)
+        net.fit(10,
+                solver,
+                X=X,
+                train_callbacks=[chckptr])
+        checkp0_data = net.params['_layer_0'][0].data.copy()
+        net.params['_layer_0'][0].data[...] = 10.
+        assert np.any(net.params['_layer_0'][0].data != checkp0_data)
+        net.load_blobs_from(os.path.join(dirpath, '_iter_2.caffemodel'))
+        assert np.all(net.params['_layer_0'][0].data == checkp0_data)
+        if hasattr(solver._solver, 'restore'):
+            print("new version detected")
+            # Check for newer versions of caffe the solver restore method.
+            solver._solver.restore(os.path.join(dirpath, '_iter_2.solverstate'))
+        shutil.rmtree(dirpath)
+        
     def test_multiinput(self):
         """Test multiinput prediction."""
         import numpy as np

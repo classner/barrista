@@ -109,6 +109,10 @@ class Solver(object):
           If specified, seeds the solver for reproducible results. Otherwise,
           it uses a time dependent seed.
 
+        :param snapshot_prefix: string or None.
+          If the ``Checkpointer`` monitor is used, this prefix is used to
+          create the snapshots.
+        
         :param debug_info: bool.
           If set to ``True``, gives additional output in the logs.
         """
@@ -152,6 +156,7 @@ class Solver(object):
                     'regularization_type': 'L2',
                     'power': None,
                     'gamma': None,
+                    'snapshot_prefix': None,
                     'stepsize': None,
                     'stepvalue': None,
                     'clip_gradients': None,

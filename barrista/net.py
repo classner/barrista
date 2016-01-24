@@ -88,7 +88,7 @@ class Net(_caffe.Net):
 
     def reshape_blob(self, name, *args):
         """
-        Reshapes a blob for train and predict net variants.
+        Reshape a blob for train and predict net variants.
 
         Convenience method to reshape a blob for all network variants in use.
         Calls the caffe ``blob.reshape`` method internally. The blob must exist
@@ -106,6 +106,21 @@ class Net(_caffe.Net):
         if self._predict_variant is not None:
             self._predict_variant.blobs[name].reshape(*args)
 
+    def load_blobs_from(self, filename):
+        """
+        Load the network weights from the specified file.
+
+        :param filename: string.
+          The filename of the file to load.
+        """
+        if hasattr(_caffe.Net, 'load_blobs_from'):
+            # Older barrista/caffe version.
+            #self.__class__.__bases__[0].load_blobs_from(self, filename)
+            # _caffe.Net.load_blobs_from(self, filename)
+            _caffe.Net.copy_from(self, filename)
+        else:
+            self.copy_from(filename)
+                            
     def predict_sliding_window(self,
                                input_sequence,
                                pre_batch_callbacks=None,
