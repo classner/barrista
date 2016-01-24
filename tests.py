@@ -586,11 +586,10 @@ class NetTestCase(unittest.TestCase):
         net.load_blobs_from(os.path.join(dirpath, '_iter_2.caffemodel'))
         assert np.all(net.params['_layer_0'][0].data == checkp0_data)
         if hasattr(solver._solver, 'restore'):
-            print("new version detected")
             # Check for newer versions of caffe the solver restore method.
             solver._solver.restore(os.path.join(dirpath, '_iter_2.solverstate'))
         shutil.rmtree(dirpath)
-        
+
     def test_multiinput(self):
         """Test multiinput prediction."""
         import numpy as np
