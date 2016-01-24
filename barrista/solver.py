@@ -112,7 +112,7 @@ class Solver(object):
         :param snapshot_prefix: string or None.
           If the ``Checkpointer`` monitor is used, this prefix is used to
           create the snapshots.
-        
+
         :param debug_info: bool.
           If set to ``True``, gives additional output in the logs.
         """

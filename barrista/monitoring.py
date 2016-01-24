@@ -401,7 +401,7 @@ class Checkpointer(Monitor):  # pylint: disable=R0903
     :param name_prefix: string or None.
       The first part of the output filenames to generate. The prefix '_iter_,
       the current iteration, as well as '.caffemodel' is added.
-    
+
       If you are using a caffe version from later than Dec. 2015, caffe's
       internal snapshot method is exposed to Python and also snapshots the
       solver. If it's available, then this method will be used. However,
@@ -432,6 +432,7 @@ class Checkpointer(Monitor):  # pylint: disable=R0903
                 self.iterations, kwargs['batch_size']))
 
         if kwargs['iter'] % self.iterations == 0 and kwargs['iter'] > 0:
+            # pylint: disable=protected-access
             if not hasattr(kwargs['solver']._solver, 'snapshot'):
                 checkpoint_filename = (
                     self.name_prefix + '_iter_' +
@@ -442,6 +443,7 @@ class Checkpointer(Monitor):  # pylint: disable=R0903
                               checkpoint_filename)
                 kwargs['net'].save(checkpoint_filename)
             else:
+                # pylint: disable=protected-access
                 kwargs['solver']._solver.snapshot()
                 caffe_checkpoint_filename = ('_iter_' +
                                              str(kwargs['iter'] /

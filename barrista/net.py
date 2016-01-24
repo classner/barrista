@@ -120,7 +120,7 @@ class Net(_caffe.Net):
             _caffe.Net.copy_from(self, filename)
         else:
             self.copy_from(filename)
-                            
+
     def predict_sliding_window(self,
                                input_sequence,
                                pre_batch_callbacks=None,
