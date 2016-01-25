@@ -585,7 +585,8 @@ class NetTestCase(unittest.TestCase):
         assert np.any(net.params['_layer_0'][0].data != checkp0_data)
         net.load_blobs_from(os.path.join(dirpath, '_iter_2.caffemodel'))
         assert np.all(net.params['_layer_0'][0].data == checkp0_data)
-        if hasattr(solver._solver, 'restore'):
+        if (hasattr(solver._solver, 'restore') and
+            hasattr(solver._solver, 'snapshot')):
             # Check for newer versions of caffe the solver restore method.
             solver._solver.restore(os.path.join(dirpath, '_iter_2.solverstate'))
         shutil.rmtree(dirpath)
