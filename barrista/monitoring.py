@@ -436,8 +436,8 @@ class Checkpointer(Monitor):  # pylint: disable=R0903
             if not hasattr(kwargs['solver']._solver, 'snapshot'):
                 checkpoint_filename = (
                     self.name_prefix + '_iter_' +
-                    str(kwargs['iter'] /
-                        kwargs['batch_size'] + 1) +
+                    str(int(kwargs['iter'] /
+                            kwargs['batch_size']) + 1) +
                     '.caffemodel')
                 _LOGGER.debug("Writing checkpoint to file '%s'.",
                               checkpoint_filename)
