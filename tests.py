@@ -562,7 +562,8 @@ class NetTestCase(unittest.TestCase):
                        'Convolution_pad': 1}
 
         layers.append(ConvolutionLayer(**conv_params))
-        layers.append(InnerProductLayer(InnerProduct_num_output=2,
+        layers.append(InnerProductLayer(name='outlbf',
+                                        InnerProduct_num_output=2,
                                         tops=['out']))
         layers.append(SoftmaxWithLossLayer(bottoms=['out', 'annotations']))
         netspec.layers.extend(layers)
