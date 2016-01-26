@@ -47,7 +47,7 @@ def pad(image, input_dims, get_padding=False, val=0, pad_at_least=False):
       where each tuple contains the two values for left-right paddings for
       one of the image dimensions.
 
-    :param val: float.
+    :param val: int.
       The value to pad with.
 
     :param pad_at_least: bool.

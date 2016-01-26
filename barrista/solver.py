@@ -170,6 +170,7 @@ class Solver(object):
             iterations,
             X=None,
             X_val=None,
+            input_processing_flags=None,
             test_iterations=0,
             test_interval=0,
             test_initialization=False,
@@ -221,6 +222,13 @@ class Solver(object):
           It is used sequentially, so shuffle it pre, if required. The
           keys of the dict have to have a corresponding layer name in
           the net.
+
+        :param input_processing_flags: dict(string, string) or None.
+          See ``CyclingDataMonitor.__init__`` for the ``input_processing_flags``
+          parameter. In short, if you specify your sample via list, you may
+          specify for each blob, whether they should be padded 'p', or
+          resized 'r' to match the network input size. If they fit perfectly,
+          you may specify 'n' or omit the parameter and use ``None``.
 
         :param test_iterations: int.
           The number of test iterations to determine the validation score,
@@ -308,6 +316,7 @@ class Solver(object):
 
         self._Init_cycling_monitor(X,
                                    X_val,
+                                   input_processing_flags,
                                    batch_size,
                                    test_interval,
                                    train_callbacks,
@@ -640,6 +649,7 @@ class Solver(object):
     def _Init_cycling_monitor(cls,
                               X,
                               X_val,
+                              input_processing_flags,
                               batch_size,
                               test_interval,
                               train_callbacks,
@@ -658,7 +668,9 @@ class Solver(object):
             for callback in train_callbacks:
                 assert not isinstance(callback, _monitoring.DataMonitor), (
                     'if we use X we cannot use a data monitor')
-            tmp_data_monitor = _monitoring.CyclingDataMonitor(X=X)
+            tmp_data_monitor = _monitoring.CyclingDataMonitor(
+                X=X,
+                input_processing_flags=input_processing_flags)
             train_callbacks.append(tmp_data_monitor)
 
         if test_interval > 0 and X_val is not None:
@@ -670,7 +682,9 @@ class Solver(object):
             for callback in test_callbacks:
                 assert not isinstance(callback, _monitoring.DataMonitor), (
                     'if we use X_val we cannot use a data monitor')
-            tmp_data_monitor = _monitoring.CyclingDataMonitor(X=X_val)
+            tmp_data_monitor = _monitoring.CyclingDataMonitor(
+                X=X_val,
+                input_processing_flags=input_processing_flags)
             test_callbacks.append(tmp_data_monitor)
 
     def _Init_testnet(self, test_interval, use_fit_phase_for_validation):

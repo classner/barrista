@@ -347,12 +347,9 @@ class MonitoringTestCase(unittest.TestCase):
         netspec = design.NetSpecification([[3], [3]],
                                           inputs=['a', 'b'],
                                           phase=design.Phase.TRAIN)
-        layers = []
-
-        netspec.layers.extend(layers)
         net = netspec.instantiate()
 
-        tmon = CyclingDataMonitor(X={'a': np.array(range(4)),
+        tmon = CyclingDataMonitor(X={'a': range(4),
                                      'b': np.array(range(5, 9))})
         tmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
         tmon._pre_train_batch({'net': net})
@@ -365,6 +362,257 @@ class MonitoringTestCase(unittest.TestCase):
         assert np.all(net.blobs['a'].data[...] == [2, 3, 0])
         assert np.all(net.blobs['b'].data[...] == [7, 8, 5])
 
+    def test_CyclingDataMonitor_only_preload(self):
+        """Test the cycling data monitor preload capability."""
+        import barrista.design as design
+        import numpy as np
+        from barrista.monitoring import CyclingDataMonitor
+
+        netspec = design.NetSpecification([[3], [3]],
+                                          inputs=['a', 'b'],
+                                          phase=design.Phase.TRAIN)
+        net = netspec.instantiate()
+
+        tmon = CyclingDataMonitor(
+            only_preload=['a', 'b'],
+            X={'a': range(4),
+               'b': np.array(range(5, 9))})
+        tmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
+        kwargs = {'net': net, 'testnet': net}
+        tmon._pre_train_batch(kwargs)
+        assert np.all(kwargs['data_orig']['a'] == [0, 1, 2])
+        assert np.all(kwargs['data_orig']['b'] == [5, 6, 7])
+        tmon._pre_train_batch(kwargs)
+        assert np.all(kwargs['data_orig']['a'] == [3, 0, 1])
+        assert np.all(kwargs['data_orig']['b'] == [8, 5, 6])
+        tmon._pre_test_batch(kwargs)
+        assert np.all(kwargs['data_orig']['a'] == [2, 3, 0])
+        assert np.all(kwargs['data_orig']['b'] == [7, 8, 5])
+
+    def test_CyclingDataMonitor_resizing(self):
+        """Test the cycling data monitor resizing capability."""
+        import barrista.design as design
+        import numpy as np
+        from barrista.monitoring import CyclingDataMonitor
+
+        netspec = design.NetSpecification([[3, 3, 10, 10], [3, 3, 5, 5]],
+                                          inputs=['a', 'b'],
+                                          phase=design.Phase.TRAIN)
+        net = netspec.instantiate()
+
+        tmon = CyclingDataMonitor(
+            X={'a': [np.ones((3, 5, 5))] * 2,
+               'b': np.ones((2, 3, 5, 5))},
+            input_processing_flags={'a': 'rc', 'b':'rn'})
+        tmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
+        kwargs = {'net': net, 'testnet': net}
+        tmon._pre_train_batch(kwargs)
+        assert np.all(net.blobs['a'].data[...] == 1.)
+        assert np.all(net.blobs['b'].data[...] == 1.)
+
+    def test_CyclingDataMonitor_padding(self):
+        """Test the cycling data monitor padding capability."""
+        import barrista.design as design
+        import numpy as np
+        from barrista.monitoring import CyclingDataMonitor
+
+        netspec = design.NetSpecification([[3, 3, 10, 10], [3, 3, 7, 7]],
+                                          inputs=['a', 'b'],
+                                          phase=design.Phase.TRAIN)
+        net = netspec.instantiate()
+
+        tmon = CyclingDataMonitor(
+            X={'a': [np.ones((3, 5, 5))] * 2,
+               'b': np.ones((2, 3, 5, 5))},
+            input_processing_flags={'a': 'p0', 'b':'p2'})
+        tmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
+        kwargs = {'net': net, 'testnet': net}
+        tmon._pre_train_batch(kwargs)
+        assert np.sum(net.blobs['a'].data[...]) == 225.
+        assert np.sum(net.blobs['b'].data[...]) == 225. + 432.
+
+    def test_ResizingMonitor(self):
+        """Test the resizing monitor."""
+        import barrista.design as design
+        import numpy as np
+        from barrista.monitoring import CyclingDataMonitor, ResizingMonitor
+
+        netspec = design.NetSpecification([[1, 3, 5, 5], [1, 1, 5, 5]],
+                                          inputs=['a', 'b'],
+                                          phase=design.Phase.TRAIN)
+        net = netspec.instantiate()
+
+        dmon = CyclingDataMonitor(
+            only_preload=['a', 'b'],
+            X={'a': [np.zeros((3, 6, 6)), np.zeros((3, 7, 9))],
+               'b': [np.ones((1, 6, 6)), np.ones((1, 7, 9))]})
+        tmon = ResizingMonitor(
+            blobinfos={'a': 1, 'b': 2},
+            net_input_size_adjustment_multiple_of=2
+        )
+        dmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
+        tmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
+        kwargs = {'net': net, 'testnet': net}
+        dmon._pre_train_batch(kwargs)
+        tmon._pre_train_batch(kwargs)
+        self.assertEqual(np.sum(net.blobs['a'].data[...]), 39.)
+        self.assertEqual(np.sum(net.blobs['b'].data[...]), 36. + 26.)
+        dmon._pre_train_batch(kwargs)
+        tmon._pre_train_batch(kwargs)
+        self.assertEqual(np.sum(net.blobs['a'].data[...]), 0.)
+        self.assertEqual(net.blobs['a'].data.shape, (1, 3, 7, 9))
+        self.assertEqual(np.sum(net.blobs['b'].data[...]), 63.)
+        self.assertEqual(net.blobs['b'].data.shape, (1, 1, 7, 9))
+        dmon._pre_test_batch(kwargs)
+        tmon._pre_test_batch(kwargs)
+        self.assertEqual(np.sum(net.blobs['a'].data[...]), 39.)
+        self.assertEqual(np.sum(net.blobs['b'].data[...]), 36. + 26.)
+
+    def test_ResizingMonitor_fixed_scale(self):
+        """Test the resizing monitor scaling capability."""
+        import barrista.design as design
+        import numpy as np
+        from barrista.monitoring import CyclingDataMonitor, ResizingMonitor
+
+        netspec = design.NetSpecification([[1, 3, 5, 5], [1, 1, 5, 5]],
+                                          inputs=['a', 'b'],
+                                          phase=design.Phase.TRAIN)
+        net = netspec.instantiate()
+
+        dmon = CyclingDataMonitor(
+            only_preload=['a', 'b'],
+            X={'a': [np.zeros((3, 6, 6)), np.zeros((3, 7, 9))],
+               'b': [np.ones((1, 6, 6)), np.ones((1, 7, 9))]})
+        tmon = ResizingMonitor(
+            blobinfos={'a': 1, 'b': 2},
+            base_scale=2.,
+            net_input_size_adjustment_multiple_of=2,
+            interp_methods={'a':'c', 'b':'n'}
+        )
+        dmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
+        tmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
+        kwargs = {'net': net, 'testnet': net}
+        dmon._pre_train_batch(kwargs)
+        tmon._pre_train_batch(kwargs)
+        self.assertEqual(np.sum(net.blobs['a'].data[...]), 75.)
+        self.assertEqual(np.sum(net.blobs['b'].data[...]), 36.*4. + 50.)
+        dmon._pre_train_batch(kwargs)
+        tmon._pre_train_batch(kwargs)
+        self.assertEqual(np.sum(net.blobs['a'].data[...]),
+                         (15.*19.-14.*18.)*3.)
+        self.assertEqual(net.blobs['a'].data.shape, (1, 3, 15, 19))
+        self.assertEqual(np.sum(net.blobs['b'].data[...]),
+                         (15.*19.-14.*18.)*2.+14.*18.)
+        self.assertEqual(net.blobs['b'].data.shape, (1, 1, 15, 19))
+        dmon._pre_test_batch(kwargs)
+        tmon._pre_test_batch(kwargs)
+        self.assertEqual(np.sum(net.blobs['a'].data[...]), 75.)
+        self.assertEqual(np.sum(net.blobs['b'].data[...]), 36.*4. + 50.)
+
+    def test_ResizingMonitor_random_scale(self):
+        """Test the resizing monitor random scale capability."""
+        import barrista.design as design
+        import numpy as np
+        from barrista.monitoring import CyclingDataMonitor, ResizingMonitor
+
+        netspec = design.NetSpecification([[1, 3, 5, 5], [1, 1, 5, 5]],
+                                          inputs=['a', 'b'],
+                                          phase=design.Phase.TRAIN)
+        net = netspec.instantiate()
+
+        dmon = CyclingDataMonitor(
+            only_preload=['a', 'b'],
+            X={'a': [np.zeros((3, 6, 6))],
+               'b': [np.ones((1, 6, 6))]})
+        tmon = ResizingMonitor(
+            blobinfos={'a': 1, 'b': 2},
+            base_scale=2.,
+            random_change_up_to=0.5,
+            net_input_size_adjustment_multiple_of=1,
+            interp_methods={'a':'c', 'b':'n'}
+        )
+        dmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
+        tmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
+        kwargs = {'net': net, 'testnet': net}
+        scales = []
+        np.random.seed(1)
+        for _ in range(1000):
+            dmon._pre_train_batch(kwargs)
+            tmon._pre_train_batch(kwargs)
+            scales.append(net.blobs['a'].data.shape[2])
+        from scipy.stats import chisquare, itemfreq
+        freq = itemfreq(scales)[:, 1]
+        _, pvalue = chisquare(freq)
+        self.assertTrue(pvalue > 0.1)
+
+    def test_RotatingMirroringMonitor(self):
+        """Test the rotating mirroring monitor."""
+        import barrista.design as design
+        import numpy as np
+        from barrista.monitoring import (CyclingDataMonitor,
+                                         RotatingMirroringMonitor)
+
+        netspec = design.NetSpecification([[1, 3, 5, 5], [1, 1, 5, 5]],
+                                          inputs=['a', 'b'],
+                                          phase=design.Phase.TRAIN)
+        net = netspec.instantiate()
+
+        adata = np.zeros((3, 5, 5))
+        adata[:, 0, 0:3] = 1.
+        bdata = np.ones((1, 5, 5))
+        bdata[:, 0, 0:3] = 0.
+        dmon = CyclingDataMonitor(
+            X={'a': [adata],
+               'b': [bdata]})
+        tmon = RotatingMirroringMonitor(
+            blobinfos={'a': 2, 'b': 2},
+            max_rotation_degrees=90.
+        )
+        np.random.seed(2748)
+        dmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
+        tmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
+        kwargs = {'net': net, 'testnet': net}
+        dmon._pre_train_batch(kwargs)
+        tmon._pre_train_batch(kwargs)
+        self.assertEqual(np.sum(net.blobs['a'].data), 54.)
+        self.assertTrue(np.all(net.blobs['a'].data[:, :, 2:4, 0] == 1.))
+        self.assertEqual(np.sum(net.blobs['b'].data), 31.)
+        self.assertTrue(np.all(net.blobs['b'].data[:, :, 2:4, 0] == 0.))
+
+    def test_RotatingMirroringMonitor_mirroring(self):
+        """Test the rotating mirroring monitor mirroring capability."""
+        import barrista.design as design
+        import numpy as np
+        from barrista.monitoring import (CyclingDataMonitor,
+                                         RotatingMirroringMonitor)
+
+        netspec = design.NetSpecification([[1, 3, 5, 5], [1, 1, 5, 5]],
+                                          inputs=['a', 'b'],
+                                          phase=design.Phase.TRAIN)
+        net = netspec.instantiate()
+
+        adata = np.zeros((3, 5, 5))
+        adata[:, 0, 0:3] = 1.
+        bdata = np.ones((1, 5, 5))
+        bdata[:, 0, 0:3] = 0.
+        dmon = CyclingDataMonitor(
+            X={'a': [adata],
+               'b': [bdata]})
+        tmon = RotatingMirroringMonitor(
+            blobinfos={'a': 2, 'b': 2},
+            max_rotation_degrees=0.,
+            mirror_prob=0.5
+        )
+        np.random.seed(2748)
+        dmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
+        tmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
+        kwargs = {'net': net, 'testnet': net}
+        dmon._pre_train_batch(kwargs)
+        tmon._pre_train_batch(kwargs)
+        self.assertEqual(np.sum(net.blobs['a'].data), np.sum(adata))
+        self.assertTrue(np.all(net.blobs['a'].data[:, :, 0, 2:4] == 1.))
+        self.assertEqual(np.sum(net.blobs['b'].data), np.sum(bdata))
+        self.assertTrue(np.all(net.blobs['b'].data[:, :, 0, 2:4] == 0.))
 
     def test_Checkpointer(self):
         """Test the ``Checkpointer``."""
