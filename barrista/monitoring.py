@@ -506,7 +506,6 @@ class RotatingMirroringMonitor(Monitor):
                         mode='constant',
                         cval=padval,
                         prefilter=prefilter)
-                print mirrorings
                 if mirrorings[sample_idx] == 1.:
                     net.blobs[key].data[sample_idx] = \
                         net.blobs[key].data[sample_idx, :, :, ::-1]
