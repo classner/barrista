@@ -349,7 +349,7 @@ class MonitoringTestCase(unittest.TestCase):
                                           phase=design.Phase.TRAIN)
         net = netspec.instantiate()
 
-        tmon = CyclingDataMonitor(X={'a': range(4),
+        tmon = CyclingDataMonitor(X={'a': list(range(4)),
                                      'b': np.array(range(5, 9))})
         tmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
         tmon._pre_train_batch({'net': net})
@@ -375,7 +375,7 @@ class MonitoringTestCase(unittest.TestCase):
 
         tmon = CyclingDataMonitor(
             only_preload=['a', 'b'],
-            X={'a': range(4),
+            X={'a': list(range(4)),
                'b': np.array(range(5, 9))})
         tmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
         kwargs = {'net': net, 'testnet': net}
@@ -394,6 +394,10 @@ class MonitoringTestCase(unittest.TestCase):
         import barrista.design as design
         import numpy as np
         from barrista.monitoring import CyclingDataMonitor
+        import barrista.monitoring as bm
+        if bm._cv2 is None:
+            # OpenCV is not available, so skip the test.
+            return
 
         netspec = design.NetSpecification([[3, 3, 10, 10], [3, 3, 5, 5]],
                                           inputs=['a', 'b'],
@@ -473,6 +477,10 @@ class MonitoringTestCase(unittest.TestCase):
         import barrista.design as design
         import numpy as np
         from barrista.monitoring import CyclingDataMonitor, ResizingMonitor
+        import barrista.monitoring as bm
+        if bm._cv2 is None:
+            # OpenCV is not available, so skip the test.
+            return
 
         netspec = design.NetSpecification([[1, 3, 5, 5], [1, 1, 5, 5]],
                                           inputs=['a', 'b'],
@@ -514,6 +522,10 @@ class MonitoringTestCase(unittest.TestCase):
         import barrista.design as design
         import numpy as np
         from barrista.monitoring import CyclingDataMonitor, ResizingMonitor
+        import barrista.monitoring as bm
+        if bm._cv2 is None:
+            # OpenCV is not available, so skip the test.
+            return
 
         netspec = design.NetSpecification([[1, 3, 5, 5], [1, 1, 5, 5]],
                                           inputs=['a', 'b'],
