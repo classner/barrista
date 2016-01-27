@@ -206,7 +206,7 @@ class CyclingDataMonitor(Monitor):  # pylint: disable=R0903
                     if (net.blobs[key].data[sample_idx].size == 1 and (
                             isinstance(self._X[key][samples_ids[sample_idx]],
                                        (int, float)) or
-                            len(self._X[key][samples_ids[sample_idx]]) == 1) or
+                            self._X[key][samples_ids[sample_idx]].size == 1) or
                             self._X[key][samples_ids[sample_idx]].size ==
                             net.blobs[key].data[sample_idx].size):
                         if net.blobs[key].data[sample_idx].size == 1:
