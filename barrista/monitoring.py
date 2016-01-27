@@ -792,11 +792,17 @@ class Checkpointer(Monitor):  # pylint: disable=R0903
                      '%d iterations.', name_prefix, iterations)
         self.name_prefix = name_prefix
         self.iterations = iterations
+        self.created_checkpoints = []
 
     def _post_train_batch(self, kwargs):
         assert self.iterations % kwargs['batch_size'] == 0, (
             'iterations not multiple of batch_size, {} vs {}'.format(
                 self.iterations, kwargs['batch_size']))
+        # Prevent double-saving.
+        if kwargs['iter'] in self.created_checkpoints:
+            return
+        else:
+            self.created_checkpoints.append(kwargs['iter'])
         if kwargs['iter'] % self.iterations == 0:
             # pylint: disable=protected-access
             if not hasattr(kwargs['solver']._solver, 'snapshot'):
@@ -811,11 +817,13 @@ class Checkpointer(Monitor):  # pylint: disable=R0903
             else:
                 # pylint: disable=protected-access
                 kwargs['solver']._solver.snapshot()
-                caffe_checkpoint_filename = ('_iter_' +
+                caffe_checkpoint_filename = (self.name_prefix +
+                                             '_iter_' +
                                              str(kwargs['iter'] /
                                                  kwargs['batch_size'] + 1) +
                                              '.caffemodel')
-                caffe_sstate_filename = ('_iter_' +
+                caffe_sstate_filename = (self.name_prefix +
+                                         '_iter_' +
                                          str(kwargs['iter'] /
                                              kwargs['batch_size'] + 1) +
                                          '.solverstate')
@@ -826,4 +834,7 @@ class Checkpointer(Monitor):  # pylint: disable=R0903
 
     def finalize(self, kwargs):
         """Write a final checkpoint."""
+        # Account for the counting on iteration increase for the last batch.
+        kwargs['iter'] -= kwargs['batch_size']
         self._post_train_batch(kwargs)
+        kwargs['iter'] += kwargs['batch_size']
