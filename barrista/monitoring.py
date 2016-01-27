@@ -733,17 +733,18 @@ class JSONLogger(Monitor):  # pylint: disable=R0903
                 'only train and test is supported by this logger')
 
     def _post_test(self, kwargs):
-        self._post('test', kwargs)
+        self._post('test', 0, kwargs)
 
     def _post_train_batch(self, kwargs):
-        self._post('train', kwargs)
+        self._post('train', kwargs['batch_size'], kwargs)
 
-    def _post(self, phase_name, kwargs):  # pylint: disable=C0111
+    def _post(self, phase_name, offset, kwargs):  # pylint: disable=C0111
         if phase_name not in self._logging:
             return
         for key in self._logging[phase_name]:
             if key in kwargs:
-                self.dict[phase_name].append({'NumIters': kwargs['iter'],
+                self.dict[phase_name].append({'NumIters':
+                                              kwargs['iter'] + offset,
                                               key: kwargs[key]})
 
     def finalize(self, kwargs):  # pylint: disable=W0613
@@ -796,8 +797,7 @@ class Checkpointer(Monitor):  # pylint: disable=R0903
         assert self.iterations % kwargs['batch_size'] == 0, (
             'iterations not multiple of batch_size, {} vs {}'.format(
                 self.iterations, kwargs['batch_size']))
-
-        if kwargs['iter'] % self.iterations == 0 and kwargs['iter'] > 0:
+        if kwargs['iter'] % self.iterations == 0:
             # pylint: disable=protected-access
             if not hasattr(kwargs['solver']._solver, 'snapshot'):
                 checkpoint_filename = (

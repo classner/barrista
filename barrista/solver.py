@@ -136,6 +136,18 @@ class Solver(object):
 
         self._print_warning = False
 
+    def restore(self, filename, net=None):
+        """Restore the solverstate from a file."""
+        if self._net is None:
+            assert net is not None, ('you must specify a net on which the '
+                                     'restored solver will be used!')
+        if net is not None:
+            # The method self._Update_net must not be used here, since it
+            # is allowed to use a new net.
+            self._net = net
+        self._Update_solver()
+        self._solver.restore(filename)
+
     @classmethod
     def Get_required_arguments(cls):
         """The minimum number of required parameters."""
@@ -376,6 +388,9 @@ class Solver(object):
                 for cb in test_callbacks:
                     cb(cbparams)
 
+            if iteration == iterations:
+                break
+
             ###############################################################
             # training loop
             ###############################################################
@@ -562,8 +577,6 @@ class Solver(object):
             return
         if self._net is not None:
             if id(self._net) != id(net):
-                from ktoolspy import klog
-                klog.Error_ipdb()
                 raise Exception(' '.join(
                     ['a solver works only with one network',
                      'the network has to remain the same']))

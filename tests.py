@@ -322,7 +322,7 @@ class MonitoringTestCase(unittest.TestCase):
              'annotations': np.ones((10, 1), dtype='float32')}
         solver = _solver.SGDSolver(
             base_lr=0.01)
-        net.fit(20,
+        net.fit(30,
                 solver,
                 X=X,
                 X_val=X,
@@ -335,7 +335,7 @@ class MonitoringTestCase(unittest.TestCase):
         self.assertIn('train', list(json_load.keys()))
         self.assertIn('test', list(json_load.keys()))
         self.assertEqual(len(json_load['train']), 6)
-        self.assertEqual(len(json_load['test']), 6)
+        self.assertEqual(len(json_load['test']), 8)
         shutil.rmtree(dirpath)
 
     def test_CyclingDataMonitor(self):
@@ -660,7 +660,7 @@ class MonitoringTestCase(unittest.TestCase):
         solver = _solver.SGDSolver(
             base_lr=0.01,
             snapshot_prefix=dirpath+os.sep)
-        net.fit(20,
+        net.fit(30,
                 solver,
                 X=X,
                 train_callbacks=[chckptr])
@@ -837,7 +837,7 @@ class NetTestCase(unittest.TestCase):
         solver = _solver.SGDSolver(
             base_lr=0.01,
             snapshot_prefix=dirpath+os.sep)
-        net.fit(10,
+        net.fit(20,
                 solver,
                 X=X,
                 train_callbacks=[chckptr])
@@ -1194,6 +1194,62 @@ class SolverTestCase(unittest.TestCase):
         accy = new_net.predict(X,
                                allow_train_phase_for_test=True)['accuracy'][0]
         self.assertEqual(accy, 1.0)
+
+    def test_restore(self):
+        """Test the ``restore`` method."""
+        import tempfile
+        import shutil
+        import os
+        import barrista.design as design
+        import numpy as np
+        from barrista.design import (ConvolutionLayer, InnerProductLayer,
+                                     SoftmaxWithLossLayer, PROTODETAIL)
+        from barrista.monitoring import Checkpointer
+        from barrista import solver as _solver
+        netspec = design.NetSpecification([[10, 3, 3, 3], [10]],
+                                          inputs=['data', 'annotations'],
+                                          phase=design.Phase.TRAIN)
+        layers = []
+        conv_params = {'Convolution_kernel_size': 3,
+                       'Convolution_num_output': 3,
+                       'Convolution_pad': 1,
+                       'Convolution_weight_filler':
+                       PROTODETAIL.FillerParameter(type='xavier')}
+
+        layers.append(ConvolutionLayer(**conv_params))
+        layers.append(InnerProductLayer(name='outlbf',
+                                        InnerProduct_num_output=2,
+                                        tops=['out']))
+        layers.append(SoftmaxWithLossLayer(bottoms=['out', 'annotations']))
+        netspec.layers.extend(layers)
+        net = netspec.instantiate()
+
+        dirpath = tempfile.mkdtemp()
+        chckptr = Checkpointer(dirpath + os.sep, 10)
+        X = {'data': np.ones((10, 3, 3, 3), dtype='float32'),
+             'annotations': np.ones((10, 1), dtype='float32')}
+
+        solver = _solver.SGDSolver(
+            base_lr=0.01,
+            snapshot_prefix=dirpath+os.sep)
+        net.fit(30,
+                solver,
+                X=X,
+                train_callbacks=[chckptr])
+        if not (hasattr(solver._solver, 'restore') and
+                hasattr(solver._solver, 'snapshot')):
+            return
+        newsolver = _solver.SGDSolver(
+            base_lr=0.01,
+            snapshot_prefix=dirpath+os.sep)
+        newnet = netspec.instantiate()
+        newsolver.restore(os.path.join(dirpath, '_iter_2.solverstate'),
+                          newnet)
+        newsolver.fit(10,
+                      X=X)
+        self.assertTrue(np.all(net.params['_layer_0'][0].data[...] ==
+                               newnet.params['_layer_0'][0].data[...]))
+        shutil.rmtree(dirpath)
 
     def test_sgd(self):
         """Test the stochastic gradient descent."""
