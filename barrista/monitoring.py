@@ -194,18 +194,18 @@ class CyclingDataMonitor(Monitor):  # pylint: disable=R0903
         if len(self.only_preload) > 0:
             sample_dict = dict()
 
-        for key in list(self._X.keys()):
+        for key in list(self._X.keys()):  # pylint: disable=too-many-nested-blocks
             if key in self.only_preload:
                 sample_dict[key] = []
             # this will actually fill the data for the network
-            for sample_idx in xrange(self._batch_size):
+            for sample_idx in range(self._batch_size):
                 if key in self.only_preload:
                     sample_dict[key].append(
                         self._X[key][samples_ids[sample_idx]])
                 else:
                     if (net.blobs[key].data[sample_idx].size == 1 and (
                             isinstance(self._X[key][samples_ids[sample_idx]],
-                                       (int, long, float)) or
+                                       (int, float)) or
                             len(self._X[key][samples_ids[sample_idx]]) == 1) or
                             self._X[key][samples_ids[sample_idx]].size ==
                             net.blobs[key].data[sample_idx].size):
