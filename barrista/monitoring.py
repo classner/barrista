@@ -803,7 +803,7 @@ class Checkpointer(Monitor):  # pylint: disable=R0903
             return
         else:
             self.created_checkpoints.append(kwargs['iter'])
-        if kwargs['iter'] % self.iterations == 0:
+        if (kwargs['iter']+kwargs['batch_size']) % self.iterations == 0:
             # pylint: disable=protected-access
             if not hasattr(kwargs['solver']._solver, 'snapshot'):
                 checkpoint_filename = (
