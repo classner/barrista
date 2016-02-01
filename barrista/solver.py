@@ -347,13 +347,16 @@ class Solver(object):
         cbparams['solver'] = self
         cbparams['X'] = X
         cbparams['X_val'] = X_val
-        cbparams['callback_signal'] = None
         cbparams['train_callbacks'] = train_callbacks
         cbparams['test_callbacks'] = test_callbacks
 
         cbparams['callback_signal'] = 'pre_fit'
-        for cb in set(train_callbacks + test_callbacks):
+        for cb in train_callbacks:
             cb(cbparams)
+        if test_interval > 0:
+            cbparams['callback_signal'] = 'pre_test'
+            for cb in test_callbacks:
+                cb(cbparams)
 
         while iteration <= iterations:
             cbparams['iter'] = iteration
@@ -366,10 +369,6 @@ class Solver(object):
                 ###############################################################
                 # testing loop
                 ###############################################################
-                cbparams['callback_signal'] = 'pre_test'
-                for cb in test_callbacks:
-                    cb(cbparams)
-
                 test_iter = 0
                 while test_iter < test_iterations:
                     cbparams['callback_signal'] = 'pre_test_batch'

@@ -177,6 +177,9 @@ class CyclingDataMonitor(Monitor):  # pylint: disable=R0903
         self._batch_size = net.blobs[list(self._X.keys())[0]].data.shape[0]
         assert self._batch_size > 0
 
+    def _pre_test(self, kwargs):
+        self._pre_fit(kwargs)
+
     def _pre_train_batch(self, kwargs):
         self._pre_batch(kwargs['net'], kwargs)
 
@@ -338,6 +341,9 @@ class ResizingMonitor(Monitor):  # pylint: disable=R0903
             assert self._batch_size == 1, (
                 "If size adjustment is activated, the batch size must be one!")
 
+    def _pre_test(self, kwargs):
+        self._pre_fit(kwargs)
+
     def _pre_train_batch(self, kwargs):
         self._pre_batch(kwargs['net'], kwargs)
 
@@ -467,6 +473,9 @@ class RotatingMirroringMonitor(Monitor):
                     key, str(list(net.blobs.keys()))))
             assert net.blobs[key].data.ndim == 4
         self._batch_size = net.blobs[list(self._blobinfos.keys())[0]].data.shape[0]
+
+    def _pre_test(self, kwargs):
+        self._pre_fit(kwargs)
 
     def _pre_train_batch(self, kwargs):
         self._pre_batch(kwargs['net'], kwargs)
@@ -609,6 +618,7 @@ class ResultExtractor(Monitor):  # pylint: disable=R0903
 
     def _pre_test(self, kwargs):
         self._test_data = []
+        self._pre_fit(kwargs)
 
     def _post_test(self, kwargs):
         kwargs[self._cbparam_key] = _np.mean(self._test_data)
@@ -732,6 +742,9 @@ class JSONLogger(Monitor):  # pylint: disable=R0903
         for key in list(self._logging.keys()):
             assert key in ['train', 'test'], (
                 'only train and test is supported by this logger')
+
+    def _pre_test(self, kwargs):
+        self._pre_fit(kwargs)
 
     def _post_test(self, kwargs):
         self._post('test', 0, kwargs)
