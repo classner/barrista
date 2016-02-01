@@ -266,16 +266,15 @@ class MonitoringTestCase(unittest.TestCase):
         net.fit(10,
                 solver,
                 X,
-                train_callbacks=[
-                    fitpi])
+                train_callbacks=[fitpi])
         if hasattr(fitpi.pbar, 'finished'):
             # progressbar2 compatibility.
             self.assertEqual(fitpi.pbar.finished, True)
         # For predict.
         predpi = ProgressIndicator()
         net.predict(np.zeros((10, 3, 3, 3)),
-                    post_batch_callbacks=[predpi])
-        if hasattr(fitpi.pbar, 'finished'):
+                    test_callbacks=[predpi])
+        if hasattr(predpi.pbar, 'finished'):
             self.assertEqual(predpi.pbar.finished, True)
 
     def test_JSONLogger(self):

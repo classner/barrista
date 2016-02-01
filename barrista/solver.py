@@ -255,7 +255,7 @@ class Solver(object):
           Whether to do a run on the validation set pre the training is
           started to get an initial score.
 
-        :param train_callbacks: list(callable).
+        :param train_callbacks: list(barrista.monitoring.Monitor).
           List of callback callables. Will be called pre and post training
           batch is processed. This list will be processed
           sequentially, meaning that monitors in the sequence can
@@ -349,7 +349,7 @@ class Solver(object):
         cbparams['X_val'] = X_val
         cbparams['callback_signal'] = None
         cbparams['train_callbacks'] = train_callbacks
-        cbparams['test_callbacks'] = train_callbacks
+        cbparams['test_callbacks'] = test_callbacks
 
         cbparams['callback_signal'] = 'pre_fit'
         for cb in set(train_callbacks + test_callbacks):

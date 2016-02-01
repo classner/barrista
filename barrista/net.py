@@ -123,8 +123,7 @@ class Net(_caffe.Net):
 
     def predict_sliding_window(self,
                                input_sequence,
-                               pre_batch_callbacks=None,
-                               post_batch_callbacks=None,
+                               test_callbacks=None,
                                out_blob_names=None,
                                use_fit_network=False,
                                oversample=False,
@@ -152,12 +151,11 @@ class Net(_caffe.Net):
           and different for each image. Multi-input networks are not yet
           supported by this method.
 
-        :param pre_batch_callbacks: list(callable) or None.
-          Each element of this list will be called with the batch id as
-          argument before forward propagating a batch.
-
-        :param post_batch_callbacks: list(callable) or None.
-          See before, but after a callback.
+        :param test_callbacks: list(barrista.monitoring.Monitor) or None.
+          List of callback callables. Will be called pre and post batch
+          processing. This list will be processed sequentially, meaning that
+          monitors in the sequence can provide information for later monitors
+          as done with the ``ResultExtractor``.
 
         :param out_blob_names: list(string) or None.
           The names of the blobs of which the values are returned. If
@@ -222,8 +220,7 @@ class Net(_caffe.Net):
             patches = patches.reshape(_np.hstack((_np.prod(patches.shape[:3]),
                                                   patches.shape[3:])))
             results = prednet.predict(patches,
-                                      pre_batch_callbacks=pre_batch_callbacks,  # noqa
-                                      post_batch_callbacks=post_batch_callbacks,
+                                      test_callbacks=test_callbacks,
                                       out_blob_names=out_blob_names,
                                       use_fit_network=use_fit_network,
                                       oversample=oversample,
@@ -293,8 +290,7 @@ class Net(_caffe.Net):
 
     def predict(self,  # pylint: disable=R0915
                 input_sequence,
-                pre_batch_callbacks=None,
-                post_batch_callbacks=None,
+                test_callbacks=None,
                 out_blob_names=None,
                 use_fit_network=None,
                 oversample=False,
@@ -325,12 +321,11 @@ class Net(_caffe.Net):
           `input_processing_flags` to specify how preprocessing is
           done in any scenario.
 
-        :param pre_batch_callbacks: list(callable) or None.
-          Each element of this list will be called with the batch id as
-          argument before forward propagating a batch.
-
-        :param post_batch_callbacks: list(callable) or None.
-          See before, but after a callback.
+        :param test_callbacks: list(barrista.monitoring.Monitor) or None.
+          List of callback callables. Will be called pre and post batch
+          processing. This list will be processed sequentially, meaning that
+          monitors in the sequence can provide information for later monitors
+          as done with the ``ResultExtractor``.
 
         :param out_blob_names: list(string) or None.
           The names of the blobs of which the values are returned. If
@@ -411,10 +406,8 @@ class Net(_caffe.Net):
                 .format(prednet.inputs)
             )
             input_sequence = {prednet.inputs[0]: input_sequence}
-        if pre_batch_callbacks is None:
-            pre_batch_callbacks = []
-        if post_batch_callbacks is None:
-            post_batch_callbacks = []
+        if test_callbacks is None:
+            test_callbacks = []
         if out_blob_names is None:
             out_blob_names = prednet.outputs
         for bname in out_blob_names:
@@ -490,7 +483,13 @@ class Net(_caffe.Net):
         cbparams['batch_size'] = batch_size
         cbparams['iter'] = 0
         cbparams['net'] = prednet
+        cbparams['testnet'] = prednet
         cbparams['X'] = None
+
+        cbparams['callback_signal'] = 'pre_test'
+        for cb in test_callbacks:
+            cb(cbparams)
+
         chunk_size = (batch_size if not oversample else batch_size // 10)
         for chunk_idx, sample_ids in enumerate(_chunks(list(range(nsamples)),
                                                        chunk_size)):
@@ -548,8 +547,8 @@ class Net(_caffe.Net):
                 else len(output_images[list(output_images.keys())[0]]) * 10)
             cbparams['X'] = [prednet.blobs[blobname]
                              for blobname in prednet.inputs]
-            cbparams['callback_signal'] = 'pre_train_batch'
-            for cb in pre_batch_callbacks:
+            cbparams['callback_signal'] = 'pre_test_batch'
+            for cb in test_callbacks:
                 cb(cbparams)
             # Logging.
             to_image = (
@@ -676,11 +675,11 @@ class Net(_caffe.Net):
             cbparams['iter'] = (len(output_images[list(output_images.keys())[0]]) if not oversample
                                 else len(output_images[list(output_images.keys())[0]]) * 10)
             cbparams['out'] = out
-            cbparams['callback_signal'] = 'post_train_batch'
-            for cb in post_batch_callbacks:
+            cbparams['callback_signal'] = 'post_test_batch'
+            for cb in test_callbacks:
                 cb(cbparams)
             del cbparams['out']
-        for cb in set(pre_batch_callbacks + post_batch_callbacks):
+        for cb in test_callbacks:
             cb.finalize(cbparams)
         if len(output_images) == 1:
             return list(output_images.items())[0][1]

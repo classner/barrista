@@ -109,7 +109,7 @@ with TemporaryDirectory() as tmpdir:
     # Predict some new data. Note, that this is automatically using the weights
     # of the trained net, but in the `predict` layout.
     results = net.predict(np.zeros((30, 3, 51, 51), dtype='float32'),
-                          post_batch_callbacks=[ProgressIndicator()])
+                          test_callbacks=[ProgressIndicator()])
 
     # Reloading a model.
     # net.load_blobs_from(os.path.join(tmpdir, 'test_net_50.caffemodel'))

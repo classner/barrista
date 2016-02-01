@@ -175,6 +175,7 @@ class CyclingDataMonitor(Monitor):  # pylint: disable=R0903
                 'data must be a numpy nd array or list ({})'.format(type(value))
             )
         self._batch_size = net.blobs[list(self._X.keys())[0]].data.shape[0]
+        assert self._batch_size > 0
 
     def _pre_train_batch(self, kwargs):
         self._pre_batch(kwargs['net'], kwargs)
