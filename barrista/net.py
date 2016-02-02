@@ -564,7 +564,7 @@ class Net(_caffe.Net):
             # pylint: disable=W0212
             prednet._forward(0, len(prednet.layers) - 1)
             forward_prop_duration = _time.time() - forward_prop_beginpoint
-            _LOGGER.info('Done in %ds.', forward_prop_duration)
+            _LOGGER.info('Done in %03.2fs.', forward_prop_duration)
             # Post processing.
             out = {out: prednet.blobs[out].data for out in out_blob_names}
             _LOGGER.info('Extracting output images...')
