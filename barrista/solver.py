@@ -479,9 +479,16 @@ class Solver(object):
         with _NamedTemporaryFile(mode='w+b', suffix='.prototxt') as tmpfile:
             tmpfile.write(bytes(messagestr.encode('utf-8')))
             tmpfile.flush()
-            return cls.Get_caffe_solver_class(
-                solver_parameter_dict['solver_type'])._caffe_solver_class(
-                    tmpfile.name, net)
+            try:
+                # Newer version of caffe with full solver init support.
+                return cls.Get_caffe_solver_class(
+                    solver_parameter_dict['solver_type'])._caffe_solver_class(
+                        tmpfile.name, net, _caffe._caffe.NetVec(), True)
+            except TypeError:
+                # Fallback for older, patched versions.
+                return cls.Get_caffe_solver_class(
+                    solver_parameter_dict['solver_type'])._caffe_solver_class(
+                        tmpfile.name, net)
         raise Exception('could not initialize solver class')
 
     @classmethod
@@ -635,7 +642,8 @@ class Solver(object):
             'test interval must be >= 0 but is {}'.format(
                 test_iterations))
         assert test_interval % batch_size == 0, (
-            'error iterations do not match', test_iterations, batch_size)
+            'the test interval must be a multiple of the batch size: {}, {}',
+            test_iterations, batch_size)
 
     @classmethod
     def _Assert_callbacks(cls, net, callbacks, phase):
