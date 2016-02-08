@@ -294,6 +294,7 @@ class CyclingDataMonitor(Monitor):
             only_preload = []
         self.only_preload = only_preload
         self._X = X  # pylint: disable=C0103
+        assert X is not None
         if input_processing_flags is None:
             input_processing_flags = dict()
         self._input_processing_flags = input_processing_flags

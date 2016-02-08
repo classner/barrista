@@ -442,7 +442,7 @@ class Net(_caffe.Net):
         assert output_processing_flags is None or \
             all([flag.lower()[0] in ['r', 'p', 'n']
                  for flag in list(output_processing_flags.values())]), \
-            "The output processing flags must be in ['p', 'n']."
+            "The output processing flags must be in ['r', 'p', 'n']."
         if output_processing_flags is None:
             output_processing_flags = dict(
                 [(out_name, 'n') for out_name in out_blob_names])
