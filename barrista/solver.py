@@ -313,8 +313,12 @@ class Solver(object):
                                                 test_callbacks,
                                                 'test')
 
+        testnet = self._Init_testnet(test_interval,
+                                     use_fit_phase_for_validation)
+
         batch_size, test_iterations = self._Get_batch_size(
             self._net,
+            testnet,
             test_interval,
             test_iterations,
             X_val,
@@ -333,9 +337,6 @@ class Solver(object):
                                    test_interval,
                                    train_callbacks,
                                    test_callbacks)
-
-        testnet = self._Init_testnet(test_interval,
-                                     use_fit_phase_for_validation)
 
         iteration = 0
         pre_fit_called = False
@@ -602,6 +603,7 @@ class Solver(object):
 
     def _Get_batch_size(self,  # pylint: disable=R0201
                         net,
+                        testnet,
                         test_interval,
                         test_iterations,
                         X_val,
@@ -610,6 +612,10 @@ class Solver(object):
         if len(net.inputs) > 0:
             # Otherwise, a DB backend is used.
             batch_size = net.blobs[net.inputs[0]].data.shape[0]
+            if testnet is not None:
+                assert (testnet.blobs[net.inputs[0]].data.shape[0] ==
+                        batch_size), ("Validation and fit network batch size "
+                                      "must agree!")
             if (test_interval != 0 and
                     test_iterations == 0 and
                     X_val is not None):
