@@ -5,18 +5,6 @@
 
 import time as _time
 import logging as _logging
-
-import numpy as _np
-from sklearn.feature_extraction.image import extract_patches as _extract_patches
-
-from .tools import chunks as _chunks, pad as _pad, pbufToPyEnum as _pbufToPyEnum
-
-# CAREFUL! This must be imported before any caffe-related import!
-from .initialization import init as _init
-
-import caffe as _caffe
-import caffe.proto.caffe_pb2 as _caffe_pb2
-_Phase = _pbufToPyEnum(_caffe_pb2.Phase)
 try:
     import cv2 as _cv2
     _cv2INTER_CUBIC = _cv2.INTER_CUBIC
@@ -29,6 +17,19 @@ except ImportError:
     _cv2INTER_LINEAR = None
     _cv2INTER_NEAREST = None
     _cv2resize = None
+
+import numpy as _np
+from sklearn.feature_extraction.image import extract_patches as _extract_patches
+
+from .tools import chunks as _chunks, pbufToPyEnum as _pbufToPyEnum
+import barrista.monitoring as _monitoring
+
+# CAREFUL! This must be imported before any caffe-related import!
+from .initialization import init as _init
+
+import caffe as _caffe
+import caffe.proto.caffe_pb2 as _caffe_pb2
+_Phase = _pbufToPyEnum(_caffe_pb2.Phase)
 
 _init()
 _LOGGER = _logging.getLogger(__name__)
@@ -346,8 +347,9 @@ class Net(_caffe.Net):
           or None if the image should not be resized before oversampling.
 
         :param input_processing_flags: dict(string:string) or None.
-          A list or tuple of letters specifying the proprocessing for each
-          input. 'n': no preprocessing, 'r': rescale, 'p': pad.
+          A list or tuple of letters specifying the preprocessing for each
+          input. 'n': no preprocessing, 'rc': rescale cubic, 'rn': rescale
+          nearest, 'rl': rescale linear, 'p': pad.
           Default: ['n'] * number_of_inputs
 
         :param output_processing_flags: dict(string:string) or None.
@@ -429,9 +431,11 @@ class Net(_caffe.Net):
             assert (before_oversample_resize_to[0] >= input_image_dims_0[0] and
                     before_oversample_resize_to[1] >= input_image_dims_0[1])
         assert input_processing_flags is None or \
-            all([flag.lower() in ['r', 'p', 'n']
-                 for flag in list(input_processing_flags.values())]), \
-            "The input processing flags must be in ['r', 'p', 'n']."
+            all([flag.lower() in ['rc', 'rn', 'rl', 'n'] or
+                 flag.startswith('p') and flag[1:].isdigit()
+                 for flag in list(input_processing_flags.values())]), (
+                     "The input processing flags must be in ['rc', 'rn', "
+                     "'rl', 'pX', 'n'] where X is the padding value.")
         if input_processing_flags is None:
             input_processing_flags = dict(
                 [(inp_name, 'n') for inp_name in prednet.inputs])
@@ -471,6 +475,16 @@ class Net(_caffe.Net):
             assert input_processing_flags[prednet.inputs[0]] == 'n', (
                 'Automatic oversampling is only available for "n" as '
                 'preprocessing.')
+
+        self._Init_data_monitors(
+            input_sequence,
+            input_processing_flags,
+            static_inputs,
+            oversample,
+            before_oversample_resize_to,
+            batch_size,
+            test_callbacks)
+
         ########################################################################
         # Plausibility checks done.
         # Start working!
@@ -493,56 +507,9 @@ class Net(_caffe.Net):
         for cb in test_callbacks:
             cb(cbparams)
         chunk_size = (batch_size if not oversample else batch_size // 10)
-        for chunk_idx, sample_ids in enumerate(_chunks(list(range(nsamples)),
-                                                       chunk_size)):
+        for chunk_idx in enumerate(_chunks(list(range(nsamples)),
+                                           chunk_size)):
             _LOGGER.debug('Preparing chunk %d...', chunk_idx)
-            for inp_name in prednet.inputs:
-                if inp_name not in static_inputs:
-                    im_chunk = [input_sequence[inp_name][im_idx]
-                                for im_idx in sample_ids]
-                else:
-                    # Static input.
-                    im_chunk = input_sequence[inp_name]
-                for idx, im in enumerate(im_chunk):
-                    if oversample:
-                        if before_oversample_resize_to is not None:
-                            oversampling_prep = _cv2resize(
-                                _np.transpose(im, (1, 2, 0)),
-                                (before_oversample_resize_to[1],
-                                 before_oversample_resize_to[0]),
-                                interpolation=_cv2INTER_LINEAR)
-                        else:
-                            oversampling_prep = _np.transpose(im, (1, 2, 0))
-                        prednet.blobs[inp_name].data[idx * 10:(idx+1) * 10] =\
-                            _np.transpose(
-                                _caffe.io.oversample([oversampling_prep],
-                                                     input_image_dims_0[:2]),
-                                (0, 3, 1, 2))
-                    else:
-                        if inp_name in static_inputs:
-                            if chunk_idx == 0:
-                                # Only copy once.
-                                prednet.blobs[inp_name].data[...] = im_chunk
-                            continue
-                        if input_processing_flags[inp_name].lower() == 'p':
-                            prednet.blobs[inp_name].data[idx] = _pad(
-                                im,
-                                prednet.blobs[inp_name].data.shape[2:4])
-                        elif input_processing_flags[inp_name].lower() == 'r':
-                            prednet.blobs[inp_name].data[idx] = _np.transpose(
-                                _cv2resize(
-                                    _np.transpose(im, (1, 2, 0)),
-                                    (prednet.blobs[inp_name].data.shape[3],
-                                     prednet.blobs[inp_name].data.shape[2]),
-                                    interpolation=_cv2INTER_CUBIC),
-                                (2, 0, 1))
-                        else:
-                            # The only remaining case is
-                            # input_processing_flags[inp_name].lower() == 'n'.
-                            prednet.blobs[inp_name].data[idx, ...] = im
-            ####################################################################
-            # Data prepared.
-            ####################################################################
             # Callbacks.
             cbparams['iter'] = (
                 len(output_images[list(output_images.keys())[0]]) if not oversample
@@ -552,6 +519,7 @@ class Net(_caffe.Net):
             cbparams['callback_signal'] = 'pre_test_batch'
             for cb in test_callbacks:
                 cb(cbparams)
+
             # Logging.
             to_image = (
                 len(output_images[list(output_images.keys())[0]]) + batch_size if not oversample
@@ -561,10 +529,10 @@ class Net(_caffe.Net):
                           len(output_images[list(output_images.keys())[0]]),
                           to_image,
                           nsamples)
+
             # Forward propagation.
             forward_prop_beginpoint = _time.time()
-            # pylint: disable=W0212
-            prednet._forward(0, len(prednet.layers) - 1)
+            prednet._forward(0, len(prednet.layers) - 1)  # pylint: disable=W0212
             forward_prop_duration = _time.time() - forward_prop_beginpoint
             _LOGGER.debug('Done in %03.2fs.', forward_prop_duration)
             # Post processing.
@@ -687,6 +655,58 @@ class Net(_caffe.Net):
             return list(output_images.items())[0][1]
         else:
             return output_images
+
+    @classmethod
+    def _Init_data_monitors(cls,
+                            X,
+                            input_processing_flags,
+                            static_inputs,
+                            oversample,
+                            before_oversample_resize_to,
+                            batch_size,
+                            test_callbacks):
+        """
+        Convencience initialization function.
+
+        ...such that the user can
+        simply provide X dict and we internally create
+        the CyclingDataMonitor.
+        """
+        if X is not None:
+            # safety measure, we do not want to have two different data
+            # monitors in the same callback list
+            for callback in test_callbacks:
+                assert not isinstance(callback, _monitoring.DataMonitor), (
+                    'if we use X we cannot use a data monitor')
+            if len(static_inputs) > 0:
+                static_data_monitor = _monitoring.StaticDataMonitor(
+                    dict(item for item in X if item[0] in static_inputs))
+                test_callbacks.insert(0, static_data_monitor)
+            if oversample:
+                if before_oversample_resize_to is not None:
+                    os_data_monitor = _monitoring.OversamplingDataMonitor(
+                        dict((name, 'l') for name in list(X.keys()) if
+                             name not in static_inputs),
+                        dict((name, before_oversample_resize_to)
+                             for name in list(X.keys())
+                             if name not in static_inputs))
+                else:
+                    os_data_monitor = _monitoring.OversamplingDataMonitor(
+                        dict((name, None) for name in list(X.keys()) if
+                             name not in static_inputs), None)
+                test_callbacks.insert(0, os_data_monitor)
+                ccl_data_monitor = _monitoring.CyclingDataMonitor(
+                    X=dict(item for item in X.items()
+                           if item[0] not in static_inputs),
+                    only_preload=[item[0] for item in X.items()
+                                  if item[0] not in static_inputs],
+                    virtual_batch_size=batch_size//10)
+                test_callbacks.insert(0, ccl_data_monitor)
+            else:
+                ccl_data_monitor = _monitoring.CyclingDataMonitor(
+                    X=X,
+                    input_processing_flags=input_processing_flags)
+                test_callbacks.insert(0, ccl_data_monitor)
 
     def fit(self,
             iterations,

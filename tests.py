@@ -951,11 +951,11 @@ class NetTestCase(unittest.TestCase):
         self.assertEqual(accy, 1.0)
         if CV2_AVAILABLE:
             accy = net.predict(X,
-                               input_processing_flags={'data': 'r',
+                               input_processing_flags={'data': 'rc',
                                                        'annotations': 'n'},
                                allow_train_phase_for_test=True)['accuracy'][0]
             self.assertEqual(accy, 1.0)
-        accy = net.predict(X, input_processing_flags={'data': 'p',
+        accy = net.predict(X, input_processing_flags={'data': 'p0',
                                                       'annotations': 'n'},
                            allow_train_phase_for_test=True)['accuracy'][0]
         self.assertEqual(accy, 1.0)
@@ -1001,13 +1001,13 @@ class NetTestCase(unittest.TestCase):
                 solver,
 				X)
         pred = net.predict([np.zeros((3, 3, 3))],
-                            input_processing_flags={'data': 'p'},
+                            input_processing_flags={'data': 'p0'},
                             output_processing_flags={'conv1_out': 'p0',
                                                      'conv2_out': 'n'})
         assert pred['conv1_out'][0].shape == (1, 3, 3)
         assert pred['conv2_out'][0].shape == (1, 7, 7)
         pred = net.predict([np.zeros((3, 3, 3))],
-                           input_processing_flags={'data': 'p'},
+                           input_processing_flags={'data': 'p0'},
                            output_processing_flags={'conv1_out': 'n',
                                                     'conv2_out': 'p0'})
         assert pred['conv1_out'][0].shape == (1, 7, 7)
@@ -1109,18 +1109,20 @@ class NetTestCase(unittest.TestCase):
         if CV2_AVAILABLE:
             # Rescaling.
             predictions = np.array(net.predict(np.zeros((10, 3, 1, 1)),
-                                   input_processing_flags={'data': 'r'}))
+                                   input_processing_flags={'data': 'rl'}))
             predictions = np.argmax(predictions, axis=1)
             self.assertEqual(np.sum(predictions == 1), 10)
         # Padding.
-        predictions_padded = np.array(net.predict(np.zeros((10, 3, 1, 1)),
-                                                  input_processing_flags={'data': 'p'}))
+        predictions_padded = np.array(
+            net.predict(np.zeros((10, 3, 1, 1)),
+                        input_processing_flags={'data': 'p0'}))
         predictions = np.argmax(predictions_padded, axis=1)
         self.assertEqual(np.sum(predictions == 1), 10)
         # out_layer_names.
-        predictions = np.array(net.predict(np.zeros((10, 3, 1, 1)),
-                                           input_processing_flags={'data': 'p'},
-                                           out_blob_names=['out']))
+        predictions = np.array(
+            net.predict(np.zeros((10, 3, 1, 1)),
+                        input_processing_flags={'data': 'p0'},
+                        out_blob_names=['out']))
         predictions = np.argmax(predictions, axis=1)
         self.assertEqual(np.sum(predictions == 1), 10)
         # Oversample.

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Defines several tools for monitoring net activity."""
-# pylint: disable=F0401, E1101
+# pylint: disable=F0401, E1101, too-many-lines
 import logging as _logging
 import os as _os
 import numpy as _np
@@ -8,6 +8,11 @@ import numpy as _np
 from scipy.stats import bernoulli as _bernoulli
 from scipy.ndimage.interpolation import rotate as _rotate
 from .tools import pad as _pad
+
+# CAREFUL! This must be imported before any caffe-related import!
+from .initialization import init as _init
+
+import caffe as _caffe
 try:
     import cv2 as _cv2
     _cv2INTER_CUBIC = _cv2.INTER_CUBIC  # pylint: disable=invalid-name
@@ -20,6 +25,7 @@ except ImportError:
     _cv2INTER_LINEAR = None  # pylint: disable=invalid-name
     _cv2INTER_NEAREST = None  # pylint: disable=invalid-name
     _cv2resize = None  # pylint: disable=invalid-name
+_init()
 _LOGGER = _logging.getLogger(__name__)
 
 
@@ -105,6 +111,140 @@ class DataMonitor(Monitor):  # pylint: disable=R0903
 
     pass
 
+
+# pylint: disable=too-few-public-methods
+class StaticDataMonitor(DataMonitor):
+
+    r"""
+    Always provides the same data for a specific net input blob.
+
+    Parameters
+    ==========
+
+    :param X: dict(string, np.ndarray)
+      The static input blobs to use.
+    """
+
+    def __init__(self, X):
+        self._X = X  # pylint: disable=C0103
+
+    def _initialize_train(self, kwargs):
+        self._initialize(kwargs)
+
+    def _initialize_test(self, kwargs):
+        self._initialize(kwargs)
+
+    def _initialize(self, kwargs):
+        net = kwargs['net']
+        if 'test' in kwargs['callback_signal']:
+            net = kwargs['testnet']
+
+        for key, value in list(self._X.items()):
+            assert key in list(net.blobs.keys()), (
+                'data key has no corresponding network blob {} {}'.format(
+                    key, str(list(net.blobs.keys()))))
+            assert isinstance(value, _np.ndarray), (
+                'data must be a numpy nd array ({})'.format(type(value))
+            )
+
+    def _pre_train_batch(self, kwargs):
+        self._pre_batch(kwargs['net'], kwargs)
+
+    def _pre_test_batch(self, kwargs):
+        self._pre_batch(kwargs['testnet'], kwargs)
+
+    def _pre_batch(self, net, kwargs):  # pylint: disable=unused-argument
+        for key in list(self._X.keys()):
+            net.blobs[key].data[...] = self._X[key]
+
+
+# pylint: disable=too-few-public-methods
+class OversamplingDataMonitor(DataMonitor):
+
+    r"""
+    Provides oversampled data.
+
+    Parameters
+    ==========
+
+    :param blobinfos: dict(string, string|None).
+      Associates blob name to oversample and optional the interpolation
+      method to use for resize. This may be 'n' (nearest neighbour),
+      'c' (cubic), 'l' (linear) or None (no interpolation). If an
+      interpolation method is selected, `before_oversample_resize_to` must
+      be not None and provide a size.
+
+    :param before_oversample_resize_to: dict(string, 2-tuple).
+      Specifies a size to which the image inputs will be resized before the
+      oversampling is invoked.
+    """
+
+    def __init__(self,
+                 blobinfos,
+                 before_oversample_resize_to=None):
+        for val in blobinfos.values():
+            assert val in ['n', 'c', 'l', None]
+        self._blobinfos = blobinfos
+        for key, val in blobinfos.items():
+            if val is not None:
+                assert key in list(before_oversample_resize_to.keys())
+        self._before_oversample_resize_to = before_oversample_resize_to
+        self._batch_size = None
+
+    def _initialize_train(self, kwargs):
+        raise Exception("The OversamplingDataMonitor can only be used during "
+                        "testing!")
+
+    def _initialize_test(self, kwargs):
+        net = kwargs['net']
+        if 'test' in kwargs['callback_signal']:
+            net = kwargs['testnet']
+
+        for key in list(self._blobinfos.keys()):
+            assert key in list(net.blobs.keys()), (
+                'data key has no corresponding network blob {} {}'.format(
+                    key, str(list(net.blobs.keys()))))
+
+    def _pre_test(self, kwargs):
+        net = kwargs['testnet']
+        self._batch_size = net.blobs[
+            list(self._blobinfos.keys())[0]].data.shape[0]
+
+    def _pre_test_batch(self, kwargs):
+        for blob_name in list(self._blobinfos):
+            assert blob_name in kwargs['data_orig'], (
+                "The unchanged data must be provided by another DataProvider, "
+                "e.g., CyclingDataMonitor with `only_preload`!")
+            assert (len(kwargs['data_orig'][blob_name]) * 10 ==
+                    self._batch_size), (
+                        "The number of provided images * 10 must be the batch "
+                        "size!")
+            # pylint: disable=invalid-name
+            for im_idx, im in enumerate(kwargs['data_orig'][blob_name]):
+                if self._blobinfos[blob_name] is not None:
+                    if self._blobinfos[blob_name] == 'n':
+                        interpolation = _cv2INTER_NEAREST
+                    elif self._blobinfos[blob_name] == 'c':
+                        interpolation = _cv2INTER_CUBIC
+                    elif self._blobinfos[blob_name] == 'l':
+                        interpolation = _cv2INTER_LINEAR
+                    oversampling_prep = _cv2resize(
+                        _np.transpose(im, (1, 2, 0)),
+                        (self._before_oversample_resize_to[blob_name][1],
+                         self._before_oversample_resize_to[blob_name][0]),
+                        interpolation=interpolation)
+                else:
+                    oversampling_prep = _np.transpose(im, (1, 2, 0))
+                imshape = kwargs['testnet'].blobs[blob_name].data.shape[2:4]
+                kwargs['testnet'].blobs[blob_name].data[
+                    im_idx * 10:(im_idx+1) * 10] =\
+                        _np.transpose(
+                            _caffe.io.oversample(
+                                [oversampling_prep],
+                                imshape),
+                            (0, 3, 1, 2))
+
+
 # pylint: disable=too-many-instance-attributes, R0903
 class CyclingDataMonitor(Monitor):
 
@@ -136,11 +276,19 @@ class CyclingDataMonitor(Monitor):
       If the samples are specified via list, they may have to be size adjusted
       to the network. You may specify for each blob a type of preprocessing
       from 'n' (none, default, size must fit), to 'pX' (pad, where X is the
-      padding value (int) to use) or 'rY' (resize), where Y in ['c', 'n']
-      (Cubic or Nearest interpolation).
+      padding value (int) to use) or 'rY' (resize), where Y in ['c', 'n', 'l']
+      (Cubic, Nearest or Linear interpolation).
+
+    :param virtual_batch_size: int or None.
+      Override the network batch size. May only be used if ``only_preload`` is
+      set to True. Only makes sense with another DataMonitor in succession.
     """
 
-    def __init__(self, X, only_preload=None, input_processing_flags=None):
+    def __init__(self,
+                 X,
+                 only_preload=None,
+                 input_processing_flags=None,
+                 virtual_batch_size=None):
         """See class documentation."""
         if only_preload is None:
             only_preload = []
@@ -153,8 +301,11 @@ class CyclingDataMonitor(Monitor):
             assert key in self._X.keys()
         self._padvals = dict()
         for key, val in input_processing_flags.items():
-            assert (val in ['n', 'rn', 'rc'] or
-                    val.startswith('p'))
+            assert (val in ['n', 'rn', 'rc', 'rl'] or
+                    val.startswith('p')), (
+                        "The input processing flags for the CyclingDataMonitor "
+                        "must be in ['n', 'rn', 'rc', 'rl', 'p']: {}!".format(
+                            val))
             if val.startswith('p'):
                 self._padvals[key] = int(val[1:])
         for key in self.only_preload:
@@ -163,6 +314,11 @@ class CyclingDataMonitor(Monitor):
         self._len_data = None
         self._initialized = False
         self._batch_size = None
+        assert virtual_batch_size is None or self.only_preload, (
+            "If the virtual_batch_size is set, `only_preload` must be used!")
+        if virtual_batch_size is not None:
+            assert virtual_batch_size > 0
+        self._virtual_batch_size = virtual_batch_size
 
     def _initialize_train(self, kwargs):
         self._initialize(kwargs)
@@ -201,7 +357,10 @@ class CyclingDataMonitor(Monitor):
         net = kwargs['net']
         if 'test' in kwargs['callback_signal']:
             net = kwargs['testnet']
-        self._batch_size = net.blobs[list(self._X.keys())[0]].data.shape[0]
+        if self._virtual_batch_size is not None:
+            self._batch_size = self._virtual_batch_size
+        else:
+            self._batch_size = net.blobs[list(self._X.keys())[0]].data.shape[0]
         assert self._batch_size > 0
 
     def _pre_test(self, kwargs):
@@ -255,14 +414,18 @@ class CyclingDataMonitor(Monitor):
                                             .format(
                                                 self._X[key][samples_ids[sample_idx]].size,
                                                 net.blobs[key].data[sample_idx].size))
-                        elif self._input_processing_flags[key] in ['rn', 'rc']:
+                        elif self._input_processing_flags[key] in ['rn',
+                                                                   'rc',
+                                                                   'rl']:
                             assert (
                                 self._X[key][samples_ids[sample_idx]].shape[0]
                                 == net.blobs[key].data.shape[1])
                             if self._input_processing_flags == 'rn':
                                 interp_method = _cv2INTER_NEAREST
-                            else:
+                            elif self._input_processing_flags == 'rc':
                                 interp_method = _cv2INTER_CUBIC
+                            else:
+                                interp_method = _cv2INTER_LINEAR
                             for channel_idx in range(
                                     net.blobs[key].data.shape[1]):
                                 net.blobs[key].data[sample_idx, channel_idx] =\
@@ -280,10 +443,6 @@ class CyclingDataMonitor(Monitor):
                                 val=self._padvals[key])
         if len(self.only_preload) > 0:
             kwargs['data_orig'] = sample_dict
-
-    def finalize(self, kwargs):  # pylint: disable=W0613
-        """Nothing to do here."""
-        pass
 
 
 class ResizingMonitor(Monitor):  # pylint: disable=R0903
