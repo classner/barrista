@@ -188,7 +188,7 @@ class Net(_caffe.Net):
           padded borders.
         """
         if self._predict_variant is not None and not use_fit_network:
-            _LOGGER.info("Using prediction network variant.")
+            _LOGGER.debug("Using prediction network variant.")
             prednet = self._predict_variant
         else:
             prednet = self
@@ -207,7 +207,7 @@ class Net(_caffe.Net):
                 len(out_blob_names) == 1), "Only one output layer is supported!"  # noqa
         output_images = []
         for im_id, im in enumerate(input_sequence):
-            _LOGGER.info("Processing image %d...", im_id)
+            _LOGGER.debug("Processing image %d...", im_id)
             image_beginpoint = _time.time()
             patches = _extract_patches(im,
                                        patch_shape=(input_dims[1],
@@ -283,9 +283,9 @@ class Net(_caffe.Net):
                               val_idx // sampled_shape[1],
                               val_idx % sampled_shape[1]] = val[:]
                 output_images.append(collected)
-            _LOGGER.info("Processed image %d in %ds.",
-                         im_id,
-                         _time.time() - image_beginpoint)
+            _LOGGER.debug("Processed image %d in %03.2fs.",
+                          im_id,
+                          _time.time() - image_beginpoint)
         return output_images
 
     def predict(self,  # pylint: disable=R0915
@@ -382,7 +382,7 @@ class Net(_caffe.Net):
         """
         # Parameter checks.
         if not use_fit_network and self._predict_variant is not None:
-            _LOGGER.info("Using prediction network variant.")
+            _LOGGER.debug("Using prediction network variant.")
             prednet = self._predict_variant
         else:
             prednet = self
@@ -486,14 +486,16 @@ class Net(_caffe.Net):
         cbparams['testnet'] = prednet
         cbparams['X'] = None
 
+        cbparams['callback_signal'] = 'initialize_test'
+        for cb in test_callbacks:
+            cb(cbparams)
         cbparams['callback_signal'] = 'pre_test'
         for cb in test_callbacks:
             cb(cbparams)
-
         chunk_size = (batch_size if not oversample else batch_size // 10)
         for chunk_idx, sample_ids in enumerate(_chunks(list(range(nsamples)),
                                                        chunk_size)):
-            _LOGGER.info('Preparing chunk %d...', chunk_idx)
+            _LOGGER.debug('Preparing chunk %d...', chunk_idx)
             for inp_name in prednet.inputs:
                 if inp_name not in static_inputs:
                     im_chunk = [input_sequence[inp_name][im_idx]
@@ -554,20 +556,20 @@ class Net(_caffe.Net):
             to_image = (
                 len(output_images[list(output_images.keys())[0]]) + batch_size if not oversample
                 else len(output_images[list(output_images.keys())[0]]) + batch_size / 10)
-            _LOGGER.info('Forward propagating chunk %d (image %d to %d of %d)...',  # noqa
-                         chunk_idx,
-                         len(output_images[list(output_images.keys())[0]]),
-                         to_image,
-                         nsamples)
+            _LOGGER.debug('Forward propagating chunk %d (image %d to %d of %d)...',  # noqa
+                          chunk_idx,
+                          len(output_images[list(output_images.keys())[0]]),
+                          to_image,
+                          nsamples)
             # Forward propagation.
             forward_prop_beginpoint = _time.time()
             # pylint: disable=W0212
             prednet._forward(0, len(prednet.layers) - 1)
             forward_prop_duration = _time.time() - forward_prop_beginpoint
-            _LOGGER.info('Done in %03.2fs.', forward_prop_duration)
+            _LOGGER.debug('Done in %03.2fs.', forward_prop_duration)
             # Post processing.
             out = {out: prednet.blobs[out].data for out in out_blob_names}
-            _LOGGER.info('Extracting output images...')
+            _LOGGER.debug('Extracting output images...')
             # pylint: disable=W0612
             output_image_parts = dict((outname, []) for outname in out_blob_names)
             for blob_idx, blob_name in enumerate(out.keys()):
@@ -600,11 +602,11 @@ class Net(_caffe.Net):
                 else:
                     scale_h = scale_w = 1.0
                 if scale_h == 1. and scale_w == 1.:
-                    _LOGGER.info('No scaling necessary.')
+                    _LOGGER.debug('No scaling necessary.')
                     scaling = False
                 else:
-                    _LOGGER.info('Scale change by %f, %f (h, w).',
-                                 scale_h, scale_w)
+                    _LOGGER.debug('Scale change by %f, %f (h, w).',
+                                  scale_h, scale_w)
                     scaling = True
                 oversampled = []
                 for outim_idx, outim in enumerate(full_output_image_blob):

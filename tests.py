@@ -336,6 +336,14 @@ class MonitoringTestCase(unittest.TestCase):
         self.assertEqual(len(json_load['train']), 6)
         self.assertEqual(len(json_load['test']), 8)
         shutil.rmtree(dirpath)
+        # Verify values.
+        predres = net.predict(X,
+                              out_blob_names=['loss', 'accuracy'],
+                              allow_train_phase_for_test=True)
+        last_test_loss = [dct['test_loss'] for dct in json_load['test']
+                          if 'test_loss' in dct.keys() and
+                             dct['NumIters'] == 30][0]
+        self.assertEqual(last_test_loss, predres['loss'][0])
 
     def test_CyclingDataMonitor(self):
         """Test the cycling data monitor."""
@@ -350,16 +358,29 @@ class MonitoringTestCase(unittest.TestCase):
 
         tmon = CyclingDataMonitor(X={'a': list(range(4)),
                                      'b': np.array(range(5, 9))})
-        tmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
+        tmon_test = CyclingDataMonitor(X={'a': list(range(4)),
+                                          'b': np.array(range(5, 9))})
+        kwargs = {'net': net,
+                  'testnet': net,
+                  'callback_signal': 'initialize_train'}
+        tmon._initialize_train(kwargs)
+        kwargs['callback_signal'] = 'initialize_test'
+        with self.assertRaises(Exception):
+            tmon._initialize_test(kwargs)
+        tmon_test._initialize(kwargs)
+        kwargs['callback_signal'] = 'pre_fit'
+        tmon._pre_fit(kwargs)
         tmon._pre_train_batch({'net': net})
         assert np.all(net.blobs['a'].data[...] == [0, 1, 2])
         assert np.all(net.blobs['b'].data[...] == [5, 6, 7])
         tmon._pre_train_batch({'net': net})
         assert np.all(net.blobs['a'].data[...] == [3, 0, 1])
         assert np.all(net.blobs['b'].data[...] == [8, 5, 6])
-        tmon._pre_test_batch({'testnet': net})
-        assert np.all(net.blobs['a'].data[...] == [2, 3, 0])
-        assert np.all(net.blobs['b'].data[...] == [7, 8, 5])
+        kwargs['callback_signal'] = 'pre_test'
+        tmon_test._pre_test(kwargs)
+        tmon_test._pre_test_batch({'testnet': net})
+        assert np.all(net.blobs['a'].data[...] == [0, 1, 2])
+        assert np.all(net.blobs['b'].data[...] == [5, 6, 7])
 
     def test_CyclingDataMonitor_only_preload(self):
         """Test the cycling data monitor preload capability."""
@@ -376,8 +397,13 @@ class MonitoringTestCase(unittest.TestCase):
             only_preload=['a', 'b'],
             X={'a': list(range(4)),
                'b': np.array(range(5, 9))})
-        tmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
-        kwargs = {'net': net, 'testnet': net}
+        kwargs = {'net': net,
+                  'testnet': net,
+                  'callback_signal': 'initialize_train'}
+        tmon._initialize_train(kwargs)
+        kwargs['callback_signal'] = 'pre_fit'
+        tmon._pre_fit(kwargs)
+        kwargs = {'net': net, 'testnet': net, 'callback_signal': 'pre_batch'}
         tmon._pre_train_batch(kwargs)
         assert np.all(kwargs['data_orig']['a'] == [0, 1, 2])
         assert np.all(kwargs['data_orig']['b'] == [5, 6, 7])
@@ -407,6 +433,10 @@ class MonitoringTestCase(unittest.TestCase):
             X={'a': [np.ones((3, 5, 5))] * 2,
                'b': np.ones((2, 3, 5, 5))},
             input_processing_flags={'a': 'rc', 'b':'rn'})
+        kwargs = {'net': net,
+                  'testnet': net,
+                  'callback_signal': 'initialize_train'}
+        tmon._initialize_train(kwargs)
         tmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
         kwargs = {'net': net, 'testnet': net}
         tmon._pre_train_batch(kwargs)
@@ -428,6 +458,10 @@ class MonitoringTestCase(unittest.TestCase):
             X={'a': [np.ones((3, 5, 5))] * 2,
                'b': np.ones((2, 3, 5, 5))},
             input_processing_flags={'a': 'p0', 'b':'p2'})
+        kwargs = {'net': net,
+                  'testnet': net,
+                  'callback_signal': 'initialize_train'}
+        tmon._initialize_train(kwargs)
         tmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
         kwargs = {'net': net, 'testnet': net}
         tmon._pre_train_batch(kwargs)
@@ -453,6 +487,11 @@ class MonitoringTestCase(unittest.TestCase):
             blobinfos={'a': 1, 'b': 2},
             net_input_size_adjustment_multiple_of=2
         )
+        kwargs = {'net': net,
+                  'testnet': net,
+                  'callback_signal': 'initialize_train'}
+        tmon._initialize_train(kwargs)
+        dmon._initialize_train(kwargs)
         dmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
         tmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
         kwargs = {'net': net, 'testnet': net}
@@ -496,6 +535,12 @@ class MonitoringTestCase(unittest.TestCase):
             net_input_size_adjustment_multiple_of=2,
             interp_methods={'a':'c', 'b':'n'}
         )
+        kwargs = {'net': net,
+                  'testnet': net,
+                  'callback_signal': 'initialize_train'}
+        tmon._initialize_train(kwargs)
+        dmon._initialize_train(kwargs)
+
         dmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
         tmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
         kwargs = {'net': net, 'testnet': net}
@@ -542,6 +587,12 @@ class MonitoringTestCase(unittest.TestCase):
             net_input_size_adjustment_multiple_of=1,
             interp_methods={'a':'c', 'b':'n'}
         )
+        kwargs = {'net': net,
+                  'testnet': net,
+                  'callback_signal': 'initialize_train'}
+        tmon._initialize_train(kwargs)
+        dmon._initialize_train(kwargs)
+
         dmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
         tmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
         kwargs = {'net': net, 'testnet': net}
@@ -580,6 +631,12 @@ class MonitoringTestCase(unittest.TestCase):
             max_rotation_degrees=90.
         )
         np.random.seed(2748)
+        kwargs = {'net': net,
+                  'testnet': net,
+                  'callback_signal': 'initialize_train'}
+        tmon._initialize_train(kwargs)
+        dmon._initialize_train(kwargs)
+
         dmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
         tmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
         kwargs = {'net': net, 'testnet': net}
@@ -615,6 +672,12 @@ class MonitoringTestCase(unittest.TestCase):
             mirror_prob=0.5
         )
         np.random.seed(2748)
+        kwargs = {'net': net,
+                  'testnet': net,
+                  'callback_signal': 'initialize_train'}
+        tmon._initialize_train(kwargs)
+        dmon._initialize_train(kwargs)
+
         dmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
         tmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
         kwargs = {'net': net, 'testnet': net}

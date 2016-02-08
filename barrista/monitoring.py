@@ -41,7 +41,11 @@ class Monitor(object):  # pylint: disable=R0903
         For available keyword arguments, see the documentation of
         :py:class:`barrista.solver.SolverInterface.Fit`.
         """
-        if kwargs['callback_signal'] == 'pre_fit':
+        if kwargs['callback_signal'] == 'initialize_train':
+            self._initialize_train(kwargs)
+        elif kwargs['callback_signal'] == 'initialize_test':
+            self._initialize_test(kwargs)
+        elif kwargs['callback_signal'] == 'pre_fit':
             self._pre_fit(kwargs)
         elif kwargs['callback_signal'] == 'pre_test':
             self._pre_test(kwargs)
@@ -55,6 +59,12 @@ class Monitor(object):  # pylint: disable=R0903
             self._pre_train_batch(kwargs)
         elif kwargs['callback_signal'] == 'post_train_batch':
             self._post_train_batch(kwargs)
+
+    def _initialize_train(self, kwargs):  # pylint: disable=C0111
+        pass
+
+    def _initialize_test(self, kwargs):  # pylint: disable=C0111
+        pass
 
     def _pre_fit(self, kwargs):  # pylint: disable=C0111
         pass
@@ -95,8 +105,8 @@ class DataMonitor(Monitor):  # pylint: disable=R0903
 
     pass
 
-
-class CyclingDataMonitor(Monitor):  # pylint: disable=R0903
+# pylint: disable=too-many-instance-attributes, R0903
+class CyclingDataMonitor(Monitor):
 
     r"""
     Uses the data sequentially.
@@ -151,12 +161,23 @@ class CyclingDataMonitor(Monitor):  # pylint: disable=R0903
             assert key in self._X.keys()
         self._sample_pointer = 0
         self._len_data = None
+        self._initialized = False
         self._batch_size = None
 
-    def _pre_fit(self, kwargs):
+    def _initialize_train(self, kwargs):
+        self._initialize(kwargs)
+
+    def _initialize_test(self, kwargs):
+        self._initialize(kwargs)
+
+    def _initialize(self, kwargs):
         # we make sure, now that the network is available, that
         # all names in the provided data dict has a corresponding match
         # in the network
+        if self._initialized:
+            raise Exception("This DataProvider has already been intialized! "
+                            "Did you maybe try to use it for train and test? "
+                            "This is not possible!")
         net = kwargs['net']
         if 'test' in kwargs['callback_signal']:
             net = kwargs['testnet']
@@ -174,6 +195,12 @@ class CyclingDataMonitor(Monitor):  # pylint: disable=R0903
             assert isinstance(value, _np.ndarray) or isinstance(value, list), (
                 'data must be a numpy nd array or list ({})'.format(type(value))
             )
+        self._initialized = True
+
+    def _pre_fit(self, kwargs):
+        net = kwargs['net']
+        if 'test' in kwargs['callback_signal']:
+            net = kwargs['testnet']
         self._batch_size = net.blobs[list(self._X.keys())[0]].data.shape[0]
         assert self._batch_size > 0
 
@@ -315,7 +342,13 @@ class ResizingMonitor(Monitor):  # pylint: disable=R0903
         self._min_input_size = None
         self._batch_size = None
 
-    def _pre_fit(self, kwargs):
+    def _initialize_train(self, kwargs):
+        self._initialize(kwargs)
+
+    def _initialize_test(self, kwargs):
+        self._initialize(kwargs)
+
+    def _initialize(self, kwargs):
         # we make sure, now that the network is available, that
         # all names in the provided data dict have a corresponding match
         # in the network
@@ -332,11 +365,20 @@ class ResizingMonitor(Monitor):  # pylint: disable=R0903
                 if self._min_input_size is None:
                     self._min_input_size = net.blobs[key].data.shape[2:4]
                 else:
-                    assert net.blobs[key].data.shape[2:4] == self._min_input_size, (
-                        'if automatic input size adjustment is activated, all inputs '
-                        'must be of same size (first: {}, {}: {})'.format(
-                            self._min_input_size, key, net.blobs[key].data.shape[2:4]))
-        self._batch_size = net.blobs[list(self._blobinfos.keys())[0]].data.shape[0]
+                    assert (net.blobs[key].data.shape[2:4] ==
+                            self._min_input_size), (
+                                'if automatic input size adjustment is '
+                                'activated, all inputs must be of same size '
+                                '(first: {}, {}: {})'.format(
+                                    self._min_input_size, key,
+                                    net.blobs[key].data.shape[2:4]))
+
+    def _pre_fit(self, kwargs):
+        net = kwargs['net']
+        if 'test' in kwargs['callback_signal']:
+            net = kwargs['testnet']
+        self._batch_size = net.blobs[
+            list(self._blobinfos.keys())[0]].data.shape[0]
         if self._adjustment_multiple_of > 0:
             assert self._batch_size == 1, (
                 "If size adjustment is activated, the batch size must be one!")
@@ -459,7 +501,13 @@ class RotatingMirroringMonitor(Monitor):
         self._mirror_prob = mirror_prob
         self._batch_size = None
 
-    def _pre_fit(self, kwargs):
+    def _initialize_train(self, kwargs):
+        self._initialize(kwargs)
+
+    def _initialize_test(self, kwargs):
+        self._initialize(kwargs)
+
+    def _initialize(self, kwargs):
         # we make sure, now that the network is available, that
         # all names in the provided data dict have a corresponding match
         # in the network
@@ -472,7 +520,13 @@ class RotatingMirroringMonitor(Monitor):
                 'data key has no corresponding network blob {} {}'.format(
                     key, str(list(net.blobs.keys()))))
             assert net.blobs[key].data.ndim == 4
-        self._batch_size = net.blobs[list(self._blobinfos.keys())[0]].data.shape[0]
+
+    def _pre_fit(self, kwargs):
+        net = kwargs['net']
+        if 'test' in kwargs['callback_signal']:
+            net = kwargs['testnet']
+        self._batch_size = net.blobs[
+            list(self._blobinfos.keys())[0]].data.shape[0]
 
     def _pre_test(self, kwargs):
         self._pre_fit(kwargs)
@@ -597,7 +651,16 @@ class ResultExtractor(Monitor):  # pylint: disable=R0903
             return
         Monitor.__call__(self, kwargs)
 
-    def _pre_fit(self, kwargs):
+    def _initialize_train(self, kwargs):
+        self._initialize(kwargs)
+
+    def _initialize_test(self, kwargs):
+        self._initialize(kwargs)
+
+    def _initialize(self, kwargs):
+        if self._init:
+            raise Exception("This ResultExtractor is already initialized! "
+                            "Did you try to use it for train and test?")
         tmp_net = kwargs['net']
         if 'test' in kwargs['callback_signal']:
             tmp_net = kwargs['testnet']
@@ -618,7 +681,6 @@ class ResultExtractor(Monitor):  # pylint: disable=R0903
 
     def _pre_test(self, kwargs):
         self._test_data = []
-        self._pre_fit(kwargs)
 
     def _post_test(self, kwargs):
         kwargs[self._cbparam_key] = _np.mean(self._test_data)
@@ -738,28 +800,35 @@ class JSONLogger(Monitor):  # pylint: disable=R0903
         with open(self.json_filename, 'w') as outf:
             self.json_package.dump(self.dict, outf)
 
-    def _pre_fit(self, kwargs):
+    def _initialize_train(self, kwargs):
+        self._initialize(kwargs)
+
+    def _initialize_test(self, kwargs):
+        self._initialize(kwargs)
+
+    def _initialize(self, kwargs):  # pylint: disable=unused-argument
         for key in list(self._logging.keys()):
             assert key in ['train', 'test'], (
                 'only train and test is supported by this logger')
 
-    def _pre_test(self, kwargs):
-        self._pre_fit(kwargs)
-
     def _post_test(self, kwargs):
-        self._post('test', 0, kwargs)
+        self._post('test', kwargs)
 
     def _post_train_batch(self, kwargs):
-        self._post('train', kwargs['batch_size'], kwargs)
+        self._post('train', kwargs)
 
-    def _post(self, phase_name, offset, kwargs):  # pylint: disable=C0111
+    def _post(self, phase_name, kwargs):  # pylint: disable=C0111
         if phase_name not in self._logging:
             return
+        if phase_name == 'train':
+            kwargs['iter'] += kwargs['batch_size']
         for key in self._logging[phase_name]:
             if key in kwargs:
                 self.dict[phase_name].append({'NumIters':
-                                              kwargs['iter'] + offset,
+                                              kwargs['iter'],
                                               key: kwargs[key]})
+        if phase_name == 'train':
+            kwargs['iter'] -= kwargs['batch_size']
 
     def finalize(self, kwargs):  # pylint: disable=W0613
         """Write the json file."""

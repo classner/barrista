@@ -178,7 +178,7 @@ class Solver(object):
             ret_dict['iter_size'] = 1
         return ret_dict
 
-    def fit(self,
+    def fit(self,  # pylint: disable=too-many-statements
             iterations,
             X=None,
             X_val=None,
@@ -338,6 +338,7 @@ class Solver(object):
                                      use_fit_phase_for_validation)
 
         iteration = 0
+        pre_fit_called = False
         cbparams = dict()
         cbparams['max_iter'] = iterations
         cbparams['batch_size'] = batch_size
@@ -347,17 +348,17 @@ class Solver(object):
         cbparams['solver'] = self
         cbparams['X'] = X
         cbparams['X_val'] = X_val
+        cbparams['test_iterations'] = test_iterations
+        cbparams['test_interval'] = test_interval
         cbparams['train_callbacks'] = train_callbacks
         cbparams['test_callbacks'] = test_callbacks
-
-        cbparams['callback_signal'] = 'pre_fit'
+        cbparams['callback_signal'] = 'initialize_train'
         for cb in train_callbacks:
             cb(cbparams)
         if test_interval > 0:
-            cbparams['callback_signal'] = 'pre_test'
+            cbparams['callback_signal'] = 'initialize_test'
             for cb in test_callbacks:
                 cb(cbparams)
-
         while iteration <= iterations:
             cbparams['iter'] = iteration
             # Check whether to test the net.
@@ -370,6 +371,10 @@ class Solver(object):
                 # testing loop
                 ###############################################################
                 test_iter = 0
+                cbparams['callback_signal'] = 'pre_test'
+                for cb in test_callbacks:
+                    cb(cbparams)
+
                 while test_iter < test_iterations:
                     cbparams['callback_signal'] = 'pre_test_batch'
                     for cb in test_callbacks:
@@ -386,6 +391,7 @@ class Solver(object):
                 cbparams['callback_signal'] = 'post_test'
                 for cb in test_callbacks:
                     cb(cbparams)
+                pre_fit_called = False
 
             if iteration == iterations:
                 break
@@ -393,6 +399,12 @@ class Solver(object):
             ###############################################################
             # training loop
             ###############################################################
+
+            if not pre_fit_called:
+                cbparams['callback_signal'] = 'pre_fit'
+                for cb in train_callbacks:
+                    cb(cbparams)
+                pre_fit_called = True
 
             cbparams['callback_signal'] = 'pre_train_batch'
             for cb in train_callbacks:
