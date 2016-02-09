@@ -672,40 +672,43 @@ class Net(_caffe.Net):
         simply provide X dict and we internally create
         the CyclingDataMonitor.
         """
-        if X is not None:
-            # safety measure, we do not want to have two different data
-            # monitors in the same callback list
-            for callback in test_callbacks:
-                assert not isinstance(callback, _monitoring.DataMonitor), (
-                    'if we use X we cannot use a data monitor')
+        data_prov_blobs = [key for (key, val) in X.items() if val is not None]
+        if len(data_prov_blobs) > 0:
             if len(static_inputs) > 0:
                 static_data_monitor = _monitoring.StaticDataMonitor(
-                    dict(item for item in X if item[0] in static_inputs))
+                    dict(item for item in data_prov_blobs
+                         if item in static_inputs))
                 test_callbacks.insert(0, static_data_monitor)
             if oversample:
                 if before_oversample_resize_to is not None:
                     os_data_monitor = _monitoring.OversamplingDataMonitor(
-                        dict((name, 'l') for name in list(X.keys()) if
-                             name not in static_inputs),
+                        dict((name, 'l') for name in data_prov_blobs
+                             if name not in static_inputs),
                         dict((name, before_oversample_resize_to)
-                             for name in list(X.keys())
+                             for name in data_prov_blobs
                              if name not in static_inputs))
                 else:
                     os_data_monitor = _monitoring.OversamplingDataMonitor(
-                        dict((name, None) for name in list(X.keys()) if
+                        dict((name, None) for name in data_prov_blobs if
                              name not in static_inputs), None)
                 test_callbacks.insert(0, os_data_monitor)
                 ccl_data_monitor = _monitoring.CyclingDataMonitor(
                     X=dict(item for item in X.items()
-                           if item[0] not in static_inputs),
-                    only_preload=[item[0] for item in X.items()
-                                  if item[0] not in static_inputs],
+                           if item[0] not in static_inputs and
+                           item[0] in data_prov_blobs),
+                    only_preload=[item for item in data_prov_blobs
+                                  if item not in static_inputs],
                     virtual_batch_size=batch_size//10)
                 test_callbacks.insert(0, ccl_data_monitor)
             else:
                 ccl_data_monitor = _monitoring.CyclingDataMonitor(
-                    X=X,
-                    input_processing_flags=input_processing_flags)
+                    X=dict(item for item in X.items()
+                           if item[0] not in static_inputs and
+                           item[0] in data_prov_blobs),
+                    input_processing_flags=dict(
+                        item for item in input_processing_flags.items()
+                        if item[0] not in static_inputs and
+                        item[0] in data_prov_blobs))
                 test_callbacks.insert(0, ccl_data_monitor)
 
     def fit(self,
