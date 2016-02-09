@@ -300,7 +300,8 @@ class Net(_caffe.Net):
                 output_processing_flags=None,
                 static_inputs=None,
                 input_size_spec=None,
-                allow_train_phase_for_test=False):
+                allow_train_phase_for_test=False,
+                net_input_size_adjustment_multiple_of=0):
         r"""
         Predict samples in the spirit of `scikit-learn`.
 
@@ -349,7 +350,7 @@ class Net(_caffe.Net):
         :param input_processing_flags: dict(string:string) or None.
           A list or tuple of letters specifying the preprocessing for each
           input. 'n': no preprocessing, 'rc': rescale cubic, 'rn': rescale
-          nearest, 'rl': rescale linear, 'p': pad.
+          nearest, 'rl': rescale linear, 'pX': pad with value X.
           Default: ['n'] * number_of_inputs
 
         :param output_processing_flags: dict(string:string) or None.
@@ -381,6 +382,10 @@ class Net(_caffe.Net):
           Why is this so important? The ``DropoutLayer`` and ``PoolLayer`` (in
           the case of stochastic pooling) are sensitive to this parameter and
           results are very different for the two settings.
+
+        :param net_input_size_adjustment_multiple_of: int.
+          If set to a value>0, the networks input is resized in multiples of
+          this value to take in the input images.
         """
         # Parameter checks.
         if not use_fit_network and self._predict_variant is not None:
@@ -475,6 +480,9 @@ class Net(_caffe.Net):
             assert input_processing_flags[prednet.inputs[0]] == 'n', (
                 'Automatic oversampling is only available for "n" as '
                 'preprocessing.')
+            assert net_input_size_adjustment_multiple_of <= 0, (
+                "If oversample is set to True, the network size can not be "
+                "automatically adjusted, currently.")
 
         self._Init_data_monitors(
             input_sequence,
@@ -483,7 +491,8 @@ class Net(_caffe.Net):
             oversample,
             before_oversample_resize_to,
             batch_size,
-            test_callbacks)
+            test_callbacks,
+            net_input_size_adjustment_multiple_of)
 
         ########################################################################
         # Plausibility checks done.
@@ -664,7 +673,8 @@ class Net(_caffe.Net):
                             oversample,
                             before_oversample_resize_to,
                             batch_size,
-                            test_callbacks):
+                            test_callbacks,
+                            net_input_size_adjustment_multiple_of):
         """
         Convencience initialization function.
 
@@ -701,15 +711,36 @@ class Net(_caffe.Net):
                     virtual_batch_size=batch_size//10)
                 test_callbacks.insert(0, ccl_data_monitor)
             else:
-                ccl_data_monitor = _monitoring.CyclingDataMonitor(
-                    X=dict(item for item in X.items()
-                           if item[0] not in static_inputs and
-                           item[0] in data_prov_blobs),
-                    input_processing_flags=dict(
-                        item for item in input_processing_flags.items()
-                        if item[0] not in static_inputs and
-                        item[0] in data_prov_blobs))
-                test_callbacks.insert(0, ccl_data_monitor)
+                blobinfos = {}
+                plain_inp_proc_flags = {}
+                for key, val in input_processing_flags.items():
+                    if val.startswith('p'):
+                        # Go for the resizing monitor.
+                        blobinfos[key] = int(val[1:])
+                    else:
+                        plain_inp_proc_flags[key] = val
+                if len(blobinfos) > 0:
+                    res_data_monitor = _monitoring.ResizingMonitor(
+                        blobinfos=blobinfos,
+                        base_scale=1.,
+                        random_change_up_to=0.,
+                        net_input_size_adjustment_multiple_of=\
+                        net_input_size_adjustment_multiple_of)
+                    test_callbacks.insert(0, res_data_monitor)
+                    ccl_data_monitor = _monitoring.CyclingDataMonitor(
+                        X=dict(item for item in X.items()
+                               if item[0] not in static_inputs and
+                               item[0] in list(blobinfos.keys())),
+                        only_preload=[item for item in data_prov_blobs
+                                      if item in list(blobinfos.keys())])
+                    test_callbacks.insert(0, ccl_data_monitor)
+                if len(plain_inp_proc_flags) > 0:
+                    ccl_data_monitor = _monitoring.CyclingDataMonitor(
+                        X=dict(item for item in X.items()
+                               if item[0] not in static_inputs and
+                               item[0] in list(plain_inp_proc_flags.keys())),
+                        input_processing_flags=plain_inp_proc_flags)
+                    test_callbacks.insert(0, ccl_data_monitor)
 
     def fit(self,
             iterations,
