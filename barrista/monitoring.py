@@ -479,7 +479,8 @@ class ResizingMonitor(Monitor):  # pylint: disable=R0903
 
     :param interp_methods: dict(string, string).
       Dictionary which stores for every blob the interpolation method. The
-      string must be for each blob in ['n', 'c'] (nearest neighbour, cubic).
+      string must be for each blob in ['n', 'c', 'l'] (nearest neighbour,
+      cubic, linear).
     """
 
     def __init__(self,  # pylint: disable=R0913
@@ -496,7 +497,7 @@ class ResizingMonitor(Monitor):  # pylint: disable=R0903
             assert interp_methods is not None
             for key in self._blobinfos.keys():
                 assert key in interp_methods.keys()
-                assert interp_methods[key] in ['n', 'c']
+                assert interp_methods[key] in ['n', 'c', 'l']
         self._interp_methods = interp_methods
         self._adjustment_multiple_of = net_input_size_adjustment_multiple_of
         self._min_input_size = None
@@ -589,6 +590,8 @@ class ResizingMonitor(Monitor):  # pylint: disable=R0903
                                               dtype='float32')
                     if self._interp_methods[key] == 'n':
                         interpolation_method = _cv2INTER_NEAREST
+                    elif self._interp_methods[key] == 'l':
+                        interpolation_method = _cv2INTER_LINEAR
                     else:
                         interpolation_method = _cv2INTER_CUBIC
                     for layer_idx in range(scaled_sample.shape[0]):
