@@ -1,17 +1,20 @@
 # -*- coding: utf-8 -*-
 """Exposes the caffe solvers."""
 # pylint: disable=E1101, F0401, C0103, R0913, R0914, W0212, E1121, E0611, W0406
-# pylint: disable=duplicate-code
+# pylint: disable=duplicate-code, too-many-lines
 from __future__ import print_function
+
+from . import monitoring as _monitoring
+# CAREFUL! This must be imported pre any caffe-related import!
+from .tools import pbufToPyEnum as _pbufToPyEnum
+
+import time as _time
+import logging as _logging
 import hashlib
 import copy
 from tempfile import NamedTemporaryFile as _NamedTemporaryFile
 import numpy as _np
-
 import google.protobuf.text_format as _gprototext
-
-# CAREFUL! This must be imported pre any caffe-related import!
-from .tools import pbufToPyEnum as _pbufToPyEnum
 
 import caffe as _caffe
 import caffe.proto.caffe_pb2 as _caffe_pb2
@@ -23,8 +26,6 @@ SolverType = _pbufToPyEnum(_caffe_pb2.SolverParameter.SolverType)
 #: Describes the Phase used. All solver types supported by caffe
 #: are available.
 _Phase = _pbufToPyEnum(_caffe_pb2.Phase)
-
-from . import monitoring as _monitoring
 
 _HAS_ITER_SIZE = hasattr(_caffe_pb2.SolverParameter, 'iter_size')
 try:
@@ -51,6 +52,9 @@ try:
 except AttributeError:
     _RMSPROP_SOLVER_CLASS = None
     _RMSPROP_SOLVER_ENUM = None
+
+_LOGGER = _logging.getLogger(__name__)
+
 
 class Solver(object):
 
@@ -407,15 +411,27 @@ class Solver(object):
                     cb(cbparams)
                 pre_fit_called = True
 
+            PRETRBATCH_BEGINPOINT = _time.time()
             cbparams['callback_signal'] = 'pre_train_batch'
             for cb in train_callbacks:
                 cb(cbparams)
+            PRETRBATCH_DURATION = _time.time() - PRETRBATCH_BEGINPOINT
+            _LOGGER.debug("Pre-batch preparation time: %03.2fs.",
+                          PRETRBATCH_DURATION)
 
+            TRBATCH_BEGINPOINT = _time.time()
             self.step(1)
+            TRBATCH_DURATION = _time.time() - TRBATCH_BEGINPOINT
+            _LOGGER.debug("Batch processing time: %03.2fs.",
+                          TRBATCH_DURATION)
 
+            POSTTRBATCH_BEGINPOINT = _time.time()
             cbparams['callback_signal'] = 'post_train_batch'
             for cb in train_callbacks:
                 cb(cbparams)
+            POSTTRBATCH_DURATION = _time.time() - POSTTRBATCH_BEGINPOINT
+            _LOGGER.debug("Post-batch processing time: %03.2fs.",
+                          POSTTRBATCH_DURATION)
 
             iteration += batch_size
 
