@@ -355,7 +355,6 @@ class MonitoringTestCase(unittest.TestCase):
                                           inputs=['a', 'b'],
                                           phase=design.Phase.TRAIN)
         net = netspec.instantiate()
-
         tmon = CyclingDataMonitor(X={'a': list(range(4)),
                                      'b': np.array(range(5, 9))})
         tmon_test = CyclingDataMonitor(X={'a': list(range(4)),
@@ -413,6 +412,74 @@ class MonitoringTestCase(unittest.TestCase):
         tmon._pre_test_batch(kwargs)
         assert np.all(kwargs['data_orig']['a'] == [2, 3, 0])
         assert np.all(kwargs['data_orig']['b'] == [7, 8, 5])
+
+    def test_CyclingDataMonitor_augmentation(self):
+        """Test the cycling data monitor color data augmentation capability."""
+        import barrista.design as design
+        import numpy as np
+        from barrista.monitoring import CyclingDataMonitor
+
+        netspec = design.NetSpecification([[1, 3, 5, 5], [3]],
+                                          inputs=['a', 'b'],
+                                          phase=design.Phase.TRAIN)
+        net = netspec.instantiate()
+
+        ddta1 = np.zeros((3, 5, 5))
+        ddta1[0, 0, 0] = 1.
+        ddta2 = np.zeros((3, 5, 5))
+        ddta2[1, 1, 1] = 1.
+        tmon = CyclingDataMonitor(
+            only_preload=['a', 'b'],
+            X={'a': [ddta1, ddta2],
+               'b': np.array(range(5, 7))},
+            color_data_augmentation_sigmas={'a': 0.1})
+        kwargs = {'net': net,
+                  'testnet': net,
+                  'callback_signal': 'initialize_train'}
+        tmon._initialize_train(kwargs)
+        # Filling of unspecified sigmas.
+        self.assertEqual(tmon._color_data_augmentation_sigmas,
+                         {'a': 0.1, 'b': 0.})
+        # Equal weights for the first two components.
+        self.assertEqual(len(tmon._color_data_augmentation_weights), 1)
+        self.assertAlmostEqual(tmon._color_data_augmentation_weights['a'][0],
+                               tmon._color_data_augmentation_weights['a'][1],
+                               delta=0.01)
+        # Third one zero.
+        self.assertEqual(tmon._color_data_augmentation_weights['a'][2], 0.)
+        # Check components: orthogonal first two, zeros for third.
+        self.assertEqual(len(tmon._color_data_augmentation_components), 1)
+        self.assertEqual(np.dot(
+            tmon._color_data_augmentation_components['a'][:, 0].T,
+            tmon._color_data_augmentation_components['a'][:, 1]),
+                         0.)
+        self.assertTrue(
+            np.all(
+                tmon._color_data_augmentation_components['a'][2, :2] ==
+                [0, 0]))
+        self.assertTrue(
+            np.all(
+                tmon._color_data_augmentation_components['a'][:2, 2] ==
+                [0, 0]))
+        kwargs['callback_signal'] = 'pre_fit'
+        tmon._pre_fit(kwargs)
+        kwargs = {'net': net, 'testnet': net, 'callback_signal': 'pre_batch'}
+        tmon._pre_train_batch(kwargs)
+        # Test layerwise application.
+        self.assertTrue(np.all(kwargs['data_orig']['a'][0][2] == 0))
+        diff0 = ddta1[0, 0, 0] - kwargs['data_orig']['a'][0][0, 0, 0]
+        self.assertTrue(np.all(np.isclose(
+            ddta1[0] - kwargs['data_orig']['a'][0][0],
+            diff0)))
+        diff1 = ddta1[1, 0, 0] - kwargs['data_orig']['a'][0][1, 0, 0]
+        self.assertTrue(np.all(np.isclose(
+            ddta1[1] - kwargs['data_orig']['a'][0][1],
+            diff1)))
+        diff2 = ddta1[2, 0, 0] - kwargs['data_orig']['a'][0][2, 0, 0]
+        self.assertEqual(diff2, 0.)
+        self.assertTrue(np.all(np.isclose(
+            ddta1[2] - kwargs['data_orig']['a'][0][2],
+            diff2)))
 
     def test_CyclingDataMonitor_resizing(self):
         """Test the cycling data monitor resizing capability."""

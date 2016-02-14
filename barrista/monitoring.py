@@ -7,6 +7,7 @@ import numpy as _np
 # pylint: disable=no-name-in-module
 from scipy.stats import bernoulli as _bernoulli
 from scipy.ndimage.interpolation import rotate as _rotate
+from sklearn.decomposition import PCA as _PCA
 from .tools import pad as _pad
 
 # CAREFUL! This must be imported before any caffe-related import!
@@ -253,7 +254,7 @@ class CyclingDataMonitor(Monitor):
 
     This monitor maps data to the network an cycles through the data
     sequentially. It is the default monitor used if a user provides X
-    or X_val to the barrista.sovler.fit method.
+    or X_val to the barrista.solver.fit method.
 
     If further processing of the original data is intended, by using the flag
     ``only_preload``, the following monitors find a dictionary of lists of
@@ -282,13 +283,21 @@ class CyclingDataMonitor(Monitor):
     :param virtual_batch_size: int or None.
       Override the network batch size. May only be used if ``only_preload`` is
       set to True. Only makes sense with another DataMonitor in succession.
+
+    :param color_data_augmentation_sigmas: dict(string, float) or None.
+      Enhance the color of the samples as described in (Krizhevsky et al.,
+      2012). The parameter gives the sigma for the normal distribution that is
+      sampled to obtain the weights for scaled pixel principal components per
+      blob.
     """
 
+    # pylint: disable=too-many-arguments
     def __init__(self,
                  X,
                  only_preload=None,
                  input_processing_flags=None,
-                 virtual_batch_size=None):
+                 virtual_batch_size=None,
+                 color_data_augmentation_sigmas=None):
         """See class documentation."""
         if only_preload is None:
             only_preload = []
@@ -320,9 +329,41 @@ class CyclingDataMonitor(Monitor):
         if virtual_batch_size is not None:
             assert virtual_batch_size > 0
         self._virtual_batch_size = virtual_batch_size
+        if color_data_augmentation_sigmas is None:
+            color_data_augmentation_sigmas = dict()
+        self._color_data_augmentation_sigmas = color_data_augmentation_sigmas
+        for key in list(self._color_data_augmentation_sigmas.keys()):
+            assert key in list(self._X.keys())
+        for key in list(self._X.keys()):
+            if key not in list(self._color_data_augmentation_sigmas.keys()):
+                self._color_data_augmentation_sigmas[key] = 0.
+        # pylint: disable=invalid-name
+        self._color_data_augmentation_weights = dict()
+        # pylint: disable=invalid-name
+        self._color_data_augmentation_components = dict()
 
     def _initialize_train(self, kwargs):
         self._initialize(kwargs)
+        # Calculate the color channel PCA per blob if required.
+        for bname, sigma in self._color_data_augmentation_sigmas.items():
+            if sigma > 0.:
+                _LOGGER.info("Performing PCA for color data augmentation for "
+                             "blob '%s'...", bname)
+                for im in self._X[bname]:  # pylint: disable=invalid-name
+                    assert im.ndim == 3 and im.shape[0] == 3, (
+                        "To perform the color data augmentation, images must "
+                        "be provided in shape (3, height, width).")
+                flldta = _np.vstack(
+                    [im.reshape((3, im.shape[1] * im.shape[2])).T
+                     for im in self._X[bname]])
+                # No need to copy the data another time, since `vstack` already
+                # copied it.
+                pca = _PCA(copy=False, whiten=False)
+                pca.fit(flldta)
+                self._color_data_augmentation_weights[bname] = _np.sqrt(
+                    pca.explained_variance_.astype('float32'))
+                self._color_data_augmentation_components[bname] = \
+                    pca.components_.T.astype('float32')
 
     def _initialize_test(self, kwargs):
         self._initialize(kwargs)
@@ -373,6 +414,21 @@ class CyclingDataMonitor(Monitor):
     def _pre_test_batch(self, kwargs):
         self._pre_batch(kwargs['testnet'], kwargs)
 
+    def _color_augment(self, bname, sample):
+        sigma = self._color_data_augmentation_sigmas[bname]
+        if sigma == 0.:
+            if isinstance(sample, (int, float)):
+                return float(sample)
+            else:
+                return sample.astype('float32')
+        else:
+            comp_weights = _np.random.normal(0., sigma, 3).astype('float32') *\
+                           self._color_data_augmentation_weights[bname]
+            noise = _np.dot(self._color_data_augmentation_components[bname],
+                            comp_weights.T)
+            return (sample.astype('float32').transpose((1, 2, 0)) + noise)\
+                .transpose((2, 0, 1))
+
     def _pre_batch(self, net, kwargs):  # pylint: disable=C0111, W0613, R0912
         # this will simply cycle through the data.
         samples_ids = [idx % self._len_data for idx in
@@ -390,9 +446,11 @@ class CyclingDataMonitor(Monitor):
                 sample_dict[key] = []
             # this will actually fill the data for the network
             for sample_idx in range(self._batch_size):
+                augmented_sample = self._color_augment(
+                    key,
+                    self._X[key][samples_ids[sample_idx]])
                 if key in self.only_preload:
-                    sample_dict[key].append(
-                        self._X[key][samples_ids[sample_idx]])
+                    sample_dict[key].append(augmented_sample)
                 else:
                     if (net.blobs[key].data[sample_idx].size == 1 and (
                             isinstance(self._X[key][samples_ids[sample_idx]],
@@ -402,10 +460,10 @@ class CyclingDataMonitor(Monitor):
                             net.blobs[key].data[sample_idx].size):
                         if net.blobs[key].data[sample_idx].size == 1:
                             net.blobs[key].data[sample_idx] =\
-                                self._X[key][samples_ids[sample_idx]]
+                                 augmented_sample
                         else:
                             net.blobs[key].data[sample_idx] = (
-                                self._X[key][samples_ids[sample_idx]].reshape(
+                                augmented_sample.reshape(
                                     net.blobs[key].data.shape[1:]))
                     else:
                         if self._input_processing_flags[key] == 'n':
@@ -413,13 +471,13 @@ class CyclingDataMonitor(Monitor):
                                              "network input size {} and no " +
                                              "preprocessing is allowed!")
                                             .format(
-                                                self._X[key][samples_ids[sample_idx]].size,
+                                                augmented_sample.size,
                                                 net.blobs[key].data[sample_idx].size))
                         elif self._input_processing_flags[key] in ['rn',
                                                                    'rc',
                                                                    'rl']:
                             assert (
-                                self._X[key][samples_ids[sample_idx]].shape[0]
+                                augmented_sample.shape[0]
                                 == net.blobs[key].data.shape[1])
                             if self._input_processing_flags == 'rn':
                                 interp_method = _cv2INTER_NEAREST
@@ -431,15 +489,14 @@ class CyclingDataMonitor(Monitor):
                                     net.blobs[key].data.shape[1]):
                                 net.blobs[key].data[sample_idx, channel_idx] =\
                                     _cv2resize(
-                                        self._X[key][samples_ids[sample_idx]]
-                                        [channel_idx],
+                                        augmented_sample[channel_idx],
                                         (net.blobs[key].data.shape[3],
                                          net.blobs[key].data.shape[2]),
                                         interpolation=interp_method)
                         else:
                             # Padding.
                             net.blobs[key].data[sample_idx] = _pad(
-                                self._X[key][samples_ids[sample_idx]],
+                                augmented_sample,
                                 net.blobs[key].data.shape[2:4],
                                 val=self._padvals[key])
         if len(self.only_preload) > 0:
