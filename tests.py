@@ -755,6 +755,48 @@ class MonitoringTestCase(unittest.TestCase):
         self.assertEqual(np.sum(net.blobs['b'].data), np.sum(bdata))
         self.assertTrue(np.all(net.blobs['b'].data[:, :, 0, 2:4] == 0.))
 
+    def test_RotatingMirroringMonitor_mirroring_swapvalues(self):
+        """Test the rotating mirroring monitor mirroring swap capability."""
+        import barrista.design as design
+        import numpy as np
+        from barrista.monitoring import (CyclingDataMonitor,
+                                         RotatingMirroringMonitor)
+
+        netspec = design.NetSpecification([[1, 3, 5, 5], [1, 1, 5, 5]],
+                                          inputs=['a', 'b'],
+                                          phase=design.Phase.TRAIN)
+        net = netspec.instantiate()
+
+        adata = np.zeros((3, 5, 5))
+        adata[:, 0, 0:3] = 1.
+        bdata = np.ones((1, 5, 5))
+        bdata[:, 0, 0:3] = 0.
+        dmon = CyclingDataMonitor(
+            X={'a': [adata],
+               'b': [bdata]})
+        tmon = RotatingMirroringMonitor(
+            blobinfos={'a': 3, 'b': 3},
+            max_rotation_degrees=0.,
+            mirror_prob=0.5,
+            mirror_value_swaps={'a': [(0, 1), (1, 2)]}
+        )
+        np.random.seed(2748)
+        kwargs = {'net': net,
+                  'testnet': net,
+                  'callback_signal': 'initialize_train'}
+        tmon._initialize_train(kwargs)
+        dmon._initialize_train(kwargs)
+
+        dmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
+        tmon._pre_fit({'net': net, 'callback_signal': 'pre_fit'})
+        kwargs = {'net': net, 'testnet': net}
+        dmon._pre_train_batch(kwargs)
+        tmon._pre_train_batch(kwargs)
+        self.assertEqual(np.sum(net.blobs['a'].data), np.sum(adata+1))
+        self.assertTrue(np.all(net.blobs['a'].data[:, :, 0, 2:4] == 2.))
+        self.assertEqual(np.sum(net.blobs['b'].data), np.sum(bdata))
+        self.assertTrue(np.all(net.blobs['b'].data[:, :, 0, 2:4] == 0.))
+
     def test_Checkpointer(self):
         """Test the ``Checkpointer``."""
         import tempfile

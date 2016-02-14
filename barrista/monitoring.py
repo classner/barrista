@@ -709,17 +709,46 @@ class RotatingMirroringMonitor(Monitor):
     :param mirror_prob: float.
       The probability that horizontal mirroring occurs. Is as well sampled
       individually for every sample.
+
+    :param mirror_value_swaps: dict(string, list(2-tuples)).
+      Specifies for every blob whether any values must be swapped if mirroring
+      is applied. This is important when, e.g., mirroring annotation maps with
+      left-right information. Every 2-tuple contains (original value,
+      new value). The locations of the swaps are determined before any change
+      is applied, so the order of tuples does not play a role.
     """
 
     def __init__(self,
                  blobinfos,
                  max_rotation_degrees,
-                 mirror_prob=0.):
+                 mirror_prob=0.,
+                 mirror_value_swaps=None):
         """See class documentation."""
         self._blobinfos = blobinfos
         self._rotation_degrees = max_rotation_degrees
         self._mirror_prob = mirror_prob
         self._batch_size = None
+        if mirror_value_swaps is None:
+            mirror_value_swaps = dict()
+        for key in list(mirror_value_swaps.keys()):
+            assert key in self._blobinfos, ("Blob not in handled: {}!"\
+                                            .format(key))
+            m_tochange = []
+            for swappair in mirror_value_swaps[key]:
+                assert len(swappair) == 2, (
+                    "Swaps must be specified as (from_value, to_value): {}"\
+                    .format(mirror_value_swaps[key]))
+                assert swappair[0] not in m_tochange, (
+                    "Every value may change only to one new: {}."\
+                    .format(mirror_value_swaps[key]))
+                m_tochange.append(swappair[0])
+                assert blobinfos[key] not in swappair, (
+                    "A specified swap value is the fill value for this blob: "
+                    "{}, {}, {}.".format(key, blobinfos[key], swappair))
+        for key in list(self._blobinfos):
+            if key not in list(mirror_value_swaps.keys()):
+                mirror_value_swaps[key] = []
+        self._mirror_value_swaps = mirror_value_swaps
 
     def _initialize_train(self, kwargs):
         self._initialize(kwargs)
@@ -793,10 +822,14 @@ class RotatingMirroringMonitor(Monitor):
                 if mirrorings[sample_idx] == 1.:
                     net.blobs[key].data[sample_idx] = \
                         net.blobs[key].data[sample_idx, :, :, ::-1]
-
-    def finalize(self, kwargs):  # pylint: disable=W0613
-        """Nothing to do here."""
-        pass
+                    swap_indices = dict()
+                    # Swaps.
+                    for swappair in self._mirror_value_swaps[key]:
+                        swap_indices[swappair[0]] = (
+                            net.blobs[key].data[sample_idx] == swappair[0])
+                    for swappair in self._mirror_value_swaps[key]:
+                        net.blobs[key].data[sample_idx][
+                            swap_indices[swappair[0]]] = swappair[1]
 
 
 class _LossIndicator(object):  # pylint: disable=R0903
