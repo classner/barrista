@@ -5,6 +5,7 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 import numpy as np  # noqa
+import logging
 
 # This provides us with tools to design a network.
 import barrista.design as design  # noqa
@@ -19,6 +20,8 @@ from barrista.monitoring import (ProgressIndicator, Checkpointer,
                                  JSONLogger)
 
 from barrista import solver as _solver
+logging.basicConfig(level=logging.INFO)
+
 
 # When `predict_inputs` and `predict_Input_shapes` are not specified, this
 # is used as a straightforward network specification. It they are supplied,

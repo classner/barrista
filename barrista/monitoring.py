@@ -113,8 +113,24 @@ class DataMonitor(Monitor):  # pylint: disable=R0903
     pass
 
 
+class ParallelMonitor(Monitor):
+
+    r"""
+    Monitor interface for monitors executed parallel to processing a batch.
+
+    The order of all monitors implementing this interface is respected. They
+    will work on a dummy network object with dummy blobs and prepare their
+    data. The dummy blob content is then copied to the real network prior
+    to the next batch execution.
+    """
+
+    def get_parallel_blob_names(self):
+        """Get the names of all blobs that must be provided for the dummy."""
+        raise NotImplementedError()
+
+
 # pylint: disable=too-few-public-methods
-class StaticDataMonitor(DataMonitor):
+class StaticDataMonitor(DataMonitor, ParallelMonitor):
 
     r"""
     Always provides the same data for a specific net input blob.
@@ -158,9 +174,14 @@ class StaticDataMonitor(DataMonitor):
         for key in list(self._X.keys()):
             net.blobs[key].data[...] = self._X[key]
 
+    def get_parallel_blob_names(self):
+        """Get the names of all blobs that must be provided for the dummy."""
+        return list(self._X.keys())
+
+
 
 # pylint: disable=too-few-public-methods
-class OversamplingDataMonitor(DataMonitor):
+class OversamplingDataMonitor(DataMonitor, ParallelMonitor):
 
     r"""
     Provides oversampled data.
@@ -191,6 +212,10 @@ class OversamplingDataMonitor(DataMonitor):
                 assert key in list(before_oversample_resize_to.keys())
         self._before_oversample_resize_to = before_oversample_resize_to
         self._batch_size = None
+
+    def get_parallel_blob_names(self):
+        """Get the names of all blobs that must be provided for the dummy."""
+        return list(self._blobinfos.keys())
 
     def _initialize_train(self, kwargs):
         raise Exception("The OversamplingDataMonitor can only be used during "
@@ -247,7 +272,7 @@ class OversamplingDataMonitor(DataMonitor):
 
 
 # pylint: disable=too-many-instance-attributes, R0903
-class CyclingDataMonitor(Monitor):
+class CyclingDataMonitor(DataMonitor, ParallelMonitor):
 
     r"""
     Uses the data sequentially.
@@ -342,6 +367,9 @@ class CyclingDataMonitor(Monitor):
         # pylint: disable=invalid-name
         self._color_data_augmentation_components = dict()
 
+    def get_parallel_blob_names(self):
+        return list(self._X.keys())
+
     def _initialize_train(self, kwargs):
         self._initialize(kwargs)
         # Calculate the color channel PCA per blob if required.
@@ -376,9 +404,10 @@ class CyclingDataMonitor(Monitor):
             raise Exception("This DataProvider has already been intialized! "
                             "Did you maybe try to use it for train and test? "
                             "This is not possible!")
-        net = kwargs['net']
         if 'test' in kwargs['callback_signal']:
             net = kwargs['testnet']
+        else:
+            net = kwargs['net']
 
         self._len_data = len(list(self._X.values())[0])
         for key, value in list(self._X.items()):
@@ -396,9 +425,10 @@ class CyclingDataMonitor(Monitor):
         self._initialized = True
 
     def _pre_fit(self, kwargs):
-        net = kwargs['net']
         if 'test' in kwargs['callback_signal']:
             net = kwargs['testnet']
+        else:
+            net = kwargs['net']
         if self._virtual_batch_size is not None:
             self._batch_size = self._virtual_batch_size
         else:
@@ -503,7 +533,7 @@ class CyclingDataMonitor(Monitor):
             kwargs['data_orig'] = sample_dict
 
 
-class ResizingMonitor(Monitor):  # pylint: disable=R0903
+class ResizingMonitor(ParallelMonitor, Monitor):  # pylint: disable=R0903
 
     r"""
     Optionally resizes input data and adjusts the network input shape.
@@ -684,13 +714,13 @@ class ResizingMonitor(Monitor):  # pylint: disable=R0903
                     net.blobs[key].data.shape[2:4],
                     val=padval)
 
-    def finalize(self, kwargs):  # pylint: disable=W0613
-        """Nothing to do here."""
-        pass
+    def get_parallel_blob_names(self):
+        """Get the names of all blobs that must be provided for the dummy."""
+        return list(self._blobinfos.keys())
 
 
 # pylint: disable=too-few-public-methods
-class RotatingMirroringMonitor(Monitor):
+class RotatingMirroringMonitor(ParallelMonitor, Monitor):
 
     r"""
     Rotate and/or horizontally mirror samples within blobs.
@@ -749,6 +779,10 @@ class RotatingMirroringMonitor(Monitor):
             if key not in list(mirror_value_swaps.keys()):
                 mirror_value_swaps[key] = []
         self._mirror_value_swaps = mirror_value_swaps
+
+    def get_parallel_blob_names(self):
+        """Get the names of all blobs that must be provided for the dummy."""
+        return list(self._blobinfos.keys())
 
     def _initialize_train(self, kwargs):
         self._initialize(kwargs)

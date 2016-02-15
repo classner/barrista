@@ -468,6 +468,7 @@ class MonitoringTestCase(unittest.TestCase):
         # Test layerwise application.
         self.assertTrue(np.all(kwargs['data_orig']['a'][0][2] == 0))
         diff0 = ddta1[0, 0, 0] - kwargs['data_orig']['a'][0][0, 0, 0]
+        print(np.max(np.abs(ddta1[0] - kwargs['data_orig']['a'][0][0] - diff0)))
         self.assertTrue(np.all(np.isclose(
             ddta1[0] - kwargs['data_orig']['a'][0][0],
             diff0)))

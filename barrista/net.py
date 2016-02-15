@@ -23,6 +23,7 @@ from sklearn.feature_extraction.image import extract_patches as _extract_patches
 
 from .tools import chunks as _chunks, pbufToPyEnum as _pbufToPyEnum
 import barrista.monitoring as _monitoring
+import barrista.parallel as _parallel
 
 # CAREFUL! This must be imported before any caffe-related import!
 from .initialization import init as _init
@@ -86,6 +87,10 @@ class Net(_caffe.Net):
                     get_predict_net_specification().instantiate()
                 # Use the blobs of this net.
                 self._predict_variant.share_with(self)
+        self._parallel_batch_res = None
+        self._no_batch_prepared = True
+        self._parallel_test_filler = None
+        self._test_net_dummy = None
 
     def reshape_blob(self, name, *args):
         """
@@ -515,19 +520,26 @@ class Net(_caffe.Net):
         cbparams['callback_signal'] = 'pre_test'
         for cb in test_callbacks:
             cb(cbparams)
+        _parallel.init_prebatch(self,
+                                prednet,
+                                test_callbacks,
+                                False)
         chunk_size = (batch_size if not oversample else batch_size // 10)
-        for chunk_idx in enumerate(_chunks(list(range(nsamples)),
-                                           chunk_size)):
+        for chunk_idx, _ in enumerate(_chunks(list(range(nsamples)),
+                                              chunk_size)):
             _LOGGER.debug('Preparing chunk %d...', chunk_idx)
             # Callbacks.
             cbparams['iter'] = (
                 len(output_images[list(output_images.keys())[0]]) if not oversample
                 else len(output_images[list(output_images.keys())[0]]) * 10)
-            cbparams['X'] = [prednet.blobs[blobname]
-                             for blobname in prednet.inputs]
+            iter_p1 = (cbparams['iter'] + batch_size if not oversample else
+                       cbparams['iter'] + batch_size // 10)
             cbparams['callback_signal'] = 'pre_test_batch'
-            for cb in test_callbacks:
-                cb(cbparams)
+            _parallel.run_prebatch(self,
+                                   test_callbacks,
+                                   cbparams,
+                                   False,
+                                   iter_p1)
 
             # Logging.
             to_image = (
@@ -660,6 +672,7 @@ class Net(_caffe.Net):
             del cbparams['out']
         for cb in test_callbacks:
             cb.finalize(cbparams)
+        _parallel.finalize_prebatch(self)
         if len(output_images) == 1:
             return list(output_images.items())[0][1]
         else:
