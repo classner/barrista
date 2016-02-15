@@ -152,9 +152,11 @@ class StaticDataMonitor(DataMonitor, ParallelMonitor):
         self._initialize(kwargs)
 
     def _initialize(self, kwargs):
-        net = kwargs['net']
         if 'test' in kwargs['callback_signal']:
             net = kwargs['testnet']
+        else:
+            net = kwargs['net']
+
 
         for key, value in list(self._X.items()):
             assert key in list(net.blobs.keys()), (
@@ -222,9 +224,10 @@ class OversamplingDataMonitor(DataMonitor, ParallelMonitor):
                         "testing!")
 
     def _initialize_test(self, kwargs):
-        net = kwargs['net']
         if 'test' in kwargs['callback_signal']:
             net = kwargs['testnet']
+        else:
+            net = kwargs['net']
 
         for key in list(self._blobinfos.keys()):
             assert key in list(net.blobs.keys()), (
@@ -600,9 +603,10 @@ class ResizingMonitor(ParallelMonitor, Monitor):  # pylint: disable=R0903
         # we make sure, now that the network is available, that
         # all names in the provided data dict have a corresponding match
         # in the network
-        net = kwargs['net']
         if 'test' in kwargs['callback_signal']:
             net = kwargs['testnet']
+        else:
+            net = kwargs['net']
 
         for key in list(self._blobinfos.keys()):
             assert key in list(net.blobs.keys()), (
@@ -622,9 +626,10 @@ class ResizingMonitor(ParallelMonitor, Monitor):  # pylint: disable=R0903
                                     net.blobs[key].data.shape[2:4]))
 
     def _pre_fit(self, kwargs):
-        net = kwargs['net']
         if 'test' in kwargs['callback_signal']:
             net = kwargs['testnet']
+        else:
+            net = kwargs['net']
         self._batch_size = net.blobs[
             list(self._blobinfos.keys())[0]].data.shape[0]
         if self._adjustment_multiple_of > 0:
@@ -794,9 +799,10 @@ class RotatingMirroringMonitor(ParallelMonitor, Monitor):
         # we make sure, now that the network is available, that
         # all names in the provided data dict have a corresponding match
         # in the network
-        net = kwargs['net']
         if 'test' in kwargs['callback_signal']:
             net = kwargs['testnet']
+        else:
+            net = kwargs['net']
 
         for key in list(self._blobinfos.keys()):
             assert key in list(net.blobs.keys()), (
@@ -805,9 +811,10 @@ class RotatingMirroringMonitor(ParallelMonitor, Monitor):
             assert net.blobs[key].data.ndim == 4
 
     def _pre_fit(self, kwargs):
-        net = kwargs['net']
         if 'test' in kwargs['callback_signal']:
             net = kwargs['testnet']
+        else:
+            net = kwargs['net']
         self._batch_size = net.blobs[
             list(self._blobinfos.keys())[0]].data.shape[0]
 
@@ -948,9 +955,10 @@ class ResultExtractor(Monitor):  # pylint: disable=R0903
         if self._init:
             raise Exception("This ResultExtractor is already initialized! "
                             "Did you try to use it for train and test?")
-        tmp_net = kwargs['net']
         if 'test' in kwargs['callback_signal']:
             tmp_net = kwargs['testnet']
+        else:
+            tmp_net = kwargs['net']
         if self._layer_name in list(tmp_net.blobs.keys()):
             self._not_layer_available = False
         self._init = True
