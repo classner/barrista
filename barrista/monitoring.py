@@ -440,6 +440,7 @@ class CyclingDataMonitor(DataMonitor, ParallelMonitor):
 
     def _pre_test(self, kwargs):
         self._pre_fit(kwargs)
+        self._sample_pointer = 0
 
     def _pre_train_batch(self, kwargs):
         self._pre_batch(kwargs['net'], kwargs)
