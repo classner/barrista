@@ -5,7 +5,6 @@ from __future__ import print_function
 
 import warnings as _warnings
 import multiprocessing as _multiprocessing
-import multiprocessing.sharedctypes as _mpsharedctypes
 import numpy as _np
 
 import barrista.monitoring as _monitoring
@@ -23,9 +22,10 @@ class DummyBlob(object):
 
     """Replacement network blob using SharedMemory for the ParallelMonitors."""
 
-    def __init__(self, shared_shape, shared_data):
+    def __init__(self, shared_shape, shared_data, real_shape):
         self.shared_data = shared_data
         self.shared_shape = shared_shape
+        self.real_shape = real_shape
 
     @property
     def shape(self):
@@ -39,9 +39,10 @@ class DummyBlob(object):
         data = _np.ctypeslib.as_array(self.shared_data)
         shape = self.shape
         if len(shape) == 4:
-            return data[:shape[0], :shape[1], :shape[2], :shape[3]]
+            return data.reshape(self.real_shape)[
+                :shape[0], :shape[1], :shape[2], :shape[3]]
         else:
-            return data
+            return data.reshape(self.real_shape)
 
     def reshape(self, num, chan, height, width):
         """Simulate the blob reshape method."""
@@ -50,9 +51,8 @@ class DummyBlob(object):
             raise Exception("Can only reshape 4D blobs!")
         assert num == shape[0]
         assert chan == shape[1]
-        realdata = _np.ctypeslib.as_array(self.shared_data)
-        assert height <= realdata.shape[2]
-        assert width <= realdata.shape[3]
+        assert height <= self.real_shape[2]
+        assert width <= self.real_shape[3]
         shape[2] = height
         shape[3] = width
 
@@ -132,24 +132,18 @@ def init_prebatch(self,  # pylint: disable=too-many-locals
     dummynet = DummyNet()
     for bname, bsh in zip(dummyblobs, dummyshapes):
         if len(bsh) == 4:
-            tmp = _np.ctypeslib.as_ctypes(_np.zeros((bsh[0],
-                                                     bsh[1],
-                                                     bsh[2] * 3,
-                                                     bsh[3] * 3),
-                                                    dtype='float32'))
+            real_shape = (bsh[0], bsh[1], bsh[2] * 3, bsh[3] * 3)
         else:
-            tmp = _np.ctypeslib.as_ctypes(_np.zeros(bsh, dtype='float32'))
-        tmp_sh = _np.ctypeslib.as_ctypes(_np.zeros((len(bsh)),
-                                                   dtype='int'))
-        shared_arr = _mpsharedctypes.Array(
-            tmp._type_,
-            tmp,
+            real_shape = bsh
+        shared_arr = _multiprocessing.Array(
+            'f',
+            _np.zeros(_np.prod(real_shape), dtype='float32'),
             lock=False)
-        shared_sh = _mpsharedctypes.Array(
-            tmp_sh._type_,
-            tmp_sh,
+        shared_sh = _multiprocessing.Array(
+            'i',
+            _np.zeros(len(bsh), dtype='int'),
             lock=False)
-        dummynet.blobs[bname] = DummyBlob(shared_sh, shared_arr)
+        dummynet.blobs[bname] = DummyBlob(shared_sh, shared_arr, real_shape)
         with _warnings.catch_warnings():
             # For more information on why this is necessary, see
             # https://www.reddit.com/r/Python/comments/j3qjb/parformatlabpool_replacement
@@ -170,7 +164,7 @@ def init_prebatch(self,  # pylint: disable=too-many-locals
             initializer=init_filler,
             initargs=(dummynet, filler_cbs, False))
 
-def run_prebatch(self,
+def run_prebatch(self,  # pylint: disable=too-many-branches
                  callbacks,
                  cbparams,
                  train_mode,

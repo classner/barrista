@@ -473,16 +473,16 @@ class MonitoringTestCase(unittest.TestCase):
                             diff0)))
         self.assertTrue(np.all(np.isclose(
             ddta1[0] - kwargs['data_orig']['a'][0][0],
-            diff0)))
+            diff0, rtol=1e-04, atol=1e-07)))
         diff1 = ddta1[1, 0, 0] - kwargs['data_orig']['a'][0][1, 0, 0]
         self.assertTrue(np.all(np.isclose(
             ddta1[1] - kwargs['data_orig']['a'][0][1],
-            diff1)))
+            diff1, rtol=1e-04, atol=1e-07)))
         diff2 = ddta1[2, 0, 0] - kwargs['data_orig']['a'][0][2, 0, 0]
         self.assertEqual(diff2, 0.)
         self.assertTrue(np.all(np.isclose(
             ddta1[2] - kwargs['data_orig']['a'][0][2],
-            diff2)))
+            diff2, rtol=1e-04, atol=1e-07)))
 
     def test_CyclingDataMonitor_resizing(self):
         """Test the cycling data monitor resizing capability."""
