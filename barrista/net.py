@@ -87,8 +87,7 @@ class Net(_caffe.Net):
                     get_predict_net_specification().instantiate()
                 # Use the blobs of this net.
                 self._predict_variant.share_with(self)
-        self._parallel_batch_res = None
-        self._no_batch_prepared = True
+        self._parallel_batch_res_test = None
         self._parallel_test_filler = None
         self._test_net_dummy = None
 
@@ -517,13 +516,11 @@ class Net(_caffe.Net):
         cbparams['callback_signal'] = 'initialize_test'
         for cb in test_callbacks:
             cb(cbparams)
-        cbparams['callback_signal'] = 'pre_test'
-        for cb in test_callbacks:
-            cb(cbparams)
         _parallel.init_prebatch(self,
                                 prednet,
                                 test_callbacks,
                                 False)
+        run_pre = True
         chunk_size = (batch_size if not oversample else batch_size // 10)
         for chunk_idx, _ in enumerate(_chunks(list(range(nsamples)),
                                               chunk_size)):
@@ -534,12 +531,19 @@ class Net(_caffe.Net):
                 else len(output_images[list(output_images.keys())[0]]) * 10)
             iter_p1 = (cbparams['iter'] + batch_size if not oversample else
                        cbparams['iter'] + batch_size // 10)
+            # `pre_test` gets called automatically in `run_prebatch`.
             cbparams['callback_signal'] = 'pre_test_batch'
+            prebatch_beginpoint = _time.time()
             _parallel.run_prebatch(self,
                                    test_callbacks,
                                    cbparams,
                                    False,
-                                   iter_p1)
+                                   iter_p1,
+                                   run_pre)
+            prebatch_duration = _time.time() - prebatch_beginpoint
+            _LOGGER.debug('Pre-batch preparation time: %03.3fs.',
+                          prebatch_duration)
+            run_pre = False
 
             # Logging.
             to_image = (
@@ -555,7 +559,7 @@ class Net(_caffe.Net):
             forward_prop_beginpoint = _time.time()
             prednet._forward(0, len(prednet.layers) - 1)  # pylint: disable=W0212
             forward_prop_duration = _time.time() - forward_prop_beginpoint
-            _LOGGER.debug('Done in %03.2fs.', forward_prop_duration)
+            _LOGGER.debug('Done in %03.3fs.', forward_prop_duration)
             # Post processing.
             out = {out: prednet.blobs[out].data for out in out_blob_names}
             _LOGGER.debug('Extracting output images...')
@@ -671,8 +675,9 @@ class Net(_caffe.Net):
                 cb(cbparams)
             del cbparams['out']
         for cb in test_callbacks:
-            cb.finalize(cbparams)
-        _parallel.finalize_prebatch(self)
+            if not isinstance(cb, _monitoring.ParallelMonitor):
+                cb.finalize(cbparams)
+        _parallel.finalize_prebatch(self, cbparams)
         if len(output_images) == 1:
             return list(output_images.items())[0][1]
         else:

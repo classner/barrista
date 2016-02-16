@@ -137,12 +137,12 @@ class Solver(object):
         self._asserts.append(self.Assert_policy)
         self._solver = None
         self._print_warning = False
-        self._no_batch_prepared = True
         self._train_net_dummy = None
         self._test_net_dummy = None
         self._parallel_train_filler = None
         self._parallel_test_filler = None
-        self._parallel_batch_res = None
+        self._parallel_batch_res_train = None
+        self._parallel_batch_res_test = None
 
     def restore(self, filename, net=None):
         """Restore the solverstate from a file."""
@@ -346,8 +346,8 @@ class Solver(object):
                                    train_callbacks,
                                    test_callbacks)
 
+        run_pre = True
         iteration = 0
-        pre_fit_called = False
         cbparams = dict()
         cbparams['max_iter'] = iterations
         cbparams['batch_size'] = batch_size
@@ -382,20 +382,21 @@ class Solver(object):
         while iteration <= iterations:
             cbparams['iter'] = iteration
             # Check whether to test the net.
-            if ((test_interval > 0 and
-                 iteration % test_interval == 0 and iteration > 0) or
-                    (iteration == 0 and test_initialization) or
-                    (test_interval > 0 and iteration + batch_size
-                     >= iterations)):
+            if ((
+                    test_interval > 0 and
+                    iteration % test_interval == 0 and iteration > 0
+                ) or (
+                    iteration == 0 and test_initialization
+                ) or (
+                    test_interval > 0 and iteration + batch_size > iterations
+                )
+               ):
                 ###############################################################
                 # testing loop
                 ###############################################################
                 test_iter = 0
-                cbparams['callback_signal'] = 'pre_test'
-                for cb in test_callbacks:
-                    cb(cbparams)
-                self._no_batch_prepared = True
-
+                run_pre = True
+                # Pretest gets called if necessary in `run_prebatch`.
                 while test_iter < test_iterations:
                     cbparams['callback_signal'] = 'pre_test_batch'
                     _parallel.run_prebatch(
@@ -403,7 +404,8 @@ class Solver(object):
                         test_callbacks,
                         cbparams,
                         False,
-                        cbparams['iter'])
+                        cbparams['iter'],
+                        run_pre)
 
                     # pylint: disable=W0212
                     testnet._forward(0, len(testnet.layers) - 1)
@@ -412,11 +414,12 @@ class Solver(object):
                     for cb in test_callbacks:
                         cb(cbparams)
                     test_iter += batch_size
+                    run_pre = False
 
                 cbparams['callback_signal'] = 'post_test'
                 for cb in test_callbacks:
                     cb(cbparams)
-                pre_fit_called = False
+                run_pre = True
 
             if iteration == iterations:
                 break
@@ -425,13 +428,7 @@ class Solver(object):
             # training loop
             ###################################################################
 
-            if not pre_fit_called:
-                cbparams['callback_signal'] = 'pre_fit'
-                for cb in train_callbacks:
-                    cb(cbparams)
-                pre_fit_called = True
-                self._no_batch_prepared = True
-
+            # `pre_fit` gets called if necessary in `run_prebatch`.
             PRETRBATCH_BEGINPOINT = _time.time()
             cbparams['callback_signal'] = 'pre_train_batch'
             _parallel.run_prebatch(
@@ -439,7 +436,9 @@ class Solver(object):
                 train_callbacks,
                 cbparams,
                 True,
-                cbparams['iter'] + batch_size)
+                cbparams['iter'] + batch_size,
+                run_pre)
+            run_pre = False
             PRETRBATCH_DURATION = _time.time() - PRETRBATCH_BEGINPOINT
             _LOGGER.debug("Pre-batch preparation time: %03.3fs.",
                           PRETRBATCH_DURATION)
@@ -461,10 +460,9 @@ class Solver(object):
             iteration += batch_size
 
         for cb in set(train_callbacks + test_callbacks):
-            cb.finalize(cbparams)
-
-        # Cleanup parallelization artifacts.
-        _parallel.finalize_prebatch(self)
+            if not isinstance(cb, _monitoring.ParallelMonitor):
+                cb.finalize(cbparams)
+        _parallel.finalize_prebatch(self, cbparams)
 
     def step(self, number_of_batches):
         """Run ``number_of_batches`` solver steps."""
