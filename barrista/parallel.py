@@ -247,7 +247,7 @@ def run_prebatch(self,  # pylint: disable=too-many-branches, too-many-arguments
             self._parallel_train_filler.apply_async(
                 run_cbs, args=(ncbparams,))
     else:
-        self._parallel_batch_res =\
+        self._parallel_batch_res_test =\
             self._parallel_test_filler.apply_async(
                 run_cbs, args=(ncbparams,))
     # Execute the serially-to-execute monitors.
