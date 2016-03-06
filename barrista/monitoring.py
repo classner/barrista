@@ -792,6 +792,8 @@ class RotatingMirroringMonitor(ParallelMonitor, Monitor):
                         "blob: {}, {}, {}.".format(key,
                                                    blobinfos[key][layer_idx],
                                                    swappair))
+        if mirror_layer_swaps is None:
+            mirror_layer_swaps = dict()
         for key in list(mirror_layer_swaps.keys()):
             assert key in self._blobinfos, ("Blob not handled: {}!"\
                                             .format(key))
