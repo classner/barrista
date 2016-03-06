@@ -238,7 +238,11 @@ def run_prebatch(self,  # pylint: disable=too-many-branches, too-many-arguments
     for bname in list(dummy.blobs.keys()):
         if not _np.all(dummy.blobs[bname].data.shape ==
                        net.blobs[bname].data.shape):
-            net.blobs[bname].reshape(dummy.blobs[bname].data.shape)
+            dummyshape = dummy.blobs[bname].data.shape
+            net.blobs[bname].reshape(dummyshape[0],
+                                     dummyshape[1],
+                                     dummyshape[2],
+                                     dummyshape[3])
         net.blobs[bname].data[...] = dummy.blobs[bname].data
     # Start next parallel run.
     ncbparams['iter'] = iter_p1

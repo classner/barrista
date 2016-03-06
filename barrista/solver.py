@@ -368,101 +368,103 @@ class Solver(object):
             cbparams['callback_signal'] = 'initialize_test'
             for cb in test_callbacks:
                 cb(cbparams)
-        _parallel.init_prebatch(
-            self,
-            self._net,
-            train_callbacks,
-            True)
-        if test_interval > 0:
+        try:
             _parallel.init_prebatch(
                 self,
-                testnet,
-                test_callbacks,
-                False)
-        while iteration <= iterations:
-            cbparams['iter'] = iteration
-            # Check whether to test the net.
-            if ((
-                    test_interval > 0 and
-                    iteration % test_interval == 0 and iteration > 0
-                ) or (
-                    iteration == 0 and test_initialization
-                ) or (
-                    test_interval > 0 and iteration + batch_size > iterations
-                )
-               ):
-                ###############################################################
-                # testing loop
-                ###############################################################
-                test_iter = 0
-                run_pre = True
-                # Pretest gets called if necessary in `run_prebatch`.
-                while test_iter < test_iterations:
-                    cbparams['callback_signal'] = 'pre_test_batch'
-                    _parallel.run_prebatch(
-                        self,
-                        test_callbacks,
-                        cbparams,
-                        False,
-                        cbparams['iter'],
-                        run_pre)
+                self._net,
+                train_callbacks,
+                True)
+            if test_interval > 0:
+                _parallel.init_prebatch(
+                    self,
+                    testnet,
+                    test_callbacks,
+                    False)
+            while iteration <= iterations:
+                cbparams['iter'] = iteration
+                # Check whether to test the net.
+                if ((
+                        test_interval > 0 and
+                        iteration % test_interval == 0 and iteration > 0
+                    ) or (
+                        iteration == 0 and test_initialization
+                    ) or (
+                        test_interval > 0 and iteration + batch_size > iterations
+                    )
+                   ):
+                    ###############################################################
+                    # testing loop
+                    ###############################################################
+                    test_iter = 0
+                    run_pre = True
+                    # Pretest gets called if necessary in `run_prebatch`.
+                    while test_iter < test_iterations:
+                        cbparams['callback_signal'] = 'pre_test_batch'
+                        _parallel.run_prebatch(
+                            self,
+                            test_callbacks,
+                            cbparams,
+                            False,
+                            cbparams['iter'],
+                            run_pre)
 
-                    # pylint: disable=W0212
-                    testnet._forward(0, len(testnet.layers) - 1)
+                        # pylint: disable=W0212
+                        testnet._forward(0, len(testnet.layers) - 1)
 
-                    cbparams['callback_signal'] = 'post_test_batch'
+                        cbparams['callback_signal'] = 'post_test_batch'
+                        for cb in test_callbacks:
+                            cb(cbparams)
+                        test_iter += batch_size
+                        run_pre = False
+
+                    cbparams['callback_signal'] = 'post_test'
                     for cb in test_callbacks:
                         cb(cbparams)
-                    test_iter += batch_size
-                    run_pre = False
+                    run_pre = True
 
-                cbparams['callback_signal'] = 'post_test'
-                for cb in test_callbacks:
+                if iteration == iterations:
+                    break
+
+                ###################################################################
+                # training loop
+                ###################################################################
+
+                # `pre_fit` gets called if necessary in `run_prebatch`.
+                PRETRBATCH_BEGINPOINT = _time.time()
+                cbparams['callback_signal'] = 'pre_train_batch'
+                _parallel.run_prebatch(
+                    self,
+                    train_callbacks,
+                    cbparams,
+                    True,
+                    cbparams['iter'] + batch_size,
+                    run_pre)
+                run_pre = False
+                PRETRBATCH_DURATION = _time.time() - PRETRBATCH_BEGINPOINT
+                _LOGGER.debug("Pre-batch preparation time: %03.3fs.",
+                              PRETRBATCH_DURATION)
+
+                TRBATCH_BEGINPOINT = _time.time()
+                self.step(1)
+                TRBATCH_DURATION = _time.time() - TRBATCH_BEGINPOINT
+                _LOGGER.debug("Batch processing time: %03.3fs.",
+                              TRBATCH_DURATION)
+
+                POSTTRBATCH_BEGINPOINT = _time.time()
+                cbparams['callback_signal'] = 'post_train_batch'
+                for cb in train_callbacks:
                     cb(cbparams)
-                run_pre = True
+                POSTTRBATCH_DURATION = _time.time() - POSTTRBATCH_BEGINPOINT
+                _LOGGER.debug("Post-batch processing time: %03.3fs.",
+                              POSTTRBATCH_DURATION)
 
-            if iteration == iterations:
-                break
+                iteration += batch_size
 
-            ###################################################################
-            # training loop
-            ###################################################################
-
-            # `pre_fit` gets called if necessary in `run_prebatch`.
-            PRETRBATCH_BEGINPOINT = _time.time()
-            cbparams['callback_signal'] = 'pre_train_batch'
-            _parallel.run_prebatch(
-                self,
-                train_callbacks,
-                cbparams,
-                True,
-                cbparams['iter'] + batch_size,
-                run_pre)
-            run_pre = False
-            PRETRBATCH_DURATION = _time.time() - PRETRBATCH_BEGINPOINT
-            _LOGGER.debug("Pre-batch preparation time: %03.3fs.",
-                          PRETRBATCH_DURATION)
-
-            TRBATCH_BEGINPOINT = _time.time()
-            self.step(1)
-            TRBATCH_DURATION = _time.time() - TRBATCH_BEGINPOINT
-            _LOGGER.debug("Batch processing time: %03.3fs.",
-                          TRBATCH_DURATION)
-
-            POSTTRBATCH_BEGINPOINT = _time.time()
-            cbparams['callback_signal'] = 'post_train_batch'
-            for cb in train_callbacks:
-                cb(cbparams)
-            POSTTRBATCH_DURATION = _time.time() - POSTTRBATCH_BEGINPOINT
-            _LOGGER.debug("Post-batch processing time: %03.3fs.",
-                          POSTTRBATCH_DURATION)
-
-            iteration += batch_size
-
-        for cb in set(train_callbacks + test_callbacks):
-            if not isinstance(cb, _monitoring.ParallelMonitor):
-                cb.finalize(cbparams)
-        _parallel.finalize_prebatch(self, cbparams)
+        finally:
+            for cb in set(train_callbacks + test_callbacks):
+                if not isinstance(cb, _monitoring.ParallelMonitor):
+                    cb.finalize(cbparams)
+            _parallel.finalize_prebatch(self, cbparams)
 
     def step(self, number_of_batches):
         """Run ``number_of_batches`` solver steps."""

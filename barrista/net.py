@@ -126,6 +126,7 @@ class Net(_caffe.Net):
         else:
             self.copy_from(filename)
 
+    # pylint: disable=too-many-statements
     def predict_sliding_window(self,
                                input_sequence,
                                test_callbacks=None,
@@ -135,7 +136,8 @@ class Net(_caffe.Net):
                                extraction_step=(1, 1),
                                account_for_step=True,
                                interpolation_method=_cv2INTER_NEAREST,
-                               pad_border=True):
+                               pad_border=True,
+                               overlap_combine_max=True):
         """
         Get predictions for all images in a sliding window manner.
 
@@ -144,8 +146,11 @@ class Net(_caffe.Net):
         at least as big as the input size. It is then sampled using sliding
         window, and for each output layer the reassembled images are returned.
 
-        The output of the network for one patch must be of shape
-        (num_layers X 1 X 1) and currently only one output layer is supported.
+        The output of the network for one patch must either be of shape
+        (num_layers X 1 X 1) or of shape (num_layers X input_height X input_width)
+        and currently only one output layer is supported. If the output is of the
+        same shape as the input, `account_for_step` does not play a role, and the
+        inputs are combined by using the max of the predictions per position.
 
         :param input_sequence: iterable(3D numpy arrays)
           The 3D numpy arrays must match in their first dimension with the
@@ -177,20 +182,25 @@ class Net(_caffe.Net):
           have to take care to bring them into the right shape for further
           processing yourself.
 
-        :parameter extraction_step: 2-tuple(int).
+        :param extraction_step: 2-tuple(int).
           Window step size in y and x direction.
 
-        :parameter account_for_step: bool.
+        :param account_for_step: bool.
           If set to True, the output is resized with nearest neighbor
           interpolation to get a full-sized image.
 
-        :parameter interpolation_method: int in {cv2.INTER_...}.
+        :param interpolation_method: int in {cv2.INTER_...}.
           The interpolation strategy used, if ``account_for_step`` is set and
           the ``extraction_step`` is not ``(1, 1)``.
 
-        :parameter pad_border: bool.
-          Whether to return images in the original image size, by adding zero
-          padded borders.
+        :param pad_border: bool.
+          Whether to return images in the original image size, or by adding
+          zero padded borders.
+
+        :param overlap_combine_max: bool.
+          If the network output size is equal to the input size and the
+          stepsize smaller than the output, which operator to use to combine
+          overlapping areas. Default: True.
         """
         if self._predict_variant is not None and not use_fit_network:
             _LOGGER.debug("Using prediction network variant.")
@@ -230,64 +240,110 @@ class Net(_caffe.Net):
                                       use_fit_network=use_fit_network,
                                       oversample=oversample,
                                       before_oversample_resize_to=None)
-            if account_for_step or extraction_step == (1, 1):
-                out_im = _np.zeros((results[0].shape[0],
-                                    im.shape[1],
-                                    im.shape[2]),
-                                   dtype=results[0].dtype)
-                # Collect the values.
-                collected = _np.empty(_np.hstack(([results[0].shape[0]],
-                                                  sampled_shape)),
-                                      dtype=results[0].dtype)
-                for val_idx, val in enumerate(results):
-                    try:
-                        val.shape = (results[0].shape[0],)
-                    except:
-                        raise Exception(
-                            ("The output shape of the net must be (X, 1, 1) to be "  # noqa
-                             "used with the `predict_sliding_window` method. It is "  # noqa
-                             "{}.").format(val.shape))
-                    collected[:,
-                              val_idx // sampled_shape[1],
-                              val_idx % sampled_shape[1]] = val[:]
-                # Resize.
-                for layer_idx in range(results[0].shape[0]):
-                    layer_area = out_im[
-                        layer_idx,
-                        int(_np.ceil(input_image_dims[0] / 2.))-1:
-                        -int(_np.ceil(input_image_dims[0] / 2.))+1,
-                        int(_np.ceil(input_image_dims[1] / 2.))-1:
-                        -int(_np.ceil(input_image_dims[1] / 2.))+1]
-                    layer_area[...] = _cv2resize(
-                        collected[layer_idx],
-                        (layer_area.shape[1],
-                         layer_area.shape[0]),
-                        interpolation=interpolation_method)
-                if not pad_border:
-                    out_im = out_im[
-                        :,
-                        int(_np.ceil(input_image_dims[0] / 2.))-1:
-                        -int(_np.ceil(input_image_dims[0] / 2.))+1,
-                        int(_np.ceil(input_image_dims[1] / 2.))-1:
-                        -int(_np.ceil(input_image_dims[1] / 2.))+1]
+            if results[0].size > results[0].shape[0]:
+                assert (results[0].ndim == 3 and
+                        _np.all(results[0].shape[1:3] == input_image_dims)), (
+                            ("The output shape of the net must be "
+                             "(X, 1, 1) or (X, input_height, input_width) "
+                             "to be used with the `predict_sliding_window` "
+                             "method. {} vs {}.").format(
+                                 input_image_dims,
+                                 results[0].shape[1:3]))
+                out_im = _np.ones((results[0].shape[0],
+                                   im.shape[1],
+                                   im.shape[2]),
+                                  dtype=results[0].dtype) * -1.
+                curr_y = 0
+                curr_x = 0
+                for val in results:
+                    # Write back with max.
+                    roi = out_im[:,
+                                 curr_y:curr_y+val.shape[1],
+                                 curr_x:curr_x+val.shape[2]]
+                    if overlap_combine_max:
+                        out_im[:,
+                               curr_y:curr_y+val.shape[1],
+                               curr_x:curr_x+val.shape[2]] =\
+                                    _np.maximum(roi, val)
+                    else:
+                        for c_idx in range(roi.shape[0]):
+                            for y_idx in range(roi.shape[1]):
+                                for x_idx in range(roi.shape[2]):
+                                    if roi[c_idx, y_idx, x_idx] == -1:
+                                        roi[c_idx, y_idx, x_idx] = \
+                                            val[c_idx, y_idx, x_idx]
+                                    else:
+                                        roi[c_idx, y_idx, x_idx] = \
+                                            (val[c_idx, y_idx, x_idx] +
+                                             roi[c_idx, y_idx, x_idx]) / 2.
+                    # Find the position in the original image.
+                    if (curr_x + extraction_step[1] + input_image_dims[1]
+                            > out_im.shape[2]):
+                        curr_y += extraction_step[0]
+                        curr_x = 0
+                    else:
+                        curr_x += extraction_step[1]
                 output_images.append(out_im)
             else:
-                # Collect the values.
-                collected = _np.empty(_np.hstack(([results[0].shape[0]],
-                                                  sampled_shape)),
-                                      dtype=results[0].dtype)
-                for val_idx, val in enumerate(results):
-                    try:
-                        val.shape = (results[0].shape[0],)
-                    except:
-                        raise Exception(
-                            ("The output shape of the net must be (X, 1, 1) to be "  # noqa
-                             "used with the `predict_sliding_window` method. It is "  # noqa
-                             "{}.").format(val.shape))
-                    collected[:,
-                              val_idx // sampled_shape[1],
-                              val_idx % sampled_shape[1]] = val[:]
-                output_images.append(collected)
+                if account_for_step or extraction_step == (1, 1):
+                    out_im = _np.zeros((results[0].shape[0],
+                                        im.shape[1],
+                                        im.shape[2]),
+                                       dtype=results[0].dtype)
+                    # Collect the values.
+                    collected = _np.empty(_np.hstack(([results[0].shape[0]],
+                                                      sampled_shape)),
+                                          dtype=results[0].dtype)
+                    for val_idx, val in enumerate(results):
+                        try:
+                            val.shape = (results[0].shape[0],)
+                        except:
+                            raise Exception(
+                                ("The output shape of the net must be "
+                                 "(X, 1, 1) or (X, input_height, input_width) "
+                                 "to be used with the `predict_sliding_window` "
+                                 "method. It is {}.").format(val.shape))
+                        collected[:,
+                                  val_idx // sampled_shape[1],
+                                  val_idx % sampled_shape[1]] = val[:]
+                    # Resize.
+                    for layer_idx in range(results[0].shape[0]):
+                        layer_area = out_im[
+                            layer_idx,
+                            int(_np.ceil(input_image_dims[0] / 2.))-1:
+                            -int(_np.ceil(input_image_dims[0] / 2.))+1,
+                            int(_np.ceil(input_image_dims[1] / 2.))-1:
+                            -int(_np.ceil(input_image_dims[1] / 2.))+1]
+                        layer_area[...] = _cv2resize(
+                            collected[layer_idx],
+                            (layer_area.shape[1],
+                             layer_area.shape[0]),
+                            interpolation=interpolation_method)
+                    if not pad_border:
+                        out_im = out_im[
+                            :,
+                            int(_np.ceil(input_image_dims[0] / 2.))-1:
+                            -int(_np.ceil(input_image_dims[0] / 2.))+1,
+                            int(_np.ceil(input_image_dims[1] / 2.))-1:
+                            -int(_np.ceil(input_image_dims[1] / 2.))+1]
+                    output_images.append(out_im)
+                else:
+                    # Collect the values.
+                    collected = _np.empty(_np.hstack(([results[0].shape[0]],
+                                                      sampled_shape)),
+                                          dtype=results[0].dtype)
+                    for val_idx, val in enumerate(results):
+                        try:
+                            val.shape = (results[0].shape[0],)
+                        except:
+                            raise Exception(
+                                ("The output shape of the net must be (X, 1, 1) to be "  # noqa
+                                 "used with the `predict_sliding_window` method. It is "  # noqa
+                                 "{}.").format(val.shape))
+                        collected[:,
+                                  val_idx // sampled_shape[1],
+                                  val_idx % sampled_shape[1]] = val[:]
+                    output_images.append(collected)
             _LOGGER.debug("Processed image %d in %03.2fs.",
                           im_id,
                           _time.time() - image_beginpoint)
@@ -308,13 +364,11 @@ class Net(_caffe.Net):
                 net_input_size_adjustment_multiple_of=0):
         r"""
         Predict samples in the spirit of `scikit-learn`.
-
         * It is YOUR responsibility to prepare the data in an iterable object
           of numpy arrays with the correctly matching first dimension (i.e.,
           the number of channels).
         * The method will match the data to the input size of the network and
           forward propagate it in batches.
-
         :param input_sequence: iterable(3D numpy arrays) or dict(string: ...).
           The 3D numpy arrays must match in their first dimension with the
           second dimension of the network input (number of channels). E.g.,
@@ -326,58 +380,47 @@ class Net(_caffe.Net):
           where the keys are the input blob names to fill. Use the
           `input_processing_flags` to specify how preprocessing is
           done in any scenario.
-
         :param test_callbacks: list(barrista.monitoring.Monitor) or None.
           List of callback callables. Will be called pre and post batch
           processing. This list will be processed sequentially, meaning that
           monitors in the sequence can provide information for later monitors
           as done with the ``ResultExtractor``.
-
         :param out_blob_names: list(string) or None.
           The names of the blobs of which the values are returned. If
           unspecified, uses ``self.outputs``.
-
         :param use_fit_network: bool.
           If set to ``True``, always use this very network, independent of
           whether an internal network in stage ``predict`` is available.
           For more information, see the constructor documentation.
-
         :param oversample: bool.
           If set to ``True``, uses oversampling and averages the results. You
           have to take care to bring them into the right shape for further
           processing yourself.
-
         :param before_oversample_resize_to: 2-tuple(int) or None.
           A tuple specifying height and width to resize to before oversampling
           or None if the image should not be resized before oversampling.
-
         :param input_processing_flags: dict(string:string) or None.
           A list or tuple of letters specifying the preprocessing for each
           input. 'n': no preprocessing, 'rc': rescale cubic, 'rn': rescale
           nearest, 'rl': rescale linear, 'pX': pad with value X.
           Default: ['n'] * number_of_inputs
-
         :param output_processing_flags: dict(string:string) or None.
           A list or tuple of letters specifying the postprocessing of the
           outputs. 'n': no postprocessing, 'pX': unpack from
           padding of input X, where X is the 0-based input index.
           Default: ['n'] * number_of_inputs
-
         :param static_inputs: list(string) or None.
           A list of input blob names for wich the input will always be
           fully used, independent of the selected samples.
-
         :param input_size_spec: (int, int) or None.
           For exotic network configurations it can be necessary to specify
           the batch size and input size because it can not be automatically
           inferred. By default (None), use the first dimension of the first
           network blob as batch size and the first dimension of the associated
           inputs as amount of samples.
-
         :returns : dict(string:np.array) or np.array.
           Returns a dictionary of arrays if multiple outputs are returned
           or directly the array in the case of just one output.
-
         :param allow_train_phase_for_test: bool.
           If set to True, allow using a network in its TRAIN phase for
           prediction.
@@ -386,7 +429,6 @@ class Net(_caffe.Net):
           Why is this so important? The ``DropoutLayer`` and ``PoolLayer`` (in
           the case of stochastic pooling) are sensitive to this parameter and
           results are very different for the two settings.
-
         :param net_input_size_adjustment_multiple_of: int.
           If set to a value>0, the networks input is resized in multiples of
           this value to take in the input images.
@@ -516,168 +558,173 @@ class Net(_caffe.Net):
         cbparams['callback_signal'] = 'initialize_test'
         for cb in test_callbacks:
             cb(cbparams)
-        _parallel.init_prebatch(self,
-                                prednet,
-                                test_callbacks,
-                                False)
-        run_pre = True
-        chunk_size = (batch_size if not oversample else batch_size // 10)
-        for chunk_idx, _ in enumerate(_chunks(list(range(nsamples)),
-                                              chunk_size)):
-            _LOGGER.debug('Preparing chunk %d...', chunk_idx)
-            # Callbacks.
-            cbparams['iter'] = (
-                len(output_images[list(output_images.keys())[0]]) if not oversample
-                else len(output_images[list(output_images.keys())[0]]) * 10)
-            iter_p1 = (cbparams['iter'] + batch_size if not oversample else
-                       cbparams['iter'] + batch_size // 10)
-            # `pre_test` gets called automatically in `run_prebatch`.
-            cbparams['callback_signal'] = 'pre_test_batch'
-            prebatch_beginpoint = _time.time()
-            _parallel.run_prebatch(self,
-                                   test_callbacks,
-                                   cbparams,
-                                   False,
-                                   iter_p1,
-                                   run_pre)
-            prebatch_duration = _time.time() - prebatch_beginpoint
-            _LOGGER.debug('Pre-batch preparation time: %03.3fs.',
-                          prebatch_duration)
-            run_pre = False
+        try:  # pylint: disable=too-many-nested-blocks
+            _parallel.init_prebatch(self,
+                                    prednet,
+                                    test_callbacks,
+                                    False)
+            run_pre = True
+            chunk_size = (batch_size if not oversample else batch_size // 10)
+            for chunk_idx, _ in enumerate(_chunks(list(range(nsamples)),
+                                                  chunk_size)):
+                _LOGGER.debug('Preparing chunk %d...', chunk_idx)
+                # Callbacks.
+                cbparams['iter'] = (
+                    len(output_images[list(output_images.keys())[0]]) if not oversample
+                    else len(output_images[list(output_images.keys())[0]]) * 10)
+                iter_p1 = (cbparams['iter'] + batch_size if not oversample else
+                           cbparams['iter'] + batch_size // 10)
+                # `pre_test` gets called automatically in `run_prebatch`.
+                cbparams['callback_signal'] = 'pre_test_batch'
+                prebatch_beginpoint = _time.time()
+                _parallel.run_prebatch(self,
+                                       test_callbacks,
+                                       cbparams,
+                                       False,
+                                       iter_p1,
+                                       run_pre)
+                prebatch_duration = _time.time() - prebatch_beginpoint
+                _LOGGER.debug('Pre-batch preparation time: %03.3fs.',
+                              prebatch_duration)
+                run_pre = False
 
-            # Logging.
-            to_image = (
-                len(output_images[list(output_images.keys())[0]]) + batch_size if not oversample
-                else len(output_images[list(output_images.keys())[0]]) + batch_size / 10)
-            _LOGGER.debug('Forward propagating chunk %d (image %d to %d of %d)...',  # noqa
-                          chunk_idx,
-                          len(output_images[list(output_images.keys())[0]]),
-                          to_image,
-                          nsamples)
+                # Logging.
+                to_image = (
+                    len(output_images[list(output_images.keys())[0]]) + batch_size if not oversample
+                    else len(output_images[list(output_images.keys())[0]]) + batch_size / 10)
+                _LOGGER.debug('Forward propagating chunk %d (image %d to %d of %d)...',  # noqa
+                              chunk_idx,
+                              len(output_images[list(output_images.keys())[0]]),
+                              to_image,
+                              nsamples)
 
-            # Forward propagation.
-            forward_prop_beginpoint = _time.time()
-            prednet._forward(0, len(prednet.layers) - 1)  # pylint: disable=W0212
-            forward_prop_duration = _time.time() - forward_prop_beginpoint
-            _LOGGER.debug('Done in %03.3fs.', forward_prop_duration)
-            # Post processing.
-            out = {out: prednet.blobs[out].data for out in out_blob_names}
-            _LOGGER.debug('Extracting output images...')
-            # pylint: disable=W0612
-            output_image_parts = dict((outname, []) for outname in out_blob_names)
-            for blob_idx, blob_name in enumerate(out.keys()):
-                full_output_image_blob = out[blob_name]
-                if full_output_image_blob.ndim < 1:
-                    # Scalar processing.
-                    output_image_parts[blob_name].append(full_output_image_blob)
-                    continue
-                if output_processing_flags[blob_name].lower().startswith('p'):
-                    target_output_height = \
-                        prednet.blobs[
-                            prednet.inputs[
-                                int(output_processing_flags[
-                                    blob_name][1:])]].data.shape[2]
-                    target_output_width = \
-                        prednet.blobs[
-                            prednet.inputs[
-                                int(output_processing_flags[
-                                    blob_name][1:])]].data.shape[3]
-                    input_image_dims = _np.array([target_output_height,
-                                                  target_output_width])
-                else:
-                    target_output_height = None
-                    target_output_width = None
-                output_dims = _np.array(full_output_image_blob.shape)
-                output_image_dims = output_dims[2:]
-                if len(output_dims) > 2 and 'input_image_dims' in list(locals().keys()):
-                    scale_h, scale_w = (input_image_dims.astype('float') /
-                                        output_image_dims.astype('float'))
-                else:
-                    scale_h = scale_w = 1.0
-                if scale_h == 1. and scale_w == 1.:
-                    _LOGGER.debug('No scaling necessary.')
-                    scaling = False
-                else:
-                    _LOGGER.debug('Scale change by %f, %f (h, w).',
-                                  scale_h, scale_w)
-                    scaling = True
-                oversampled = []
-                for outim_idx, outim in enumerate(full_output_image_blob):
-                    if ((len(output_images[list(output_images.keys())[0]]) +\
-                         len(output_image_parts[blob_name]) ==
-                         nsamples and not oversample) or
-                        # pylint: disable=C0330
-                        ((len(output_images[list(output_images.keys())[0]]) + \
-                          len(oversampled) - nsamples) <
-                         (batch_size / 10) and
-                         len(oversampled) % 10 == 0 and
-                         len(oversampled) / 10 == \
-                         (len(output_images[list(output_images.keys())[0]]) + \
-                         len(oversampled) - nsamples))):
-                        # The last blob was not completely used.
-                        break
-                    if scaling:
-                        outim_resized = _np.empty((output_dims[1],
-                                                   target_output_height,
-                                                   target_output_width))
-                        for layer_idx, layer in enumerate(outim):
-                            outim_resized[layer_idx] = \
-                                _cv2resize(layer,
-                                           (int(target_output_width),
-                                            int(target_output_height)),
-                                           interpolation=_cv2INTER_CUBIC)
-                    else:
-                        outim_resized = outim
-                    if output_processing_flags[blob_name].lower().startswith('p') \
-                       and outim_resized.ndim == 3:  # Otherwise it's not clear...
-                        # Padded extraction.
-                        target_image_dims = _np.array(
-                            input_sequence[
+                # Forward propagation.
+                forward_prop_beginpoint = _time.time()
+                prednet._forward(0, len(prednet.layers) - 1)  # pylint: disable=W0212
+                forward_prop_duration = _time.time() - forward_prop_beginpoint
+                _LOGGER.debug('Done in %03.3fs.', forward_prop_duration)
+                # Post processing.
+                out = {out: prednet.blobs[out].data for out in out_blob_names}
+                _LOGGER.debug('Extracting output images...')
+                # pylint: disable=W0612
+                output_image_parts = dict((outname, []) for outname in out_blob_names)
+                for blob_idx, blob_name in enumerate(out.keys()):
+                    full_output_image_blob = out[blob_name]
+                    if full_output_image_blob.ndim < 1:
+                        # Scalar processing.
+                        output_image_parts[blob_name].append(full_output_image_blob)
+                        continue
+                    if output_processing_flags[blob_name].lower().startswith('p'):
+                        target_output_height = \
+                            prednet.blobs[
                                 prednet.inputs[
-                                    int(output_processing_flags[blob_name][1:])]]
-                            [outim_idx+len(output_images[list(output_images.keys())[0]])].shape[1:],
-                            dtype='int')
-                        output_pad_height = (target_output_height -
-                                             target_image_dims[0]) / 2.0
-                        output_pad_width = (target_output_width -
-                                            target_image_dims[1]) / 2.0
-                        extracted_work_image = \
-                            outim_resized[:,
-                                          _np.floor(output_pad_height):
-                                          _np.floor(output_pad_height) +
-                                          target_image_dims[0],
-                                          _np.floor(output_pad_width):
-                                          _np.floor(output_pad_width) +
-                                          target_image_dims[1]]
+                                    int(output_processing_flags[
+                                        blob_name][1:])]].data.shape[2]
+                        target_output_width = \
+                            prednet.blobs[
+                                prednet.inputs[
+                                    int(output_processing_flags[
+                                        blob_name][1:])]].data.shape[3]
+                        input_image_dims = _np.array([target_output_height,
+                                                      target_output_width])
                     else:
-                        extracted_work_image = outim_resized
+                        target_output_height = None
+                        target_output_width = None
+                    output_dims = _np.array(full_output_image_blob.shape)
+                    output_image_dims = output_dims[2:]
+                    if len(output_dims) > 2 and 'input_image_dims' in list(locals().keys()):
+                        scale_h, scale_w = (input_image_dims.astype('float') /
+                                            output_image_dims.astype('float'))
+                    else:
+                        scale_h = scale_w = 1.0
+                    if scale_h == 1. and scale_w == 1.:
+                        _LOGGER.debug('No scaling necessary.')
+                        scaling = False
+                    else:
+                        _LOGGER.debug('Scale change by %f, %f (h, w).',
+                                      scale_h, scale_w)
+                        scaling = True
+                    oversampled = []
+                    for outim_idx, outim in enumerate(full_output_image_blob):
+                        if ((len(output_images[list(output_images.keys())[0]]) +\
+                             len(output_image_parts[blob_name]) ==
+                             nsamples and not oversample) or
+                            # pylint: disable=C0330
+                            ((len(output_images[list(output_images.keys())[0]]) + \
+                              len(oversampled) - nsamples) <
+                             (batch_size / 10) and
+                             len(oversampled) % 10 == 0 and
+                             len(oversampled) / 10 == \
+                             (len(output_images[list(output_images.keys())[0]]) + \
+                             len(oversampled) - nsamples))):
+                            # The last blob was not completely used.
+                            break
+                        if scaling:
+                            outim_resized = _np.empty((output_dims[1],
+                                                       target_output_height,
+                                                       target_output_width))
+                            for layer_idx, layer in enumerate(outim):
+                                outim_resized[layer_idx] = \
+                                    _cv2resize(layer,
+                                               (int(target_output_width),
+                                                int(target_output_height)),
+                                               interpolation=_cv2INTER_CUBIC)
+                        else:
+                            outim_resized = outim
+                        if output_processing_flags[blob_name].lower().startswith('p') \
+                           and outim_resized.ndim == 3:  # Otherwise it's not clear...
+                            # Padded extraction.
+                            target_image_dims = _np.array(
+                                input_sequence[
+                                    prednet.inputs[
+                                        int(output_processing_flags[blob_name][1:])]]
+                                [outim_idx+
+                                 len(output_images[list(output_images.keys())[0]])].shape[1:],
+                                dtype='int')
+                            output_pad_height = (target_output_height -
+                                                 target_image_dims[0]) / 2.0
+                            output_pad_width = (target_output_width -
+                                                target_image_dims[1]) / 2.0
+                            extracted_work_image = \
+                                outim_resized[:,
+                                              _np.floor(output_pad_height):
+                                              _np.floor(output_pad_height) +
+                                              target_image_dims[0],
+                                              _np.floor(output_pad_width):
+                                              _np.floor(output_pad_width) +
+                                              target_image_dims[1]]
+                        else:
+                            extracted_work_image = outim_resized
+                        if oversample:
+                            oversampled.append(extracted_work_image.copy())
+                        else:
+                            output_image_parts[blob_name].append(
+                                extracted_work_image.copy())
                     if oversample:
-                        oversampled.append(extracted_work_image.copy())
-                    else:
-                        output_image_parts[blob_name].append(extracted_work_image.copy())  # noqa
-                if oversample:
-                    for os_im_chunk in _chunks(oversampled, 10):
-                        chunk_arr = _np.array(os_im_chunk)
-                        if chunk_arr.ndim == 4:
-                            assert chunk_arr.shape[0] == 10
-                            # Flip back the flipped results to average correctly.
-                            # The result shape is N, C, H, W, and the second half
-                            # of the ten samples are horizontally flipped.
-                            chunk_arr[5:] = chunk_arr[5:, :, :, ::-1]
-                        output_image_parts[blob_name].append(_np.mean(chunk_arr, axis=0))
-            for blob_name, part in list(output_image_parts.items()):
-                output_images[blob_name].extend(part)
-            cbparams['iter'] = (len(output_images[list(output_images.keys())[0]]) if not oversample
-                                else len(output_images[list(output_images.keys())[0]]) * 10)
-            cbparams['out'] = out
-            cbparams['callback_signal'] = 'post_test_batch'
+                        for os_im_chunk in _chunks(oversampled, 10):
+                            chunk_arr = _np.array(os_im_chunk)
+                            if chunk_arr.ndim == 4:
+                                assert chunk_arr.shape[0] == 10
+                                # Flip back the flipped results to average correctly.
+                                # The result shape is N, C, H, W, and the second half
+                                # of the ten samples are horizontally flipped.
+                                chunk_arr[5:] = chunk_arr[5:, :, :, ::-1]
+                            output_image_parts[blob_name].append(_np.mean(chunk_arr, axis=0))
+                for blob_name, part in list(output_image_parts.items()):
+                    output_images[blob_name].extend(part)
+                cbparams['iter'] = (len(output_images[list(output_images.keys())[0]])
+                                    if not oversample
+                                    else len(output_images[list(output_images.keys())[0]]) * 10)
+                cbparams['out'] = out
+                cbparams['callback_signal'] = 'post_test_batch'
+                for cb in test_callbacks:
+                    cb(cbparams)
+                del cbparams['out']
+        finally:
             for cb in test_callbacks:
-                cb(cbparams)
-            del cbparams['out']
-        for cb in test_callbacks:
-            if not isinstance(cb, _monitoring.ParallelMonitor):
-                cb.finalize(cbparams)
-        _parallel.finalize_prebatch(self, cbparams)
+                if not isinstance(cb, _monitoring.ParallelMonitor):
+                    cb.finalize(cbparams)
+            _parallel.finalize_prebatch(self, cbparams)
         if len(output_images) == 1:
             return list(output_images.items())[0][1]
         else:
