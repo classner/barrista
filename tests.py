@@ -781,7 +781,8 @@ class MonitoringTestCase(unittest.TestCase):
             blobinfos={'a': 3, 'b': 3},
             max_rotation_degrees=0.,
             mirror_prob=0.5,
-            mirror_value_swaps={'a': {1: [(0, 1), (1, 2)]}}
+            mirror_value_swaps={'a': {1: [(0, 1), (1, 2)]}},
+            mirror_layer_swaps={'a': [(1, 2)]}
         )
         np.random.seed(2748)
         kwargs = {'net': net,
@@ -795,12 +796,12 @@ class MonitoringTestCase(unittest.TestCase):
         kwargs = {'net': net, 'testnet': net}
         dmon._pre_train_batch(kwargs)
         tmon._pre_train_batch(kwargs)
-        self.assertEqual(np.sum(net.blobs['a'].data[:, (0, 2), :, :]),
+        self.assertEqual(np.sum(net.blobs['a'].data[:, (0, 1), :, :]),
                          np.sum(adata[(0, 2), :, :]))
-        self.assertEqual(np.sum(net.blobs['a'].data[:, 1, :, :]),
+        self.assertEqual(np.sum(net.blobs['a'].data[:, 2, :, :]),
                          np.sum(adata[1, :, :]+1))
-        self.assertTrue(np.all(net.blobs['a'].data[:, (0, 2), 0, 2:4] == 1.))
-        self.assertTrue(np.all(net.blobs['a'].data[:, 1, 0, 2:4] == 2.))
+        self.assertTrue(np.all(net.blobs['a'].data[:, (0, 1), 0, 2:4] == 1.))
+        self.assertTrue(np.all(net.blobs['a'].data[:, 2, 0, 2:4] == 2.))
         self.assertEqual(np.sum(net.blobs['b'].data), np.sum(bdata))
         self.assertTrue(np.all(net.blobs['b'].data[:, :, 0, 2:4] == 0.))
 

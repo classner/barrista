@@ -221,6 +221,7 @@ class Net(_caffe.Net):
         assert (out_blob_names is None or
                 len(out_blob_names) == 1), "Only one output layer is supported!"  # noqa
         output_images = []
+        # pylint: disable=too-many-nested-blocks
         for im_id, im in enumerate(input_sequence):
             _LOGGER.debug("Processing image %d...", im_id)
             image_beginpoint = _time.time()
@@ -718,13 +719,15 @@ class Net(_caffe.Net):
                 cbparams['out'] = out
                 cbparams['callback_signal'] = 'post_test_batch'
                 for cb in test_callbacks:
-                    cb(cbparams)
+                    cb(cbparams)  # pylint: disable=undefined-loop-variable
                 del cbparams['out']
         finally:
             for cb in test_callbacks:
+                # pylint: disable=undefined-loop-variable
                 if not isinstance(cb, _monitoring.ParallelMonitor):
+                    # pylint: disable=undefined-loop-variable
                     cb.finalize(cbparams)
-            _parallel.finalize_prebatch(self, cbparams)
+                _parallel.finalize_prebatch(self, cbparams)
         if len(output_images) == 1:
             return list(output_images.items())[0][1]
         else:

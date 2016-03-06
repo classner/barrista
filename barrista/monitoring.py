@@ -753,13 +753,20 @@ class RotatingMirroringMonitor(ParallelMonitor, Monitor):
       contains (original value, new value). The locations of the swaps are
       determined before any change is applied, so the order of tuples does not
       play a role.
-    """
 
+    :param mirror_layer_swaps: dict(string, list(2-tuples)).
+      Specifies for every blob whether any layers must be swapped if
+      mirroring is applied. Can be used together with mirror_value_swaps: in
+      this case, the `mirror_value_swaps` are applied first, then the layers
+      are swapped.
+    """
+    # pylint: disable=too-many-arguments
     def __init__(self,
                  blobinfos,
                  max_rotation_degrees,
                  mirror_prob=0.,
-                 mirror_value_swaps=None):
+                 mirror_value_swaps=None,
+                 mirror_layer_swaps=None):
         """See class documentation."""
         self._blobinfos = blobinfos
         self._rotation_degrees = max_rotation_degrees
@@ -785,10 +792,26 @@ class RotatingMirroringMonitor(ParallelMonitor, Monitor):
                         "blob: {}, {}, {}.".format(key,
                                                    blobinfos[key][layer_idx],
                                                    swappair))
+        for key in list(mirror_layer_swaps.keys()):
+            assert key in self._blobinfos, ("Blob not handled: {}!"\
+                                            .format(key))
+            idx_tochange = []
+            for swappair in mirror_layer_swaps[key]:
+                assert len(swappair) == 2, (
+                    "Swaps must be specified as (from_value, to_value): {}"\
+                    .format(swappair))
+                assert (swappair[0] not in idx_tochange and
+                        swappair[1] not in idx_tochange), (
+                            "Every value may only be swapped to or from one "
+                            "position!")
+                idx_tochange.extend(swappair)
         for key in list(self._blobinfos):
             if key not in list(mirror_value_swaps.keys()):
                 mirror_value_swaps[key] = dict()
+            if key not in list(mirror_layer_swaps.keys()):
+                mirror_layer_swaps[key] = []
         self._mirror_value_swaps = mirror_value_swaps
+        self._mirror_layer_swaps = mirror_layer_swaps
 
     def get_parallel_blob_names(self):
         """Get the names of all blobs that must be provided for the dummy."""
@@ -818,6 +841,11 @@ class RotatingMirroringMonitor(ParallelMonitor, Monitor):
                 assert layer_idx < net.blobs[key].data.shape[1], ((
                     "The data for blob {} has not enough layers for swapping "
                     "{}!").format(key, layer_idx))
+            for swappair in self._mirror_layer_swaps[key]:
+                assert (swappair[0] < net.blobs[key].data.shape[1] and
+                        swappair[1] < net.blobs[key].data.shape[1]), (
+                            "Not enough layers in blob {} to swap {}!".format(
+                                key, swappair))
 
     def _pre_fit(self, kwargs):
         if 'test' in kwargs['callback_signal']:
@@ -886,6 +914,16 @@ class RotatingMirroringMonitor(ParallelMonitor, Monitor):
                         for swappair in swap_tuples:
                             net.blobs[key].data[sample_idx, layer_idx][
                                 swap_indices[swappair[0]]] = swappair[1]
+                    if len(self._mirror_layer_swaps[key]) > 0:
+                        new_layer_order = list(
+                            range(net.blobs[key].data.shape[1]))
+                        for swappair in self._mirror_layer_swaps[key]:
+                            new_layer_order[swappair[0]],\
+                                new_layer_order[swappair[1]] = \
+                                    new_layer_order[swappair[1]],\
+                                    new_layer_order[swappair[0]]
+                        net.blobs[key].data[...] = net.blobs[key].data[
+                            :, tuple(new_layer_order)]
 
 
 class _LossIndicator(object):  # pylint: disable=R0903
