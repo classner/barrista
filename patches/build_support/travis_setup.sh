@@ -42,8 +42,8 @@ rm -f $LMDB_FILE
 # Install the Python runtime dependencies via miniconda (this is much faster
 # than using pip for everything).
 export PATH=$CONDA_DIR/bin:$PATH
-#if [ ! -d $CONDA_DIR ]; then
-  rm -rf $CONDA_DIR
+if [ ! -d $CONDA_DIR ]; then
+  #rm -rf $CONDA_DIR
 	if [ "$PYTHON_VERSION" -eq "3" ]; then
 		wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
 	else
@@ -60,7 +60,7 @@ export PATH=$CONDA_DIR/bin:$PATH
 	conda install --yes numpy scipy matplotlib scikit-image pip
 	# Let conda install boost (so that boost_python matches)
 	conda install --yes -c https://conda.binstar.org/menpo boost=1.56.0
-#fi
+fi
 
 pushd .
 wget https://github.com/google/protobuf/archive/v3.0.0-alpha-3.1.tar.gz -O protobuf-3.tar.gz
