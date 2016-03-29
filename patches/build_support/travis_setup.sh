@@ -43,6 +43,7 @@ rm -f $LMDB_FILE
 # than using pip for everything).
 export PATH=$CONDA_DIR/bin:$PATH
 #if [ ! -d $CONDA_DIR ]; then
+  rm -rf $CONDA_DIR
 	if [ "$PYTHON_VERSION" -eq "3" ]; then
 		wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
 	else
