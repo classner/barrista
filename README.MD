@@ -12,4 +12,4 @@ The master branch is always stable, with all tests passing. Development is
 going on on the unstable branch, and you can see the current build status
 here:
 
-[![Build Status](https://travis-ci.org/classner/barrista.svg?branch=unstable)](https://travis-ci.org/classner/barrista) unstable branch build status, Python 2 and 3.
+[![Build Status](https://travis-ci.org/classner/barrista.svg?branch=unstable)](https://travis-ci.org/classner/barrista) unstable branch build status, Python 2 (Python 3 is deactivated for the moment, because of an instability with caffe on Python 3).
