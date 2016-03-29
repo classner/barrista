@@ -54,7 +54,7 @@ if [ ! -d $CONDA_DIR ]; then
 	conda update --yes conda
   if [ "$PYTHON_VERSION" -eq "3" ]; then
     # The version of boost we're using for Python 3 depends on 3.4 for now.
-    conda install --yes python=3.3
+    conda install --yes python=3.4
   fi
 	conda install --yes numpy scipy matplotlib scikit-image pip
 	# Let conda install boost (so that boost_python matches)

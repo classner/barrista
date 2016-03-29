@@ -2,7 +2,9 @@
 env:
   matrix:
     - WITH_CUDA=false WITH_CMAKE=true WITH_IO=true PYTHON_VERSION=2
-    - WITH_CUDA=false WITH_CMAKE=true WITH_IO=true PYTHON_VERSION=3
+    # Disabling python 3 build for now, since caffe can't be built with the
+    # most recent version. See https://github.com/BVLC/caffe/issues/2464.
+    # - WITH_CUDA=false WITH_CMAKE=true WITH_IO=true PYTHON_VERSION=3
 
 language: cpp
 
