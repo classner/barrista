@@ -142,7 +142,7 @@
 of the submodules. The configuration change is then taken into account.</p>
 <dl class="data">
 <dt id="barrista.config.LAYER_TYPES">
-<code class="descclassname">barrista.config.</code><code class="descname">LAYER_TYPES</code><em class="property"> = {'Log': ['LogParameter'], 'SoftmaxWithLoss': ['SoftmaxParameter', 'LossParameter'], 'HingeLoss': ['HingeLossParameter'], 'ReLU': ['ReLUParameter'], 'Reduction': ['ReductionParameter'], 'InnerProduct': ['InnerProductParameter'], 'Accuracy': ['AccuracyParameter'], 'SPP': ['SPPParameter'], 'Dropout': ['DropoutParameter'], 'InfogainLoss': ['InfogainLossParameter'], 'DummyData': ['DummyDataParameter'], 'WindowData': ['WindowDataParameter'], 'BatchNorm': ['BatchNormParameter'], 'Data': ['DataParameter'], 'Concat': ['ConcatParameter'], 'MultinomialLogisticLoss': ['LossParameter'], 'VariableHingeLoss': ['LossParameter'], 'ContrastiveLoss': ['ContrastiveLossParameter'], 'Filter': [], 'Softmax': ['SoftmaxParameter'], 'Embed': ['EmbedParameter'], 'MVN': ['MVNParameter'], 'TanH': ['TanHParameter'], 'EuclideanLoss': ['LossParameter'], 'SigmoidCrossEntropyLoss': ['LossParameter'], 'HDF5Output': ['HDF5OutputParameter'], 'Slice': ['SliceParameter'], 'Reshape': ['ReshapeParameter'], 'Split': [], 'PReLU': ['PReLUParameter'], 'Power': ['PowerParameter'], 'Python': ['PythonParameter'], 'Resample': [], 'Flatten': ['FlattenParameter'], 'ImageData': ['ImageDataParameter'], 'ArgMax': ['ArgMaxParameter'], 'Pooling': ['PoolingParameter'], 'AbsVal': [], 'Exp': ['ExpParameter'], 'Eltwise': ['EltwiseParameter'], 'HDF5Data': ['HDF5DataParameter'], 'Silence': [], 'Convolution': ['ConvolutionParameter'], 'Sigmoid': ['SigmoidParameter'], 'LRN': ['LRNParameter'], 'Threshold': ['ThresholdParameter']}</em><a class="headerlink" href="#barrista.config.LAYER_TYPES" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">barrista.config.</code><code class="descname">LAYER_TYPES</code><em class="property"> = {'Log': ['LogParameter'], 'SoftmaxWithLoss': ['SoftmaxParameter', 'LossParameter'], 'HingeLoss': ['HingeLossParameter'], 'ReLU': ['ReLUParameter'], 'Reduction': ['ReductionParameter'], 'Slice': ['SliceParameter'], 'InnerProduct': ['InnerProductParameter'], 'Accuracy': ['AccuracyParameter'], 'SPP': ['SPPParameter'], 'Dropout': ['DropoutParameter'], 'InfogainLoss': ['InfogainLossParameter'], 'DummyData': ['DummyDataParameter'], 'WindowData': ['WindowDataParameter'], 'BatchNorm': ['BatchNormParameter'], 'Data': ['DataParameter'], 'Concat': ['ConcatParameter'], 'MultinomialLogisticLoss': ['LossParameter'], 'VariableHingeLoss': ['LossParameter'], 'ContrastiveLoss': ['ContrastiveLossParameter'], 'Filter': [], 'Softmax': ['SoftmaxParameter'], 'Embed': ['EmbedParameter'], 'MVN': ['MVNParameter'], 'TanH': ['TanHParameter'], 'EuclideanLoss': ['LossParameter'], 'SigmoidCrossEntropyLoss': ['LossParameter'], 'HDF5Output': ['HDF5OutputParameter'], 'Scale': ['ScaleParameter'], 'Reshape': ['ReshapeParameter'], 'Split': [], 'PReLU': ['PReLUParameter'], 'Power': ['PowerParameter'], 'Python': ['PythonParameter'], 'Resample': [], 'Flatten': ['FlattenParameter'], 'ImageData': ['ImageDataParameter'], 'ArgMax': ['ArgMaxParameter'], 'Pooling': ['PoolingParameter'], 'AbsVal': [], 'Exp': ['ExpParameter'], 'Eltwise': ['EltwiseParameter'], 'HDF5Data': ['HDF5DataParameter'], 'Silence': [], 'Convolution': ['ConvolutionParameter'], 'Sigmoid': ['SigmoidParameter'], 'LRN': ['LRNParameter'], 'Threshold': ['ThresholdParameter']}</em><a class="headerlink" href="#barrista.config.LAYER_TYPES" title="Permalink to this definition">¶</a></dt>
 <dd><p>This dictionary specifies the layer types and their configuration
 parameters. The keys are the layer keys, and the values a list of
 strings, where each string is the name of a parameter prefixed with
@@ -187,7 +187,7 @@ as unset (this is important in protobuf)!</p>
 
 <dl class="function">
 <dt id="barrista.design.ConvolutionLayer">
-<code class="descclassname">barrista.design.</code><code class="descname">ConvolutionLayer</code><span class="sig-paren">(</span><em>bottoms=None</em>, <em>tops=None</em>, <em>name=None</em>, <em>phase=None</em>, <em>include_phase=None</em>, <em>include_stages=None</em>, <em>include_min_level=None</em>, <em>include_max_level=None</em>, <em>params=None</em>, <em>propagate_down=None</em>, <em>loss_param=None</em>, <em>loss_weights=None</em>, <em>Convolution_stride_h=None</em>, <em>Convolution_stride_w=None</em>, <em>Convolution_stride=None</em>, <em>Convolution_bias_term=None</em>, <em>Convolution_axis=None</em>, <em>Convolution_bias_filler=None</em>, <em>Convolution_group=None</em>, <em>Convolution_hole_w=None</em>, <em>Convolution_pad=None</em>, <em>Convolution_weight_filler=None</em>, <em>Convolution_engine=None</em>, <em>Convolution_pad_h=None</em>, <em>Convolution_force_nd_im2col=None</em>, <em>Convolution_hole=None</em>, <em>Convolution_pad_w=None</em>, <em>Convolution_kernel_w=None</em>, <em>Convolution_num_output=None</em>, <em>Convolution_kernel_h=None</em>, <em>Convolution_hole_h=None</em>, <em>Convolution_kernel_size=None</em><span class="sig-paren">)</span><a class="headerlink" href="#barrista.design.ConvolutionLayer" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">barrista.design.</code><code class="descname">ConvolutionLayer</code><span class="sig-paren">(</span><em>bottoms=None</em>, <em>tops=None</em>, <em>name=None</em>, <em>phase=None</em>, <em>include_phase=None</em>, <em>include_stages=None</em>, <em>include_min_level=None</em>, <em>include_max_level=None</em>, <em>params=None</em>, <em>propagate_down=None</em>, <em>loss_param=None</em>, <em>loss_weights=None</em>, <em>Convolution_stride_h=None</em>, <em>Convolution_stride_w=None</em>, <em>Convolution_stride=None</em>, <em>Convolution_bias_term=None</em>, <em>Convolution_axis=None</em>, <em>Convolution_bias_filler=None</em>, <em>Convolution_group=None</em>, <em>Convolution_pad=None</em>, <em>Convolution_dilation=None</em>, <em>Convolution_weight_filler=None</em>, <em>Convolution_engine=None</em>, <em>Convolution_pad_h=None</em>, <em>Convolution_force_nd_im2col=None</em>, <em>Convolution_pad_w=None</em>, <em>Convolution_kernel_w=None</em>, <em>Convolution_num_output=None</em>, <em>Convolution_kernel_h=None</em>, <em>Convolution_kernel_size=None</em><span class="sig-paren">)</span><a class="headerlink" href="#barrista.design.ConvolutionLayer" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -262,7 +262,7 @@ as unset (this is important in protobuf)!</p>
 
 <dl class="function">
 <dt id="barrista.design.InnerProductLayer">
-<code class="descclassname">barrista.design.</code><code class="descname">InnerProductLayer</code><span class="sig-paren">(</span><em>bottoms=None</em>, <em>tops=None</em>, <em>name=None</em>, <em>phase=None</em>, <em>include_phase=None</em>, <em>include_stages=None</em>, <em>include_min_level=None</em>, <em>include_max_level=None</em>, <em>params=None</em>, <em>propagate_down=None</em>, <em>loss_param=None</em>, <em>loss_weights=None</em>, <em>InnerProduct_bias_term=None</em>, <em>InnerProduct_axis=None</em>, <em>InnerProduct_bias_filler=None</em>, <em>InnerProduct_weight_filler=None</em>, <em>InnerProduct_num_output=None</em><span class="sig-paren">)</span><a class="headerlink" href="#barrista.design.InnerProductLayer" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">barrista.design.</code><code class="descname">InnerProductLayer</code><span class="sig-paren">(</span><em>bottoms=None</em>, <em>tops=None</em>, <em>name=None</em>, <em>phase=None</em>, <em>include_phase=None</em>, <em>include_stages=None</em>, <em>include_min_level=None</em>, <em>include_max_level=None</em>, <em>params=None</em>, <em>propagate_down=None</em>, <em>loss_param=None</em>, <em>loss_weights=None</em>, <em>InnerProduct_bias_term=None</em>, <em>InnerProduct_axis=None</em>, <em>InnerProduct_bias_filler=None</em>, <em>InnerProduct_transpose=None</em>, <em>InnerProduct_weight_filler=None</em>, <em>InnerProduct_num_output=None</em><span class="sig-paren">)</span><a class="headerlink" href="#barrista.design.InnerProductLayer" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -474,6 +474,16 @@ Files may be of any caffe prototxt version.</p>
 <p>Since this object is not derived from the protobuf objects, it is
 necessary to have this converter. Deriving is discouraged by the
 protobuf documentation and this object offers a lot more functionality.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>drop_phase</strong> &#8211; Bool.
+If set to <code class="docutils literal"><span class="pre">True</span></code>, phase, level and stage are not serialized.
+Default: False.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -486,6 +496,21 @@ that file, as well as returned. Otherwise, only the text is returned.</p>
 <code class="docutils literal"><span class="pre">tops</span></code> are not set. If the have multiple inputs or outputs, you
 will have to take care of that (there is no way of inferring
 the semantics then).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>output_filename</strong> &#8211; String or None.
+A file to write the prototxt information to.</li>
+<li><strong>drop_phase</strong> &#8211; Bool.
+If set to <code class="docutils literal"><span class="pre">True</span></code>, phase, level and stage will not be serialized.
+Default: False.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -517,7 +542,7 @@ Graphic of the visualization as (H, W, C) image in BGR format.</p>
 
 <dl class="data">
 <dt id="barrista.design.PROTODETAIL">
-<code class="descclassname">barrista.design.</code><code class="descname">PROTODETAIL</code><em class="property"> = &lt;module 'caffe.proto.caffe_pb2' from '/is/ps2/classner/caffe/python/caffe/proto/caffe_pb2.pyc'&gt;</em><a class="headerlink" href="#barrista.design.PROTODETAIL" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">barrista.design.</code><code class="descname">PROTODETAIL</code><em class="property"> = &lt;module 'caffe.proto.caffe_pb2' from '/is/ps2/classner/git/caffe/build/install/python/caffe/proto/caffe_pb2.pyc'&gt;</em><a class="headerlink" href="#barrista.design.PROTODETAIL" title="Permalink to this definition">¶</a></dt>
 <dd><p>Expose all detailed properties from the caffe prototxt for
 in-Python usage.</p>
 </dd></dl>
@@ -539,7 +564,7 @@ no problem to test a network in TRAIN mode, but it will be less efficient.</p>
 
 <dl class="function">
 <dt id="barrista.design.PoolingLayer">
-<code class="descclassname">barrista.design.</code><code class="descname">PoolingLayer</code><span class="sig-paren">(</span><em>bottoms=None</em>, <em>tops=None</em>, <em>name=None</em>, <em>phase=None</em>, <em>include_phase=None</em>, <em>include_stages=None</em>, <em>include_min_level=None</em>, <em>include_max_level=None</em>, <em>params=None</em>, <em>propagate_down=None</em>, <em>loss_param=None</em>, <em>loss_weights=None</em>, <em>Pooling_stride_h=None</em>, <em>Pooling_stride_w=None</em>, <em>Pooling_stride=None</em>, <em>Pooling_hole_w=None</em>, <em>Pooling_pad=None</em>, <em>Pooling_global_pooling=None</em>, <em>Pooling_engine=None</em>, <em>Pooling_pad_h=None</em>, <em>Pooling_hole=None</em>, <em>Pooling_pad_w=None</em>, <em>Pooling_pool=None</em>, <em>Pooling_kernel_w=None</em>, <em>Pooling_kernel_h=None</em>, <em>Pooling_hole_h=None</em>, <em>Pooling_kernel_size=None</em><span class="sig-paren">)</span><a class="headerlink" href="#barrista.design.PoolingLayer" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">barrista.design.</code><code class="descname">PoolingLayer</code><span class="sig-paren">(</span><em>bottoms=None</em>, <em>tops=None</em>, <em>name=None</em>, <em>phase=None</em>, <em>include_phase=None</em>, <em>include_stages=None</em>, <em>include_min_level=None</em>, <em>include_max_level=None</em>, <em>params=None</em>, <em>propagate_down=None</em>, <em>loss_param=None</em>, <em>loss_weights=None</em>, <em>Pooling_stride_h=None</em>, <em>Pooling_stride_w=None</em>, <em>Pooling_stride=None</em>, <em>Pooling_pad=None</em>, <em>Pooling_global_pooling=None</em>, <em>Pooling_engine=None</em>, <em>Pooling_pad_h=None</em>, <em>Pooling_pad_w=None</em>, <em>Pooling_pool=None</em>, <em>Pooling_kernel_w=None</em>, <em>Pooling_kernel_h=None</em>, <em>Pooling_kernel_size=None</em><span class="sig-paren">)</span><a class="headerlink" href="#barrista.design.PoolingLayer" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -575,6 +600,11 @@ no problem to test a network in TRAIN mode, but it will be less efficient.</p>
 <dl class="function">
 <dt id="barrista.design.SPPLayer">
 <code class="descclassname">barrista.design.</code><code class="descname">SPPLayer</code><span class="sig-paren">(</span><em>bottoms=None</em>, <em>tops=None</em>, <em>name=None</em>, <em>phase=None</em>, <em>include_phase=None</em>, <em>include_stages=None</em>, <em>include_min_level=None</em>, <em>include_max_level=None</em>, <em>params=None</em>, <em>propagate_down=None</em>, <em>loss_param=None</em>, <em>loss_weights=None</em>, <em>SPP_engine=None</em>, <em>SPP_pool=None</em>, <em>SPP_pyramid_height=None</em><span class="sig-paren">)</span><a class="headerlink" href="#barrista.design.SPPLayer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="barrista.design.ScaleLayer">
+<code class="descclassname">barrista.design.</code><code class="descname">ScaleLayer</code><span class="sig-paren">(</span><em>bottoms=None</em>, <em>tops=None</em>, <em>name=None</em>, <em>phase=None</em>, <em>include_phase=None</em>, <em>include_stages=None</em>, <em>include_min_level=None</em>, <em>include_max_level=None</em>, <em>params=None</em>, <em>propagate_down=None</em>, <em>loss_param=None</em>, <em>loss_weights=None</em>, <em>Scale_bias_term=None</em>, <em>Scale_axis=None</em>, <em>Scale_bias_filler=None</em>, <em>Scale_filler=None</em>, <em>Scale_num_axes=None</em><span class="sig-paren">)</span><a class="headerlink" href="#barrista.design.ScaleLayer" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -666,9 +696,17 @@ may only be done after.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>name_prefix</strong> &#8211; string.
-The first part of the output filenames to generate. The current
-iteration is added, as well as &#8216;.caffemodel&#8217;.</li>
+<li><strong>name_prefix</strong> &#8211; <p>string or None.
+The first part of the output filenames to generate. The prefix &#8216;_iter_,
+the current iteration, as well as &#8216;.caffemodel&#8217; is added.</p>
+<p>If you are using a caffe version from later than Dec. 2015, caffe&#8217;s
+internal snapshot method is exposed to Python and also snapshots the
+solver. If it&#8217;s available, then this method will be used. However,
+in that case, it&#8217;s not possible to influence the storage location
+from Python. Please use the solver parameter <code class="docutils literal"><span class="pre">snapshot_prefix</span></code>
+when constructing the solver instead (this parameter may be None
+and is unused then).</p>
+</li>
 <li><strong>iterations</strong> &#8211; int &gt; 0.
 Always if the current number of iterations is divisible by iterations,
 the network blobs are written to disk. Hence, this value must be a
@@ -688,28 +726,48 @@ multiple of the batch size!</li>
 
 <dl class="class">
 <dt id="barrista.monitoring.CyclingDataMonitor">
-<em class="property">class </em><code class="descclassname">barrista.monitoring.</code><code class="descname">CyclingDataMonitor</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#CyclingDataMonitor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.CyclingDataMonitor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#barrista.monitoring.Monitor" title="barrista.monitoring.Monitor"><code class="xref py py-class docutils literal"><span class="pre">barrista.monitoring.Monitor</span></code></a></p>
+<em class="property">class </em><code class="descclassname">barrista.monitoring.</code><code class="descname">CyclingDataMonitor</code><span class="sig-paren">(</span><em>X</em>, <em>only_preload=None</em>, <em>input_processing_flags=None</em>, <em>virtual_batch_size=None</em>, <em>color_data_augmentation_sigmas=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#CyclingDataMonitor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.CyclingDataMonitor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#barrista.monitoring.DataMonitor" title="barrista.monitoring.DataMonitor"><code class="xref py py-class docutils literal"><span class="pre">barrista.monitoring.DataMonitor</span></code></a>, <a class="reference internal" href="#barrista.monitoring.ParallelMonitor" title="barrista.monitoring.ParallelMonitor"><code class="xref py py-class docutils literal"><span class="pre">barrista.monitoring.ParallelMonitor</span></code></a></p>
 <p>Uses the data sequentially.</p>
 <p>This monitor maps data to the network an cycles through the data
 sequentially. It is the default monitor used if a user provides X
-or X_val to the barrista.sovler.fit method.</p>
+or X_val to the barrista.solver.fit method.</p>
+<p>If further processing of the original data is intended, by using the flag
+<code class="docutils literal"><span class="pre">only_preload</span></code>, the following monitors find a dictionary of lists of
+the original datapoints with the name &#8216;data_orig&#8217; in their <code class="docutils literal"><span class="pre">kwargs</span></code>.
+The data is in this case NOT written to the network input layers! This
+can make sense, e.g., for the <code class="docutils literal"><span class="pre">ResizingMonitor</span></code>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>X</strong> &#8211; dict of numpy.ndarray or None.
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>X</strong> &#8211; dict of numpy.ndarray or list,  or None.
 If specified, is used as input data. It is used sequentially, so
-shuffle it pre, if required. The keys of the dict have to have
-a corresponding layer name in the net.</td>
+shuffle it pre, if required. The keys of the dict must have
+a corresponding layer name in the net. The values must be provided
+already in network dimension order, i.e., usually channels, height,
+width.</li>
+<li><strong>only_preload</strong> &#8211; list(string).
+List of blobs for which the data will be loaded and stored in a dict
+of (name: list) for further processing with other monitors.</li>
+<li><strong>virtual_batch_size</strong> &#8211; int or None.
+Override the network batch size. May only be used if <code class="docutils literal"><span class="pre">only_preload</span></code> is
+set to True. Only makes sense with another DataMonitor in succession.</li>
+<li><strong>color_data_augmentation_sigmas</strong> &#8211; dict(string, float) or None.
+Enhance the color of the samples as described in (Krizhevsky et al.,
+2012). The parameter gives the sigma for the normal distribution that is
+sampled to obtain the weights for scaled pixel principal components per
+blob.</li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
 <dl class="method">
-<dt id="barrista.monitoring.CyclingDataMonitor.finalize">
-<code class="descname">finalize</code><span class="sig-paren">(</span><em>kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#CyclingDataMonitor.finalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.CyclingDataMonitor.finalize" title="Permalink to this definition">¶</a></dt>
-<dd><p>Nothing to do here.</p>
-</dd></dl>
+<dt id="barrista.monitoring.CyclingDataMonitor.get_parallel_blob_names">
+<code class="descname">get_parallel_blob_names</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#CyclingDataMonitor.get_parallel_blob_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.CyclingDataMonitor.get_parallel_blob_names" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
@@ -720,8 +778,8 @@ a corresponding layer name in the net.</td>
 <p>Monitor interface for filling the blobs of a network.</p>
 <p>This is a specific monitor which will fill the blobs of the network
 for the forward pass or solver step.
-Ideally there should only be one such monitor per callback,
-but multiple ones are indeed possible.</p>
+Ideally, there should only be one such monitor per callback,
+but multiple ones are possible.</p>
 </dd></dl>
 
 <dl class="class">
@@ -783,11 +841,60 @@ optionally be specified.</p>
 </dd></dl>
 
 <dl class="class">
+<dt id="barrista.monitoring.OversamplingDataMonitor">
+<em class="property">class </em><code class="descclassname">barrista.monitoring.</code><code class="descname">OversamplingDataMonitor</code><span class="sig-paren">(</span><em>blobinfos</em>, <em>before_oversample_resize_to=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#OversamplingDataMonitor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.OversamplingDataMonitor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#barrista.monitoring.DataMonitor" title="barrista.monitoring.DataMonitor"><code class="xref py py-class docutils literal"><span class="pre">barrista.monitoring.DataMonitor</span></code></a>, <a class="reference internal" href="#barrista.monitoring.ParallelMonitor" title="barrista.monitoring.ParallelMonitor"><code class="xref py py-class docutils literal"><span class="pre">barrista.monitoring.ParallelMonitor</span></code></a></p>
+<p>Provides oversampled data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>blobinfos</strong> &#8211; dict(string, string|None).
+Associates blob name to oversample and optional the interpolation
+method to use for resize. This may be &#8216;n&#8217; (nearest neighbour),
+&#8216;c&#8217; (cubic), &#8216;l&#8217; (linear) or None (no interpolation). If an
+interpolation method is selected, <cite>before_oversample_resize_to</cite> must
+be not None and provide a size.</li>
+<li><strong>before_oversample_resize_to</strong> &#8211; dict(string, 2-tuple).
+Specifies a size to which the image inputs will be resized before the
+oversampling is invoked.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="barrista.monitoring.OversamplingDataMonitor.get_parallel_blob_names">
+<code class="descname">get_parallel_blob_names</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#OversamplingDataMonitor.get_parallel_blob_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.OversamplingDataMonitor.get_parallel_blob_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the names of all blobs that must be provided for the dummy.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="barrista.monitoring.ParallelMonitor">
+<em class="property">class </em><code class="descclassname">barrista.monitoring.</code><code class="descname">ParallelMonitor</code><a class="reference internal" href="_modules/barrista/monitoring.html#ParallelMonitor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.ParallelMonitor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#barrista.monitoring.Monitor" title="barrista.monitoring.Monitor"><code class="xref py py-class docutils literal"><span class="pre">barrista.monitoring.Monitor</span></code></a></p>
+<p>Monitor interface for monitors executed parallel to processing a batch.</p>
+<p>The order of all monitors implementing this interface is respected. They
+will work on a dummy network object with dummy blobs and prepare their
+data. The dummy blob content is then copied to the real network prior
+to the next batch execution.</p>
+<dl class="method">
+<dt id="barrista.monitoring.ParallelMonitor.get_parallel_blob_names">
+<code class="descname">get_parallel_blob_names</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#ParallelMonitor.get_parallel_blob_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.ParallelMonitor.get_parallel_blob_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the names of all blobs that must be provided for the dummy.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="barrista.monitoring.ProgressIndicator">
 <em class="property">class </em><code class="descclassname">barrista.monitoring.</code><code class="descname">ProgressIndicator</code><a class="reference internal" href="_modules/barrista/monitoring.html#ProgressIndicator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.ProgressIndicator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#barrista.monitoring.Monitor" title="barrista.monitoring.Monitor"><code class="xref py py-class docutils literal"><span class="pre">barrista.monitoring.Monitor</span></code></a></p>
 <p>Generates a progress bar with current information about the process.</p>
-<p>The progress bar always displays completion percentag and ETA. If
+<p>The progress bar always displays completion percentage and ETA. If
 available, it also displays loss, accuracy, test loss and test accuracy.</p>
 <p>It makes use of the following keyword arguments (* indicates required):</p>
 <ul class="simple">
@@ -807,6 +914,53 @@ available, it also displays loss, accuracy, test loss and test accuracy.</p>
 </dd></dl>
 
 <dl class="class">
+<dt id="barrista.monitoring.ResizingMonitor">
+<em class="property">class </em><code class="descclassname">barrista.monitoring.</code><code class="descname">ResizingMonitor</code><span class="sig-paren">(</span><em>blobinfos</em>, <em>base_scale=1.0</em>, <em>random_change_up_to=0.0</em>, <em>net_input_size_adjustment_multiple_of=0</em>, <em>interp_methods=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#ResizingMonitor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.ResizingMonitor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#barrista.monitoring.ParallelMonitor" title="barrista.monitoring.ParallelMonitor"><code class="xref py py-class docutils literal"><span class="pre">barrista.monitoring.ParallelMonitor</span></code></a>, <a class="reference internal" href="#barrista.monitoring.Monitor" title="barrista.monitoring.Monitor"><code class="xref py py-class docutils literal"><span class="pre">barrista.monitoring.Monitor</span></code></a></p>
+<p>Optionally resizes input data and adjusts the network input shape.</p>
+<p>This monitor optionally resizes the input data randomly and adjusts
+the network input size accordingly (this works only for batch size 1
+and fully convolutional networks).</p>
+<p>For this to work, it must be used with the <code class="docutils literal"><span class="pre">CyclingDataMonitor</span></code> with
+<code class="docutils literal"><span class="pre">only_preload</span></code> set.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>blobinfos</strong> &#8211; dict(string, int).
+Describes which blobs to apply the resizing operation to, and which
+padding value to use for the remaining space.</li>
+<li><strong>base_scale</strong> &#8211; float.
+If set to a value different than 1., apply the given base scale first
+to images. If set to a value different than 1., the parameter
+<code class="docutils literal"><span class="pre">interp_methods</span></code> must be set.</li>
+<li><strong>random_change_up_to</strong> &#8211; float.
+If set to a value different than 0., the scale change is altered
+randomly with a uniformly drawn value from -<code class="docutils literal"><span class="pre">random_change_up_to</span></code> to
+<code class="docutils literal"><span class="pre">random_change_up_to</span></code>, that is being added to the base value.</li>
+<li><strong>net_input_size_adjustment_multiple_of</strong> &#8211; int.
+If set to a value greater than 0, the blobs shape is adjusted from its
+initial value (which is used as minimal one) in multiples of the given
+one.</li>
+<li><strong>interp_methods</strong> &#8211; dict(string, string).
+Dictionary which stores for every blob the interpolation method. The
+string must be for each blob in [&#8216;n&#8217;, &#8216;c&#8217;, &#8216;l&#8217;] (nearest neighbour,
+cubic, linear).</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="barrista.monitoring.ResizingMonitor.get_parallel_blob_names">
+<code class="descname">get_parallel_blob_names</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#ResizingMonitor.get_parallel_blob_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.ResizingMonitor.get_parallel_blob_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the names of all blobs that must be provided for the dummy.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="barrista.monitoring.ResultExtractor">
 <em class="property">class </em><code class="descclassname">barrista.monitoring.</code><code class="descname">ResultExtractor</code><span class="sig-paren">(</span><em>cbparam_key</em>, <em>layer_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#ResultExtractor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.ResultExtractor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#barrista.monitoring.Monitor" title="barrista.monitoring.Monitor"><code class="xref py py-class docutils literal"><span class="pre">barrista.monitoring.Monitor</span></code></a></p>
@@ -821,11 +975,84 @@ insert them always in the beginning.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>cbparam_key</strong> &#8211; string.
-The key we will overwrite/set in the cbparams dict</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>cbparam_key</strong> &#8211; string.
+The key we will overwrite/set in the cbparams dict.</li>
+<li><strong>layer_name</strong> &#8211; string.
+The layer to extract the value from.</li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="class">
+<dt id="barrista.monitoring.RotatingMirroringMonitor">
+<em class="property">class </em><code class="descclassname">barrista.monitoring.</code><code class="descname">RotatingMirroringMonitor</code><span class="sig-paren">(</span><em>blobinfos</em>, <em>max_rotation_degrees</em>, <em>mirror_prob=0.0</em>, <em>mirror_value_swaps=None</em>, <em>mirror_layer_swaps=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#RotatingMirroringMonitor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.RotatingMirroringMonitor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#barrista.monitoring.ParallelMonitor" title="barrista.monitoring.ParallelMonitor"><code class="xref py py-class docutils literal"><span class="pre">barrista.monitoring.ParallelMonitor</span></code></a>, <a class="reference internal" href="#barrista.monitoring.Monitor" title="barrista.monitoring.Monitor"><code class="xref py py-class docutils literal"><span class="pre">barrista.monitoring.Monitor</span></code></a></p>
+<p>Rotate and/or horizontally mirror samples within blobs.</p>
+<p>For every sample, the rotation and mirroring will be consistent
+across the blobs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>blobinfos</strong> &#8211; dict(string, int).
+A dictionary containing the blob names and the padding values that
+will be applied.</li>
+<li><strong>max_rotation_degrees</strong> &#8211; float.
+The rotation will be sampled uniformly from the interval
+[-rotation_degrees, rotation_degrees[ for each sample.</li>
+<li><strong>mirror_prob</strong> &#8211; float.
+The probability that horizontal mirroring occurs. Is as well sampled
+individually for every sample.</li>
+<li><strong>mirror_value_swaps</strong> &#8211; dict(string, dict(int, list(2-tuples))).
+Specifies for every blob for every layer whether any values must be
+swapped if mirroring is applied. This is important when, e.g.,
+mirroring annotation maps with left-right information. Every 2-tuple
+contains (original value, new value). The locations of the swaps are
+determined before any change is applied, so the order of tuples does not
+play a role.</li>
+<li><strong>mirror_layer_swaps</strong> &#8211; dict(string, list(2-tuples)).
+Specifies for every blob whether any layers must be swapped if
+mirroring is applied. Can be used together with mirror_value_swaps: in
+this case, the <cite>mirror_value_swaps</cite> are applied first, then the layers
+are swapped.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="barrista.monitoring.RotatingMirroringMonitor.get_parallel_blob_names">
+<code class="descname">get_parallel_blob_names</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#RotatingMirroringMonitor.get_parallel_blob_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.RotatingMirroringMonitor.get_parallel_blob_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the names of all blobs that must be provided for the dummy.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="barrista.monitoring.StaticDataMonitor">
+<em class="property">class </em><code class="descclassname">barrista.monitoring.</code><code class="descname">StaticDataMonitor</code><span class="sig-paren">(</span><em>X</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#StaticDataMonitor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.StaticDataMonitor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#barrista.monitoring.DataMonitor" title="barrista.monitoring.DataMonitor"><code class="xref py py-class docutils literal"><span class="pre">barrista.monitoring.DataMonitor</span></code></a>, <a class="reference internal" href="#barrista.monitoring.ParallelMonitor" title="barrista.monitoring.ParallelMonitor"><code class="xref py py-class docutils literal"><span class="pre">barrista.monitoring.ParallelMonitor</span></code></a></p>
+<p>Always provides the same data for a specific net input blob.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>X</strong> &#8211; dict(string, np.ndarray)
+The static input blobs to use.</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="barrista.monitoring.StaticDataMonitor.get_parallel_blob_names">
+<code class="descname">get_parallel_blob_names</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/monitoring.html#StaticDataMonitor.get_parallel_blob_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.monitoring.StaticDataMonitor.get_parallel_blob_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the names of all blobs that must be provided for the dummy.</p>
+</dd></dl>
+
 </dd></dl>
 
 </div>
@@ -865,18 +1092,34 @@ in stage <code class="docutils literal"><span class="pre">predict</span></code> 
 </table>
 <dl class="method">
 <dt id="barrista.net.Net.fit">
-<code class="descname">fit</code><span class="sig-paren">(</span><em>iterations</em>, <em>solver</em>, <em>X=None</em>, <em>X_val=None</em>, <em>test_iterations=0</em>, <em>test_interval=0</em>, <em>test_initialization=False</em>, <em>train_callbacks=None</em>, <em>test_callbacks=None</em>, <em>read_input_batch_size_from_blob_name=None</em>, <em>use_fit_phase_for_validation=False</em>, <em>allow_test_phase_for_train=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/net.html#Net.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.net.Net.fit" title="Permalink to this definition">¶</a></dt>
+<code class="descname">fit</code><span class="sig-paren">(</span><em>iterations</em>, <em>solver</em>, <em>X=None</em>, <em>X_val=None</em>, <em>input_processing_flags=None</em>, <em>test_iterations=0</em>, <em>test_interval=0</em>, <em>test_initialization=False</em>, <em>train_callbacks=None</em>, <em>test_callbacks=None</em>, <em>read_input_batch_size_from_blob_name=None</em>, <em>use_fit_phase_for_validation=False</em>, <em>allow_test_phase_for_train=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/net.html#Net.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.net.Net.fit" title="Permalink to this definition">¶</a></dt>
 <dd><p>See <code class="xref py py-func docutils literal"><span class="pre">barrista.solver.SolverInterface.fit()</span></code>.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="barrista.net.Net.load_blobs_from">
+<code class="descname">load_blobs_from</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/net.html#Net.load_blobs_from"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.net.Net.load_blobs_from" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load the network weights from the specified file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> &#8211; string.
+The filename of the file to load.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="barrista.net.Net.predict">
-<code class="descname">predict</code><span class="sig-paren">(</span><em>input_sequence</em>, <em>pre_batch_callbacks=None</em>, <em>post_batch_callbacks=None</em>, <em>out_blob_names=None</em>, <em>use_fit_network=None</em>, <em>oversample=False</em>, <em>before_oversample_resize_to=None</em>, <em>input_processing_flags=None</em>, <em>output_processing_flags=None</em>, <em>static_inputs=None</em>, <em>input_size_spec=None</em>, <em>allow_train_phase_for_test=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/net.html#Net.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.net.Net.predict" title="Permalink to this definition">¶</a></dt>
-<dd><p>Predict samples in the spirit of <cite>scikit-learn</cite>.</p>
+<code class="descname">predict</code><span class="sig-paren">(</span><em>input_sequence</em>, <em>test_callbacks=None</em>, <em>out_blob_names=None</em>, <em>use_fit_network=None</em>, <em>oversample=False</em>, <em>before_oversample_resize_to=None</em>, <em>input_processing_flags=None</em>, <em>output_processing_flags=None</em>, <em>static_inputs=None</em>, <em>input_size_spec=None</em>, <em>allow_train_phase_for_test=False</em>, <em>net_input_size_adjustment_multiple_of=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/net.html#Net.predict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.net.Net.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Predict samples in the spirit of <cite>scikit-learn</cite>.
+* It is YOUR responsibility to prepare the data in an iterable object</p>
+<blockquote>
+<div>of numpy arrays with the correctly matching first dimension (i.e.,
+the number of channels).</div></blockquote>
 <ul class="simple">
-<li>It is YOUR responsibility to prepare the data in an iterable object
-of numpy arrays with the correctly matching first dimension (i.e.,
-the number of channels).</li>
 <li>The method will match the data to the input size of the network and
 forward propagate it in batches.</li>
 </ul>
@@ -896,11 +1139,11 @@ you can provide a dictionary of iterables of 3D numpy arrays before,
 where the keys are the input blob names to fill. Use the
 <cite>input_processing_flags</cite> to specify how preprocessing is
 done in any scenario.</li>
-<li><strong>pre_batch_callbacks</strong> &#8211; list(callable) or None.
-Each element of this list will be called with the batch id as
-argument before forward propagating a batch.</li>
-<li><strong>post_batch_callbacks</strong> &#8211; list(callable) or None.
-See before, but after a callback.</li>
+<li><strong>test_callbacks</strong> &#8211; list(barrista.monitoring.Monitor) or None.
+List of callback callables. Will be called pre and post batch
+processing. This list will be processed sequentially, meaning that
+monitors in the sequence can provide information for later monitors
+as done with the <code class="docutils literal"><span class="pre">ResultExtractor</span></code>.</li>
 <li><strong>out_blob_names</strong> &#8211; list(string) or None.
 The names of the blobs of which the values are returned. If
 unspecified, uses <code class="docutils literal"><span class="pre">self.outputs</span></code>.</li>
@@ -916,8 +1159,9 @@ processing yourself.</li>
 A tuple specifying height and width to resize to before oversampling
 or None if the image should not be resized before oversampling.</li>
 <li><strong>input_processing_flags</strong> &#8211; dict(string:string) or None.
-A list or tuple of letters specifying the proprocessing for each
-input. &#8216;n&#8217;: no preprocessing, &#8216;r&#8217;: rescale, &#8216;p&#8217;: pad.
+A list or tuple of letters specifying the preprocessing for each
+input. &#8216;n&#8217;: no preprocessing, &#8216;rc&#8217;: rescale cubic, &#8216;rn&#8217;: rescale
+nearest, &#8216;rl&#8217;: rescale linear, &#8216;pX&#8217;: pad with value X.
 Default: [&#8216;n&#8217;] * number_of_inputs</li>
 <li><strong>output_processing_flags</strong> &#8211; dict(string:string) or None.
 A list or tuple of letters specifying the postprocessing of the
@@ -933,6 +1177,17 @@ the batch size and input size because it can not be automatically
 inferred. By default (None), use the first dimension of the first
 network blob as batch size and the first dimension of the associated
 inputs as amount of samples.</li>
+<li><strong>allow_train_phase_for_test</strong> &#8211; bool.
+If set to True, allow using a network in its TRAIN phase for
+prediction.
+May make sense in exotic settings, but should prevent bugs. If not
+set to True, an AssertionError is raised in this scenario.
+Why is this so important? The <code class="docutils literal"><span class="pre">DropoutLayer</span></code> and <code class="docutils literal"><span class="pre">PoolLayer</span></code> (in
+the case of stochastic pooling) are sensitive to this parameter and
+results are very different for the two settings.</li>
+<li><strong>net_input_size_adjustment_multiple_of</strong> &#8211; int.
+If set to a value&gt;0, the networks input is resized in multiples of
+this value to take in the input images.</li>
 </ul>
 </td>
 </tr>
@@ -943,33 +1198,21 @@ inputs as amount of samples.</li>
 <dd>Returns a dictionary of arrays if multiple outputs are returned
 or directly the array in the case of just one output.</dd>
 </dl>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>allow_train_phase_for_test</strong> &#8211; bool.
-If set to True, allow using a network in its TRAIN phase for
-prediction.
-May make sense in exotic settings, but should prevent bugs. If not
-set to True, an AssertionError is raised in this scenario.
-Why is this so important? The <code class="docutils literal"><span class="pre">DropoutLayer</span></code> and <code class="docutils literal"><span class="pre">PoolLayer</span></code> (in
-the case of stochastic pooling) are sensitive to this parameter and
-results are very different for the two settings.</td>
-</tr>
-</tbody>
-</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="barrista.net.Net.predict_sliding_window">
-<code class="descname">predict_sliding_window</code><span class="sig-paren">(</span><em>input_sequence</em>, <em>pre_batch_callbacks=None</em>, <em>post_batch_callbacks=None</em>, <em>out_blob_names=None</em>, <em>use_fit_network=False</em>, <em>oversample=False</em>, <em>extraction_step=(1</em>, <em>1)</em>, <em>account_for_step=True</em>, <em>interpolation_method=0L</em>, <em>pad_border=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/net.html#Net.predict_sliding_window"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.net.Net.predict_sliding_window" title="Permalink to this definition">¶</a></dt>
+<code class="descname">predict_sliding_window</code><span class="sig-paren">(</span><em>input_sequence</em>, <em>test_callbacks=None</em>, <em>out_blob_names=None</em>, <em>use_fit_network=False</em>, <em>oversample=False</em>, <em>extraction_step=(1</em>, <em>1)</em>, <em>account_for_step=True</em>, <em>interpolation_method=0L</em>, <em>pad_border=True</em>, <em>overlap_combine_max=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/net.html#Net.predict_sliding_window"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.net.Net.predict_sliding_window" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get predictions for all images in a sliding window manner.</p>
 <p>Similar to the <a class="reference internal" href="#barrista.net.Net.predict" title="barrista.net.Net.predict"><code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.predict()</span></code></a> method. See there
 for the parameter descriptions. For this method, every image must be
 at least as big as the input size. It is then sampled using sliding
 window, and for each output layer the reassembled images are returned.</p>
-<p>The output of the network for one patch must be of shape
-(num_layers X 1 X 1) and currently only one output layer is supported.</p>
+<p>The output of the network for one patch must either be of shape
+(num_layers X 1 X 1) or of shape (num_layers X input_height X input_width)
+and currently only one output layer is supported. If the output is of the
+same shape as the input, <cite>account_for_step</cite> does not play a role, and the
+inputs are combined by using the max of the predictions per position.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -983,11 +1226,11 @@ inputs as 4D numpy array of shape [100, 3, 10, 10] or a list of
 3D numpy arrays of shape [3, Y, X], where X and Y may be arbitrary
 and different for each image. Multi-input networks are not yet
 supported by this method.</li>
-<li><strong>pre_batch_callbacks</strong> &#8211; list(callable) or None.
-Each element of this list will be called with the batch id as
-argument before forward propagating a batch.</li>
-<li><strong>post_batch_callbacks</strong> &#8211; list(callable) or None.
-See before, but after a callback.</li>
+<li><strong>test_callbacks</strong> &#8211; list(barrista.monitoring.Monitor) or None.
+List of callback callables. Will be called pre and post batch
+processing. This list will be processed sequentially, meaning that
+monitors in the sequence can provide information for later monitors
+as done with the <code class="docutils literal"><span class="pre">ResultExtractor</span></code>.</li>
 <li><strong>out_blob_names</strong> &#8211; list(string) or None.
 The names of the blobs of which the values are returned. If
 unspecified, uses <code class="docutils literal"><span class="pre">self.outputs</span></code>. Must currently contain exactly
@@ -1009,8 +1252,12 @@ interpolation to get a full-sized image.</li>
 The interpolation strategy used, if <code class="docutils literal"><span class="pre">account_for_step</span></code> is set and
 the <code class="docutils literal"><span class="pre">extraction_step</span></code> is not <code class="docutils literal"><span class="pre">(1,</span> <span class="pre">1)</span></code>.</li>
 <li><strong>pad_border</strong> &#8211; bool.
-Whether to return images in the original image size, by adding zero
-padded borders.</li>
+Whether to return images in the original image size, or by adding
+zero padded borders.</li>
+<li><strong>overlap_combine_max</strong> &#8211; bool.
+If the network output size is equal to the input size and the
+stepsize smaller than the output, which operator to use to combine
+overlapping areas. Default: True.</li>
 </ul>
 </td>
 </tr>
@@ -1021,7 +1268,7 @@ padded borders.</li>
 <dl class="method">
 <dt id="barrista.net.Net.reshape_blob">
 <code class="descname">reshape_blob</code><span class="sig-paren">(</span><em>name</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/net.html#Net.reshape_blob"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.net.Net.reshape_blob" title="Permalink to this definition">¶</a></dt>
-<dd><p>Reshapes a blob for train and predict net variants.</p>
+<dd><p>Reshape a blob for train and predict net variants.</p>
 <p>Convenience method to reshape a blob for all network variants in use.
 Calls the caffe <code class="docutils literal"><span class="pre">blob.reshape</span></code> method internally. The blob must exist
 in both networks. To change a blob shape only in one variant, use
@@ -1382,7 +1629,7 @@ asserts when calling Get_parameter_dict().</p>
 
 <dl class="method">
 <dt id="barrista.solver.Solver.fit">
-<code class="descname">fit</code><span class="sig-paren">(</span><em>iterations</em>, <em>X=None</em>, <em>X_val=None</em>, <em>test_iterations=0</em>, <em>test_interval=0</em>, <em>test_initialization=False</em>, <em>train_callbacks=None</em>, <em>test_callbacks=None</em>, <em>net=None</em>, <em>read_input_batch_size_from_blob_name=None</em>, <em>use_fit_phase_for_validation=False</em>, <em>allow_test_phase_for_train=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#Solver.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.Solver.fit" title="Permalink to this definition">¶</a></dt>
+<code class="descname">fit</code><span class="sig-paren">(</span><em>iterations</em>, <em>X=None</em>, <em>X_val=None</em>, <em>input_processing_flags=None</em>, <em>test_iterations=0</em>, <em>test_interval=0</em>, <em>test_initialization=False</em>, <em>train_callbacks=None</em>, <em>test_callbacks=None</em>, <em>net=None</em>, <em>read_input_batch_size_from_blob_name=None</em>, <em>use_fit_phase_for_validation=False</em>, <em>allow_test_phase_for_train=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#Solver.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.Solver.fit" title="Permalink to this definition">¶</a></dt>
 <dd><p>fit the network to specific data.</p>
 <p>Use monitors from the module <a class="reference internal" href="#module-barrista.monitoring" title="barrista.monitoring"><code class="xref py py-mod docutils literal"><span class="pre">barrista.monitoring</span></code></a> as
 callbacks to monitor the state of the net and create checkpoints.
@@ -1398,7 +1645,7 @@ the value is not necessarily available):</p>
 </li>
 <li><p class="first">net,</p>
 </li>
-<li><p class="first">testnet[only if there is a test phase, e.g. X_val is set]</p>
+<li><p class="first">testnet[only if there is a test phase, i.e., X_val is set]</p>
 </li>
 <li><p class="first">solver,</p>
 </li>
@@ -1443,6 +1690,12 @@ If specified and <code class="docutils literal"><span class="pre">test_interval&
 It is used sequentially, so shuffle it pre, if required. The
 keys of the dict have to have a corresponding layer name in
 the net.</li>
+<li><strong>input_processing_flags</strong> &#8211; dict(string, string) or None.
+See <code class="docutils literal"><span class="pre">CyclingDataMonitor.__init__</span></code> for the <code class="docutils literal"><span class="pre">input_processing_flags</span></code>
+parameter. In short, if you specify your sample via list, you may
+specify for each blob, whether they should be padded &#8216;p&#8217;, or
+resized &#8216;r&#8217; to match the network input size. If they fit perfectly,
+you may specify &#8216;n&#8217; or omit the parameter and use <code class="docutils literal"><span class="pre">None</span></code>.</li>
 <li><strong>test_iterations</strong> &#8211; int.
 The number of test iterations to determine the validation score,
 if <code class="docutils literal"><span class="pre">test_interval&gt;0</span></code>.</li>
@@ -1453,7 +1706,7 @@ must be a multiple of the batch size.</li>
 <li><strong>test_initialization</strong> &#8211; bool.
 Whether to do a run on the validation set pre the training is
 started to get an initial score.</li>
-<li><strong>train_callbacks</strong> &#8211; list(callable).
+<li><strong>train_callbacks</strong> &#8211; list(barrista.monitoring.Monitor).
 List of callback callables. Will be called pre and post training
 batch is processed. This list will be processed
 sequentially, meaning that monitors in the sequence can
@@ -1488,6 +1741,12 @@ results are very different for the two settings.</li>
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="method">
+<dt id="barrista.solver.Solver.restore">
+<code class="descname">restore</code><span class="sig-paren">(</span><em>filename</em>, <em>net=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/barrista/solver.html#Solver.restore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#barrista.solver.Solver.restore" title="Permalink to this definition">¶</a></dt>
+<dd><p>Restore the solverstate from a file.</p>
 </dd></dl>
 
 <dl class="method">
@@ -1570,7 +1829,7 @@ width.</li>
 If set to True, returns a second value, which is a tuple of two-tuples,
 where each tuple contains the two values for left-right paddings for
 one of the image dimensions.</li>
-<li><strong>val</strong> &#8211; float.
+<li><strong>val</strong> &#8211; int.
 The value to pad with.</li>
 <li><strong>pad_at_least</strong> &#8211; bool.
 If set to True, allows input_dims that are smaller than the image size.
@@ -1616,7 +1875,7 @@ Otherwise, it throws in this case.</li>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, University of Tuebingen.
+        &copy; Copyright 2016, University of Tuebingen.
 
     </p>
   </div>

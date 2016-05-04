@@ -128,17 +128,21 @@
 <span class="c"># -*- coding: utf-8 -*-</span>
 <span class="sd">&quot;&quot;&quot;Exposes the caffe solvers.&quot;&quot;&quot;</span>
 <span class="c"># pylint: disable=E1101, F0401, C0103, R0913, R0914, W0212, E1121, E0611, W0406</span>
-<span class="c"># pylint: disable=duplicate-code</span>
+<span class="c"># pylint: disable=duplicate-code, too-many-lines</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">monitoring</span> <span class="k">as</span> <span class="n">_monitoring</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">parallel</span> <span class="k">as</span> <span class="n">_parallel</span>
+<span class="c"># CAREFUL! This must be imported pre any caffe-related import!</span>
+<span class="kn">from</span> <span class="nn">.tools</span> <span class="kn">import</span> <span class="n">pbufToPyEnum</span> <span class="k">as</span> <span class="n">_pbufToPyEnum</span>
+
+<span class="kn">import</span> <span class="nn">time</span> <span class="kn">as</span> <span class="nn">_time</span>
+<span class="kn">import</span> <span class="nn">logging</span> <span class="kn">as</span> <span class="nn">_logging</span>
 <span class="kn">import</span> <span class="nn">hashlib</span>
 <span class="kn">import</span> <span class="nn">copy</span>
 <span class="kn">from</span> <span class="nn">tempfile</span> <span class="kn">import</span> <span class="n">NamedTemporaryFile</span> <span class="k">as</span> <span class="n">_NamedTemporaryFile</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">_np</span>
-
 <span class="kn">import</span> <span class="nn">google.protobuf.text_format</span> <span class="kn">as</span> <span class="nn">_gprototext</span>
-
-<span class="c"># CAREFUL! This must be imported pre any caffe-related import!</span>
-<span class="kn">from</span> <span class="nn">.tools</span> <span class="kn">import</span> <span class="n">pbufToPyEnum</span> <span class="k">as</span> <span class="n">_pbufToPyEnum</span>
 
 <span class="kn">import</span> <span class="nn">caffe</span> <span class="kn">as</span> <span class="nn">_caffe</span>
 <span class="kn">import</span> <span class="nn">caffe.proto.caffe_pb2</span> <span class="kn">as</span> <span class="nn">_caffe_pb2</span>
@@ -150,8 +154,6 @@
 <span class="c">#: Describes the Phase used. All solver types supported by caffe</span>
 <span class="c">#: are available.</span>
 <span class="n">_Phase</span> <span class="o">=</span> <span class="n">_pbufToPyEnum</span><span class="p">(</span><span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">Phase</span><span class="p">)</span>
-
-<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">monitoring</span> <span class="k">as</span> <span class="n">_monitoring</span>
 
 <span class="n">_HAS_ITER_SIZE</span> <span class="o">=</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">_caffe_pb2</span><span class="o">.</span><span class="n">SolverParameter</span><span class="p">,</span> <span class="s">&#39;iter_size&#39;</span><span class="p">)</span>
 <span class="k">try</span><span class="p">:</span>
@@ -179,6 +181,10 @@
     <span class="n">_RMSPROP_SOLVER_CLASS</span> <span class="o">=</span> <span class="bp">None</span>
     <span class="n">_RMSPROP_SOLVER_ENUM</span> <span class="o">=</span> <span class="bp">None</span>
 
+<span class="n">_LOGGER</span> <span class="o">=</span> <span class="n">_logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+
+
+<span class="c"># pylint: disable=too-many-instance-attributes</span>
 <div class="viewcode-block" id="Solver"><a class="viewcode-back" href="../../barrista.html#barrista.solver.Solver">[docs]</a><span class="k">class</span> <span class="nc">Solver</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
     <span class="sd">&quot;&quot;&quot;Describes the Solver concept.&quot;&quot;&quot;</span>
@@ -236,29 +242,47 @@
 <span class="sd">          If specified, seeds the solver for reproducible results. Otherwise,</span>
 <span class="sd">          it uses a time dependent seed.</span>
 
+<span class="sd">        :param snapshot_prefix: string or None.</span>
+<span class="sd">          If the ``Checkpointer`` monitor is used, this prefix is used to</span>
+<span class="sd">          create the snapshots.</span>
+
 <span class="sd">        :param debug_info: bool.</span>
 <span class="sd">          If set to ``True``, gives additional output in the logs.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_net</span> <span class="o">=</span> <span class="bp">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_hash</span> <span class="o">=</span> <span class="bp">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
-
         <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="c"># some default internal parameters</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="s">&#39;snapshot_after_train&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="s">&#39;solver_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_caffe_solver_type</span>
-
         <span class="c"># every solver can append its on assertions or overwrite the given ones</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_asserts</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">if</span> <span class="n">_HAS_ITER_SIZE</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_asserts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Assert_iter_size</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_asserts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Assert_regularization_types</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_asserts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Assert_policy</span><span class="p">)</span>
-
         <span class="bp">self</span><span class="o">.</span><span class="n">_solver</span> <span class="o">=</span> <span class="bp">None</span>
-
         <span class="bp">self</span><span class="o">.</span><span class="n">_print_warning</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_train_net_dummy</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_net_dummy</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parallel_train_filler</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parallel_test_filler</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parallel_batch_res_train</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parallel_batch_res_test</span> <span class="o">=</span> <span class="bp">None</span>
 
+<div class="viewcode-block" id="Solver.restore"><a class="viewcode-back" href="../../barrista.html#barrista.solver.Solver.restore">[docs]</a>    <span class="k">def</span> <span class="nf">restore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">net</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Restore the solverstate from a file.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_net</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">net</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">,</span> <span class="p">(</span><span class="s">&#39;you must specify a net on which the &#39;</span>
+                                     <span class="s">&#39;restored solver will be used!&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">net</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="c"># The method self._Update_net must not be used here, since it</span>
+            <span class="c"># is allowed to use a new net.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_net</span> <span class="o">=</span> <span class="n">net</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Update_solver</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_solver</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+</div>
     <span class="nd">@classmethod</span>
 <div class="viewcode-block" id="Solver.Get_required_arguments"><a class="viewcode-back" href="../../barrista.html#barrista.solver.Solver.Get_required_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">Get_required_arguments</span><span class="p">(</span><span class="n">cls</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;The minimum number of required parameters.&quot;&quot;&quot;</span>
@@ -279,6 +303,7 @@
                     <span class="s">&#39;regularization_type&#39;</span><span class="p">:</span> <span class="s">&#39;L2&#39;</span><span class="p">,</span>
                     <span class="s">&#39;power&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
                     <span class="s">&#39;gamma&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
+                    <span class="s">&#39;snapshot_prefix&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
                     <span class="s">&#39;stepsize&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
                     <span class="s">&#39;stepvalue&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
                     <span class="s">&#39;clip_gradients&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
@@ -288,10 +313,11 @@
             <span class="n">ret_dict</span><span class="p">[</span><span class="s">&#39;iter_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
         <span class="k">return</span> <span class="n">ret_dict</span>
 </div>
-<div class="viewcode-block" id="Solver.fit"><a class="viewcode-back" href="../../barrista.html#barrista.solver.Solver.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="Solver.fit"><a class="viewcode-back" href="../../barrista.html#barrista.solver.Solver.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>  <span class="c"># pylint: disable=too-many-statements, too-many-branches</span>
             <span class="n">iterations</span><span class="p">,</span>
             <span class="n">X</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
             <span class="n">X_val</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+            <span class="n">input_processing_flags</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
             <span class="n">test_iterations</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
             <span class="n">test_interval</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
             <span class="n">test_initialization</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
@@ -314,7 +340,7 @@
 <span class="sd">        * iter,</span>
 <span class="sd">        * batch_size,</span>
 <span class="sd">        * net,</span>
-<span class="sd">        * testnet\[only if there is a test phase, e.g. X_val is set]</span>
+<span class="sd">        * testnet\[only if there is a test phase, i.e., X_val is set]</span>
 <span class="sd">        * solver,</span>
 <span class="sd">        * callback_signal\[is automatically set by the fit function],</span>
 <span class="sd">        * X\-[only if provided by the user],</span>
@@ -344,6 +370,13 @@
 <span class="sd">          keys of the dict have to have a corresponding layer name in</span>
 <span class="sd">          the net.</span>
 
+<span class="sd">        :param input_processing_flags: dict(string, string) or None.</span>
+<span class="sd">          See ``CyclingDataMonitor.__init__`` for the ``input_processing_flags``</span>
+<span class="sd">          parameter. In short, if you specify your sample via list, you may</span>
+<span class="sd">          specify for each blob, whether they should be padded &#39;p&#39;, or</span>
+<span class="sd">          resized &#39;r&#39; to match the network input size. If they fit perfectly,</span>
+<span class="sd">          you may specify &#39;n&#39; or omit the parameter and use ``None``.</span>
+
 <span class="sd">        :param test_iterations: int.</span>
 <span class="sd">          The number of test iterations to determine the validation score,</span>
 <span class="sd">          if ``test_interval&gt;0``.</span>
@@ -357,7 +390,7 @@
 <span class="sd">          Whether to do a run on the validation set pre the training is</span>
 <span class="sd">          started to get an initial score.</span>
 
-<span class="sd">        :param train_callbacks: list(callable).</span>
+<span class="sd">        :param train_callbacks: list(barrista.monitoring.Monitor).</span>
 <span class="sd">          List of callback callables. Will be called pre and post training</span>
 <span class="sd">          batch is processed. This list will be processed</span>
 <span class="sd">          sequentially, meaning that monitors in the sequence can</span>
@@ -415,8 +448,12 @@
                                                 <span class="n">test_callbacks</span><span class="p">,</span>
                                                 <span class="s">&#39;test&#39;</span><span class="p">)</span>
 
+        <span class="n">testnet</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Init_testnet</span><span class="p">(</span><span class="n">test_interval</span><span class="p">,</span>
+                                     <span class="n">use_fit_phase_for_validation</span><span class="p">)</span>
+
         <span class="n">batch_size</span><span class="p">,</span> <span class="n">test_iterations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Get_batch_size</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_net</span><span class="p">,</span>
+            <span class="n">testnet</span><span class="p">,</span>
             <span class="n">test_interval</span><span class="p">,</span>
             <span class="n">test_iterations</span><span class="p">,</span>
             <span class="n">X_val</span><span class="p">,</span>
@@ -430,14 +467,13 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_Init_cycling_monitor</span><span class="p">(</span><span class="n">X</span><span class="p">,</span>
                                    <span class="n">X_val</span><span class="p">,</span>
+                                   <span class="n">input_processing_flags</span><span class="p">,</span>
                                    <span class="n">batch_size</span><span class="p">,</span>
                                    <span class="n">test_interval</span><span class="p">,</span>
                                    <span class="n">train_callbacks</span><span class="p">,</span>
                                    <span class="n">test_callbacks</span><span class="p">)</span>
 
-        <span class="n">testnet</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Init_testnet</span><span class="p">(</span><span class="n">test_interval</span><span class="p">,</span>
-                                     <span class="n">use_fit_phase_for_validation</span><span class="p">)</span>
-
+        <span class="n">run_pre</span> <span class="o">=</span> <span class="bp">True</span>
         <span class="n">iteration</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">cbparams</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
         <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;max_iter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">iterations</span>
@@ -448,65 +484,114 @@
         <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;solver&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span>
         <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;X&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span>
         <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;X_val&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">X_val</span>
-        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;test_iterations&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">test_iterations</span>
+        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;test_interval&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">test_interval</span>
         <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;train_callbacks&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">train_callbacks</span>
-        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;test_callbacks&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">train_callbacks</span>
-
-        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;pre_fit&#39;</span>
-        <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">train_callbacks</span> <span class="o">+</span> <span class="n">test_callbacks</span><span class="p">):</span>
+        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;test_callbacks&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">test_callbacks</span>
+        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;initialize_train&#39;</span>
+        <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">train_callbacks</span><span class="p">:</span>
             <span class="n">cb</span><span class="p">(</span><span class="n">cbparams</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">test_interval</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;initialize_test&#39;</span>
+            <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">test_callbacks</span><span class="p">:</span>
+                <span class="n">cb</span><span class="p">(</span><span class="n">cbparams</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">_parallel</span><span class="o">.</span><span class="n">init_prebatch</span><span class="p">(</span>
+                <span class="bp">self</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_net</span><span class="p">,</span>
+                <span class="n">train_callbacks</span><span class="p">,</span>
+                <span class="bp">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">test_interval</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">_parallel</span><span class="o">.</span><span class="n">init_prebatch</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="p">,</span>
+                    <span class="n">testnet</span><span class="p">,</span>
+                    <span class="n">test_callbacks</span><span class="p">,</span>
+                    <span class="bp">False</span><span class="p">)</span>
+            <span class="k">while</span> <span class="n">iteration</span> <span class="o">&lt;=</span> <span class="n">iterations</span><span class="p">:</span>
+                <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">iteration</span>
+                <span class="c"># Check whether to test the net.</span>
+                <span class="k">if</span> <span class="p">((</span>
+                        <span class="n">test_interval</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span>
+                        <span class="n">iteration</span> <span class="o">%</span> <span class="n">test_interval</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">iteration</span> <span class="o">&gt;</span> <span class="mi">0</span>
+                    <span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
+                        <span class="n">iteration</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">test_initialization</span>
+                    <span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
+                        <span class="n">test_interval</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">iteration</span> <span class="o">+</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="n">iterations</span>
+                    <span class="p">)</span>
+                   <span class="p">):</span>
+                    <span class="c">###############################################################</span>
+                    <span class="c"># testing loop</span>
+                    <span class="c">###############################################################</span>
+                    <span class="n">test_iter</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="n">run_pre</span> <span class="o">=</span> <span class="bp">True</span>
+                    <span class="c"># Pretest gets called if necessary in `run_prebatch`.</span>
+                    <span class="k">while</span> <span class="n">test_iter</span> <span class="o">&lt;</span> <span class="n">test_iterations</span><span class="p">:</span>
+                        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;pre_test_batch&#39;</span>
+                        <span class="n">_parallel</span><span class="o">.</span><span class="n">run_prebatch</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="p">,</span>
+                            <span class="n">test_callbacks</span><span class="p">,</span>
+                            <span class="n">cbparams</span><span class="p">,</span>
+                            <span class="bp">False</span><span class="p">,</span>
+                            <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">],</span>
+                            <span class="n">run_pre</span><span class="p">)</span>
 
-        <span class="k">while</span> <span class="n">iteration</span> <span class="o">&lt;=</span> <span class="n">iterations</span><span class="p">:</span>
-            <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">iteration</span>
-            <span class="c"># Check whether to test the net.</span>
-            <span class="k">if</span> <span class="p">((</span><span class="n">test_interval</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span>
-                 <span class="n">iteration</span> <span class="o">%</span> <span class="n">test_interval</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">iteration</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span>
-                    <span class="p">(</span><span class="n">iteration</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">test_initialization</span><span class="p">)</span> <span class="ow">or</span>
-                    <span class="p">(</span><span class="n">test_interval</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">iteration</span> <span class="o">+</span> <span class="n">batch_size</span>
-                     <span class="o">&gt;=</span> <span class="n">iterations</span><span class="p">)):</span>
-                <span class="c">###############################################################</span>
-                <span class="c"># testing loop</span>
-                <span class="c">###############################################################</span>
-                <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;pre_test&#39;</span>
-                <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">test_callbacks</span><span class="p">:</span>
-                    <span class="n">cb</span><span class="p">(</span><span class="n">cbparams</span><span class="p">)</span>
+                        <span class="c"># pylint: disable=W0212</span>
+                        <span class="n">testnet</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">testnet</span><span class="o">.</span><span class="n">layers</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
 
-                <span class="n">test_iter</span> <span class="o">=</span> <span class="mi">0</span>
-                <span class="k">while</span> <span class="n">test_iter</span> <span class="o">&lt;</span> <span class="n">test_iterations</span><span class="p">:</span>
-                    <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;pre_test_batch&#39;</span>
+                        <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;post_test_batch&#39;</span>
+                        <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">test_callbacks</span><span class="p">:</span>
+                            <span class="n">cb</span><span class="p">(</span><span class="n">cbparams</span><span class="p">)</span>
+                        <span class="n">test_iter</span> <span class="o">+=</span> <span class="n">batch_size</span>
+                        <span class="n">run_pre</span> <span class="o">=</span> <span class="bp">False</span>
+
+                    <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;post_test&#39;</span>
                     <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">test_callbacks</span><span class="p">:</span>
                         <span class="n">cb</span><span class="p">(</span><span class="n">cbparams</span><span class="p">)</span>
+                    <span class="n">run_pre</span> <span class="o">=</span> <span class="bp">True</span>
 
-                    <span class="c"># pylint: disable=W0212</span>
-                    <span class="n">testnet</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">testnet</span><span class="o">.</span><span class="n">layers</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">iteration</span> <span class="o">==</span> <span class="n">iterations</span><span class="p">:</span>
+                    <span class="k">break</span>
 
-                    <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;post_test_batch&#39;</span>
-                    <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">test_callbacks</span><span class="p">:</span>
-                        <span class="n">cb</span><span class="p">(</span><span class="n">cbparams</span><span class="p">)</span>
-                    <span class="n">test_iter</span> <span class="o">+=</span> <span class="n">batch_size</span>
+                <span class="c">###################################################################</span>
+                <span class="c"># training loop</span>
+                <span class="c">###################################################################</span>
 
-                <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;post_test&#39;</span>
-                <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">test_callbacks</span><span class="p">:</span>
+                <span class="c"># `pre_fit` gets called if necessary in `run_prebatch`.</span>
+                <span class="n">PRETRBATCH_BEGINPOINT</span> <span class="o">=</span> <span class="n">_time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+                <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;pre_train_batch&#39;</span>
+                <span class="n">_parallel</span><span class="o">.</span><span class="n">run_prebatch</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="p">,</span>
+                    <span class="n">train_callbacks</span><span class="p">,</span>
+                    <span class="n">cbparams</span><span class="p">,</span>
+                    <span class="bp">True</span><span class="p">,</span>
+                    <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">,</span>
+                    <span class="n">run_pre</span><span class="p">)</span>
+                <span class="n">run_pre</span> <span class="o">=</span> <span class="bp">False</span>
+                <span class="n">PRETRBATCH_DURATION</span> <span class="o">=</span> <span class="n">_time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">PRETRBATCH_BEGINPOINT</span>
+                <span class="n">_LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Pre-batch preparation time: </span><span class="si">%03.3f</span><span class="s">s.&quot;</span><span class="p">,</span>
+                              <span class="n">PRETRBATCH_DURATION</span><span class="p">)</span>
+
+                <span class="n">TRBATCH_BEGINPOINT</span> <span class="o">=</span> <span class="n">_time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">TRBATCH_DURATION</span> <span class="o">=</span> <span class="n">_time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">TRBATCH_BEGINPOINT</span>
+                <span class="n">_LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Batch processing time: </span><span class="si">%03.3f</span><span class="s">s.&quot;</span><span class="p">,</span>
+                              <span class="n">TRBATCH_DURATION</span><span class="p">)</span>
+
+                <span class="n">POSTTRBATCH_BEGINPOINT</span> <span class="o">=</span> <span class="n">_time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+                <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;post_train_batch&#39;</span>
+                <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">train_callbacks</span><span class="p">:</span>
                     <span class="n">cb</span><span class="p">(</span><span class="n">cbparams</span><span class="p">)</span>
+                <span class="n">POSTTRBATCH_DURATION</span> <span class="o">=</span> <span class="n">_time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">POSTTRBATCH_BEGINPOINT</span>
+                <span class="n">_LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Post-batch processing time: </span><span class="si">%03.3f</span><span class="s">s.&quot;</span><span class="p">,</span>
+                              <span class="n">POSTTRBATCH_DURATION</span><span class="p">)</span>
 
-            <span class="c">###############################################################</span>
-            <span class="c"># training loop</span>
-            <span class="c">###############################################################</span>
+                <span class="n">iteration</span> <span class="o">+=</span> <span class="n">batch_size</span>
 
-            <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;pre_train_batch&#39;</span>
-            <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">train_callbacks</span><span class="p">:</span>
-                <span class="n">cb</span><span class="p">(</span><span class="n">cbparams</span><span class="p">)</span>
-
-            <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-
-            <span class="n">cbparams</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;post_train_batch&#39;</span>
-            <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="n">train_callbacks</span><span class="p">:</span>
-                <span class="n">cb</span><span class="p">(</span><span class="n">cbparams</span><span class="p">)</span>
-
-            <span class="n">iteration</span> <span class="o">+=</span> <span class="n">batch_size</span>
-
-        <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">train_callbacks</span> <span class="o">+</span> <span class="n">test_callbacks</span><span class="p">):</span>
-            <span class="n">cb</span><span class="o">.</span><span class="n">finalize</span><span class="p">(</span><span class="n">cbparams</span><span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">cb</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">train_callbacks</span> <span class="o">+</span> <span class="n">test_callbacks</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cb</span><span class="p">,</span> <span class="n">_monitoring</span><span class="o">.</span><span class="n">ParallelMonitor</span><span class="p">):</span>
+                    <span class="n">cb</span><span class="o">.</span><span class="n">finalize</span><span class="p">(</span><span class="n">cbparams</span><span class="p">)</span>
+            <span class="n">_parallel</span><span class="o">.</span><span class="n">finalize_prebatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cbparams</span><span class="p">)</span>
 </div>
 <div class="viewcode-block" id="Solver.step"><a class="viewcode-back" href="../../barrista.html#barrista.solver.Solver.step">[docs]</a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">number_of_batches</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Run ``number_of_batches`` solver steps.&quot;&quot;&quot;</span>
@@ -578,9 +663,16 @@
         <span class="k">with</span> <span class="n">_NamedTemporaryFile</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s">&#39;w+b&#39;</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s">&#39;.prototxt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">tmpfile</span><span class="p">:</span>
             <span class="n">tmpfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">bytes</span><span class="p">(</span><span class="n">messagestr</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&#39;utf-8&#39;</span><span class="p">)))</span>
             <span class="n">tmpfile</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
-            <span class="k">return</span> <span class="n">cls</span><span class="o">.</span><span class="n">Get_caffe_solver_class</span><span class="p">(</span>
-                <span class="n">solver_parameter_dict</span><span class="p">[</span><span class="s">&#39;solver_type&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">_caffe_solver_class</span><span class="p">(</span>
-                    <span class="n">tmpfile</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">net</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c"># Newer version of caffe with full solver init support.</span>
+                <span class="k">return</span> <span class="n">cls</span><span class="o">.</span><span class="n">Get_caffe_solver_class</span><span class="p">(</span>
+                    <span class="n">solver_parameter_dict</span><span class="p">[</span><span class="s">&#39;solver_type&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">_caffe_solver_class</span><span class="p">(</span>
+                        <span class="n">tmpfile</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">net</span><span class="p">,</span> <span class="n">_caffe</span><span class="o">.</span><span class="n">_caffe</span><span class="o">.</span><span class="n">NetVec</span><span class="p">(),</span> <span class="bp">True</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                <span class="c"># Fallback for older, patched versions.</span>
+                <span class="k">return</span> <span class="n">cls</span><span class="o">.</span><span class="n">Get_caffe_solver_class</span><span class="p">(</span>
+                    <span class="n">solver_parameter_dict</span><span class="p">[</span><span class="s">&#39;solver_type&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">_caffe_solver_class</span><span class="p">(</span>
+                        <span class="n">tmpfile</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">net</span><span class="p">)</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&#39;could not initialize solver class&#39;</span><span class="p">)</span>
 </div>
     <span class="nd">@classmethod</span>
@@ -675,8 +767,6 @@
             <span class="k">return</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_net</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_net</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">id</span><span class="p">(</span><span class="n">net</span><span class="p">):</span>
-                <span class="kn">from</span> <span class="nn">ktoolspy</span> <span class="kn">import</span> <span class="n">klog</span>
-                <span class="n">klog</span><span class="o">.</span><span class="n">Error_ipdb</span><span class="p">()</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
                     <span class="p">[</span><span class="s">&#39;a solver works only with one network&#39;</span><span class="p">,</span>
                      <span class="s">&#39;the network has to remain the same&#39;</span><span class="p">]))</span>
@@ -684,6 +774,7 @@
 
     <span class="k">def</span> <span class="nf">_Get_batch_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>  <span class="c"># pylint: disable=R0201</span>
                         <span class="n">net</span><span class="p">,</span>
+                        <span class="n">testnet</span><span class="p">,</span>
                         <span class="n">test_interval</span><span class="p">,</span>
                         <span class="n">test_iterations</span><span class="p">,</span>
                         <span class="n">X_val</span><span class="p">,</span>
@@ -692,6 +783,10 @@
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="c"># Otherwise, a DB backend is used.</span>
             <span class="n">batch_size</span> <span class="o">=</span> <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">net</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">testnet</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="p">(</span><span class="n">testnet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">net</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span>
+                        <span class="n">batch_size</span><span class="p">),</span> <span class="p">(</span><span class="s">&quot;Validation and fit network batch size &quot;</span>
+                                      <span class="s">&quot;must agree!&quot;</span><span class="p">)</span>
             <span class="k">if</span> <span class="p">(</span><span class="n">test_interval</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span>
                     <span class="n">test_iterations</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span>
                     <span class="n">X_val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">):</span>
@@ -736,7 +831,8 @@
             <span class="s">&#39;test interval must be &gt;= 0 but is {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                 <span class="n">test_iterations</span><span class="p">))</span>
         <span class="k">assert</span> <span class="n">test_interval</span> <span class="o">%</span> <span class="n">batch_size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
-            <span class="s">&#39;error iterations do not match&#39;</span><span class="p">,</span> <span class="n">test_iterations</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+            <span class="s">&#39;the test interval must be a multiple of the batch size: {}, {}&#39;</span><span class="p">,</span>
+            <span class="n">test_iterations</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_Assert_callbacks</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">net</span><span class="p">,</span> <span class="n">callbacks</span><span class="p">,</span> <span class="n">phase</span><span class="p">):</span>
@@ -762,6 +858,7 @@
     <span class="k">def</span> <span class="nf">_Init_cycling_monitor</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span>
                               <span class="n">X</span><span class="p">,</span>
                               <span class="n">X_val</span><span class="p">,</span>
+                              <span class="n">input_processing_flags</span><span class="p">,</span>
                               <span class="n">batch_size</span><span class="p">,</span>
                               <span class="n">test_interval</span><span class="p">,</span>
                               <span class="n">train_callbacks</span><span class="p">,</span>
@@ -780,7 +877,9 @@
             <span class="k">for</span> <span class="n">callback</span> <span class="ow">in</span> <span class="n">train_callbacks</span><span class="p">:</span>
                 <span class="k">assert</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">callback</span><span class="p">,</span> <span class="n">_monitoring</span><span class="o">.</span><span class="n">DataMonitor</span><span class="p">),</span> <span class="p">(</span>
                     <span class="s">&#39;if we use X we cannot use a data monitor&#39;</span><span class="p">)</span>
-            <span class="n">tmp_data_monitor</span> <span class="o">=</span> <span class="n">_monitoring</span><span class="o">.</span><span class="n">CyclingDataMonitor</span><span class="p">(</span><span class="n">X</span><span class="o">=</span><span class="n">X</span><span class="p">)</span>
+            <span class="n">tmp_data_monitor</span> <span class="o">=</span> <span class="n">_monitoring</span><span class="o">.</span><span class="n">CyclingDataMonitor</span><span class="p">(</span>
+                <span class="n">X</span><span class="o">=</span><span class="n">X</span><span class="p">,</span>
+                <span class="n">input_processing_flags</span><span class="o">=</span><span class="n">input_processing_flags</span><span class="p">)</span>
             <span class="n">train_callbacks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp_data_monitor</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">test_interval</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">X_val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
@@ -792,7 +891,9 @@
             <span class="k">for</span> <span class="n">callback</span> <span class="ow">in</span> <span class="n">test_callbacks</span><span class="p">:</span>
                 <span class="k">assert</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">callback</span><span class="p">,</span> <span class="n">_monitoring</span><span class="o">.</span><span class="n">DataMonitor</span><span class="p">),</span> <span class="p">(</span>
                     <span class="s">&#39;if we use X_val we cannot use a data monitor&#39;</span><span class="p">)</span>
-            <span class="n">tmp_data_monitor</span> <span class="o">=</span> <span class="n">_monitoring</span><span class="o">.</span><span class="n">CyclingDataMonitor</span><span class="p">(</span><span class="n">X</span><span class="o">=</span><span class="n">X_val</span><span class="p">)</span>
+            <span class="n">tmp_data_monitor</span> <span class="o">=</span> <span class="n">_monitoring</span><span class="o">.</span><span class="n">CyclingDataMonitor</span><span class="p">(</span>
+                <span class="n">X</span><span class="o">=</span><span class="n">X_val</span><span class="p">,</span>
+                <span class="n">input_processing_flags</span><span class="o">=</span><span class="n">input_processing_flags</span><span class="p">)</span>
             <span class="n">test_callbacks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp_data_monitor</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_Init_testnet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_interval</span><span class="p">,</span> <span class="n">use_fit_phase_for_validation</span><span class="p">):</span>
@@ -1068,7 +1169,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, University of Tuebingen.
+        &copy; Copyright 2016, University of Tuebingen.
 
     </p>
   </div>

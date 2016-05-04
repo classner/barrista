@@ -127,6 +127,7 @@
   <h1>Source code for barrista.design</h1><div class="highlight"><pre>
 <span class="c"># -*- coding: utf-8 -*-</span>
 <span class="c"># pylint: disable=F0401, E0611, C0103, R0902, R0913, R0914, E1101</span>
+<span class="c"># pylint: disable=wrong-import-order</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">This module contains classes and functions to design networks with caffe.</span>
 
@@ -329,6 +330,10 @@
 <span class="sd">        Since this object is not derived from the protobuf objects, it is</span>
 <span class="sd">        necessary to have this converter. Deriving is discouraged by the</span>
 <span class="sd">        protobuf documentation and this object offers a lot more functionality.</span>
+
+<span class="sd">        :param drop_phase: Bool.</span>
+<span class="sd">          If set to ``True``, phase, level and stage are not serialized.</span>
+<span class="sd">          Default: False.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">pblayers</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">):</span>
@@ -382,6 +387,13 @@
 <span class="sd">        ``tops`` are not set. If the have multiple inputs or outputs, you</span>
 <span class="sd">        will have to take care of that (there is no way of inferring</span>
 <span class="sd">        the semantics then).</span>
+
+<span class="sd">        :param output_filename: String or None.</span>
+<span class="sd">          A file to write the prototxt information to.</span>
+
+<span class="sd">        :param drop_phase: Bool.</span>
+<span class="sd">          If set to ``True``, phase, level and stage will not be serialized.</span>
+<span class="sd">          Default: False.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">messagestr</span> <span class="o">=</span> <span class="n">_gprototext</span><span class="o">.</span><span class="n">MessageToString</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">to_pbuf_message</span><span class="p">(</span><span class="n">drop_phase</span><span class="o">=</span><span class="n">drop_phase</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">output_filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
@@ -895,7 +907,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, University of Tuebingen.
+        &copy; Copyright 2016, University of Tuebingen.
 
     </p>
   </div>

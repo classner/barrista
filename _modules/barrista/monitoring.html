@@ -127,10 +127,33 @@
   <h1>Source code for barrista.monitoring</h1><div class="highlight"><pre>
 <span class="c"># -*- coding: utf-8 -*-</span>
 <span class="sd">&quot;&quot;&quot;Defines several tools for monitoring net activity.&quot;&quot;&quot;</span>
-<span class="c"># pylint: disable=F0401, E1101</span>
+<span class="c"># pylint: disable=F0401, E1101, too-many-lines, wrong-import-order</span>
 <span class="kn">import</span> <span class="nn">logging</span> <span class="kn">as</span> <span class="nn">_logging</span>
 <span class="kn">import</span> <span class="nn">os</span> <span class="kn">as</span> <span class="nn">_os</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">_np</span>
+<span class="c"># pylint: disable=no-name-in-module</span>
+<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">bernoulli</span> <span class="k">as</span> <span class="n">_bernoulli</span>
+<span class="kn">from</span> <span class="nn">scipy.ndimage.interpolation</span> <span class="kn">import</span> <span class="n">rotate</span> <span class="k">as</span> <span class="n">_rotate</span>
+<span class="kn">from</span> <span class="nn">sklearn.decomposition</span> <span class="kn">import</span> <span class="n">PCA</span> <span class="k">as</span> <span class="n">_PCA</span>
+<span class="kn">from</span> <span class="nn">.tools</span> <span class="kn">import</span> <span class="n">pad</span> <span class="k">as</span> <span class="n">_pad</span>
+
+<span class="c"># CAREFUL! This must be imported before any caffe-related import!</span>
+<span class="kn">from</span> <span class="nn">.initialization</span> <span class="kn">import</span> <span class="n">init</span> <span class="k">as</span> <span class="n">_init</span>
+
+<span class="kn">import</span> <span class="nn">caffe</span> <span class="kn">as</span> <span class="nn">_caffe</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">cv2</span> <span class="kn">as</span> <span class="nn">_cv2</span>
+    <span class="n">_cv2INTER_CUBIC</span> <span class="o">=</span> <span class="n">_cv2</span><span class="o">.</span><span class="n">INTER_CUBIC</span>  <span class="c"># pylint: disable=invalid-name</span>
+    <span class="n">_cv2INTER_LINEAR</span> <span class="o">=</span> <span class="n">_cv2</span><span class="o">.</span><span class="n">INTER_LINEAR</span>  <span class="c"># pylint: disable=invalid-name</span>
+    <span class="n">_cv2INTER_NEAREST</span> <span class="o">=</span> <span class="n">_cv2</span><span class="o">.</span><span class="n">INTER_NEAREST</span>  <span class="c"># pylint: disable=invalid-name</span>
+    <span class="n">_cv2resize</span> <span class="o">=</span> <span class="n">_cv2</span><span class="o">.</span><span class="n">resize</span>  <span class="c"># pylint: disable=invalid-name</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">_cv2</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">_cv2INTER_CUBIC</span> <span class="o">=</span> <span class="bp">None</span>  <span class="c"># pylint: disable=invalid-name</span>
+    <span class="n">_cv2INTER_LINEAR</span> <span class="o">=</span> <span class="bp">None</span>  <span class="c"># pylint: disable=invalid-name</span>
+    <span class="n">_cv2INTER_NEAREST</span> <span class="o">=</span> <span class="bp">None</span>  <span class="c"># pylint: disable=invalid-name</span>
+    <span class="n">_cv2resize</span> <span class="o">=</span> <span class="bp">None</span>  <span class="c"># pylint: disable=invalid-name</span>
+<span class="n">_init</span><span class="p">()</span>
 <span class="n">_LOGGER</span> <span class="o">=</span> <span class="n">_logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
 
 
@@ -151,8 +174,27 @@
 
 <span class="sd">        For available keyword arguments, see the documentation of</span>
 <span class="sd">        :py:class:`barrista.solver.SolverInterface.Fit`.</span>
+
+<span class="sd">        The callback signals are used as follows:</span>
+<span class="sd">        * initialize_train: called once before training starts,</span>
+<span class="sd">        * initialize_test: called once before training starts (if training with</span>
+<span class="sd">          a validation set is used) or once before testing,</span>
+<span class="sd">        * pre_fit: called before fitting mode is used (e.g., before going</span>
+<span class="sd">          back to fitting during training after a validation run),</span>
+<span class="sd">        * pre_test: called before testing mode is used (e.g., during training</span>
+<span class="sd">          before validation starts),</span>
+<span class="sd">        * post_test: called when testing finished,</span>
+<span class="sd">        * pre_train_batch: before a training batch is fed to the network,</span>
+<span class="sd">        * post_train_batch: after forwarding a training batch,</span>
+<span class="sd">        * pre_test_batch: before a test batch is fed to the network,</span>
+<span class="sd">        * post_test_batch: after a test batch was forwarded through the</span>
+<span class="sd">          network.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;pre_fit&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;initialize_train&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_train</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;initialize_test&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_test</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;pre_fit&#39;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_pre_fit</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;pre_test&#39;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_pre_test</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
@@ -166,6 +208,12 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_pre_train_batch</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;post_train_batch&#39;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_post_train_batch</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_initialize_train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pylint: disable=C0111</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">_initialize_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pylint: disable=C0111</span>
+        <span class="k">pass</span>
 
     <span class="k">def</span> <span class="nf">_pre_fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pylint: disable=C0111</span>
         <span class="k">pass</span>
@@ -200,54 +248,65 @@
 
 <span class="sd">    This is a specific monitor which will fill the blobs of the network</span>
 <span class="sd">    for the forward pass or solver step.</span>
-<span class="sd">    Ideally there should only be one such monitor per callback,</span>
-<span class="sd">    but multiple ones are indeed possible.</span>
+<span class="sd">    Ideally, there should only be one such monitor per callback,</span>
+<span class="sd">    but multiple ones are possible.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">pass</span>
 
 </div>
-<div class="viewcode-block" id="CyclingDataMonitor"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.CyclingDataMonitor">[docs]</a><span class="k">class</span> <span class="nc">CyclingDataMonitor</span><span class="p">(</span><span class="n">Monitor</span><span class="p">):</span>  <span class="c"># pylint: disable=R0903</span>
+<div class="viewcode-block" id="ParallelMonitor"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.ParallelMonitor">[docs]</a><span class="k">class</span> <span class="nc">ParallelMonitor</span><span class="p">(</span><span class="n">Monitor</span><span class="p">):</span>
 
     <span class="sd">r&quot;&quot;&quot;</span>
-<span class="sd">    Uses the data sequentially.</span>
+<span class="sd">    Monitor interface for monitors executed parallel to processing a batch.</span>
 
-<span class="sd">    This monitor maps data to the network an cycles through the data</span>
-<span class="sd">    sequentially. It is the default monitor used if a user provides X</span>
-<span class="sd">    or X_val to the barrista.sovler.fit method.</span>
-
-<span class="sd">    :param X: dict of numpy.ndarray or None.</span>
-<span class="sd">      If specified, is used as input data. It is used sequentially, so</span>
-<span class="sd">      shuffle it pre, if required. The keys of the dict have to have</span>
-<span class="sd">      a corresponding layer name in the net.</span>
+<span class="sd">    The order of all monitors implementing this interface is respected. They</span>
+<span class="sd">    will work on a dummy network object with dummy blobs and prepare their</span>
+<span class="sd">    data. The dummy blob content is then copied to the real network prior</span>
+<span class="sd">    to the next batch execution.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;See class documentation.&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_X</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;X&#39;</span><span class="p">]</span>  <span class="c"># pylint: disable=C0103</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_sample_pointer</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_len_data</span> <span class="o">=</span> <span class="bp">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span> <span class="o">=</span> <span class="bp">None</span>
+<div class="viewcode-block" id="ParallelMonitor.get_parallel_blob_names"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.ParallelMonitor.get_parallel_blob_names">[docs]</a>    <span class="k">def</span> <span class="nf">get_parallel_blob_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the names of all blobs that must be provided for the dummy.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">_pre_fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
-        <span class="c"># we make sure, now the the network is available that</span>
-        <span class="c"># all names in the provided data dict has a corresponding match</span>
-        <span class="c"># in the network</span>
-        <span class="n">net</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span>
+
+<span class="c"># pylint: disable=too-few-public-methods</span></div></div>
+<div class="viewcode-block" id="StaticDataMonitor"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.StaticDataMonitor">[docs]</a><span class="k">class</span> <span class="nc">StaticDataMonitor</span><span class="p">(</span><span class="n">DataMonitor</span><span class="p">,</span> <span class="n">ParallelMonitor</span><span class="p">):</span>
+
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Always provides the same data for a specific net input blob.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ==========</span>
+
+<span class="sd">    :param X: dict(string, np.ndarray)</span>
+<span class="sd">      The static input blobs to use.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_X</span> <span class="o">=</span> <span class="n">X</span>  <span class="c"># pylint: disable=C0103</span>
+
+    <span class="k">def</span> <span class="nf">_initialize_train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_initialize_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
         <span class="k">if</span> <span class="s">&#39;test&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]:</span>
             <span class="n">net</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;testnet&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">net</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_len_data</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">])</span>
+
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
             <span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="p">(</span>
                 <span class="s">&#39;data key has no corresponding network blob {} {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                     <span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="o">.</span><span class="n">keys</span><span class="p">()))))</span>
-            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_len_data</span><span class="p">,</span> <span class="p">(</span>
-                <span class="s">&#39;all items need to have the same length {} vs {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_len_data</span><span class="p">))</span>
             <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">_np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span> <span class="p">(</span>
-                <span class="s">&#39;data must be a numpy nd array {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)))</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span> <span class="o">=</span> <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="s">&#39;data must be a numpy nd array ({})&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+            <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_pre_train_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_pre_batch</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">],</span> <span class="n">kwargs</span><span class="p">)</span>
@@ -255,27 +314,755 @@
     <span class="k">def</span> <span class="nf">_pre_test_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_pre_batch</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;testnet&#39;</span><span class="p">],</span> <span class="n">kwargs</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_pre_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">net</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pylint: disable=C0111, W0613</span>
+    <span class="k">def</span> <span class="nf">_pre_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">net</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pylint: disable=unused-argument</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+<div class="viewcode-block" id="StaticDataMonitor.get_parallel_blob_names"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.StaticDataMonitor.get_parallel_blob_names">[docs]</a>    <span class="k">def</span> <span class="nf">get_parallel_blob_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the names of all blobs that must be provided for the dummy.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+
+
+<span class="c"># pylint: disable=too-few-public-methods</span></div></div>
+<div class="viewcode-block" id="OversamplingDataMonitor"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.OversamplingDataMonitor">[docs]</a><span class="k">class</span> <span class="nc">OversamplingDataMonitor</span><span class="p">(</span><span class="n">DataMonitor</span><span class="p">,</span> <span class="n">ParallelMonitor</span><span class="p">):</span>
+
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Provides oversampled data.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ==========</span>
+
+<span class="sd">    :param blobinfos: dict(string, string|None).</span>
+<span class="sd">      Associates blob name to oversample and optional the interpolation</span>
+<span class="sd">      method to use for resize. This may be &#39;n&#39; (nearest neighbour),</span>
+<span class="sd">      &#39;c&#39; (cubic), &#39;l&#39; (linear) or None (no interpolation). If an</span>
+<span class="sd">      interpolation method is selected, `before_oversample_resize_to` must</span>
+<span class="sd">      be not None and provide a size.</span>
+
+<span class="sd">    :param before_oversample_resize_to: dict(string, 2-tuple).</span>
+<span class="sd">      Specifies a size to which the image inputs will be resized before the</span>
+<span class="sd">      oversampling is invoked.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">blobinfos</span><span class="p">,</span>
+                 <span class="n">before_oversample_resize_to</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">blobinfos</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">assert</span> <span class="n">val</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;n&#39;</span><span class="p">,</span> <span class="s">&#39;c&#39;</span><span class="p">,</span> <span class="s">&#39;l&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_blobinfos</span> <span class="o">=</span> <span class="n">blobinfos</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">blobinfos</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">before_oversample_resize_to</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_before_oversample_resize_to</span> <span class="o">=</span> <span class="n">before_oversample_resize_to</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span> <span class="o">=</span> <span class="bp">None</span>
+
+<div class="viewcode-block" id="OversamplingDataMonitor.get_parallel_blob_names"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.OversamplingDataMonitor.get_parallel_blob_names">[docs]</a>    <span class="k">def</span> <span class="nf">get_parallel_blob_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the names of all blobs that must be provided for the dummy.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_blobinfos</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+</div>
+    <span class="k">def</span> <span class="nf">_initialize_train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;The OversamplingDataMonitor can only be used during &quot;</span>
+                        <span class="s">&quot;testing!&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_initialize_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s">&#39;test&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]:</span>
+            <span class="n">net</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;testnet&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">net</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_blobinfos</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="p">(</span>
+                <span class="s">&#39;data key has no corresponding network blob {} {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="o">.</span><span class="n">keys</span><span class="p">()))))</span>
+
+    <span class="k">def</span> <span class="nf">_pre_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">net</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;testnet&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span> <span class="o">=</span> <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span>
+            <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_blobinfos</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_pre_test_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">blob_name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_blobinfos</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="n">blob_name</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;data_orig&#39;</span><span class="p">],</span> <span class="p">(</span>
+                <span class="s">&quot;The unchanged data must be provided by another DataProvider, &quot;</span>
+                <span class="s">&quot;e.g., CyclingDataMonitor with `only_preload`!&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;data_orig&#39;</span><span class="p">][</span><span class="n">blob_name</span><span class="p">])</span> <span class="o">*</span> <span class="mi">10</span> <span class="o">==</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span><span class="p">),</span> <span class="p">(</span>
+                        <span class="s">&quot;The number of provided images * 10 must be the batch &quot;</span>
+                        <span class="s">&quot;size!&quot;</span><span class="p">)</span>
+            <span class="c"># pylint: disable=invalid-name</span>
+            <span class="k">for</span> <span class="n">im_idx</span><span class="p">,</span> <span class="n">im</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;data_orig&#39;</span><span class="p">][</span><span class="n">blob_name</span><span class="p">]):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_blobinfos</span><span class="p">[</span><span class="n">blob_name</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_blobinfos</span><span class="p">[</span><span class="n">blob_name</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;n&#39;</span><span class="p">:</span>
+                        <span class="n">interpolation</span> <span class="o">=</span> <span class="n">_cv2INTER_NEAREST</span>
+                    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_blobinfos</span><span class="p">[</span><span class="n">blob_name</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;c&#39;</span><span class="p">:</span>
+                        <span class="n">interpolation</span> <span class="o">=</span> <span class="n">_cv2INTER_CUBIC</span>
+                    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_blobinfos</span><span class="p">[</span><span class="n">blob_name</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;l&#39;</span><span class="p">:</span>
+                        <span class="n">interpolation</span> <span class="o">=</span> <span class="n">_cv2INTER_LINEAR</span>
+                    <span class="n">oversampling_prep</span> <span class="o">=</span> <span class="n">_cv2resize</span><span class="p">(</span>
+                        <span class="n">_np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>
+                        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_before_oversample_resize_to</span><span class="p">[</span><span class="n">blob_name</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>
+                         <span class="bp">self</span><span class="o">.</span><span class="n">_before_oversample_resize_to</span><span class="p">[</span><span class="n">blob_name</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span>
+                        <span class="n">interpolation</span><span class="o">=</span><span class="n">interpolation</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">oversampling_prep</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+                <span class="n">imshape</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;testnet&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">blob_name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;testnet&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">blob_name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span>
+                    <span class="n">im_idx</span> <span class="o">*</span> <span class="mi">10</span><span class="p">:(</span><span class="n">im_idx</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">10</span><span class="p">]</span> <span class="o">=</span>\
+                        <span class="n">_np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span>
+                            <span class="n">_caffe</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">oversample</span><span class="p">(</span>
+                                <span class="p">[</span><span class="n">oversampling_prep</span><span class="p">],</span>
+                                <span class="n">imshape</span><span class="p">),</span>
+                            <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+
+
+<span class="c"># pylint: disable=too-many-instance-attributes, R0903</span></div>
+<div class="viewcode-block" id="CyclingDataMonitor"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.CyclingDataMonitor">[docs]</a><span class="k">class</span> <span class="nc">CyclingDataMonitor</span><span class="p">(</span><span class="n">DataMonitor</span><span class="p">,</span> <span class="n">ParallelMonitor</span><span class="p">):</span>
+
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Uses the data sequentially.</span>
+
+<span class="sd">    This monitor maps data to the network an cycles through the data</span>
+<span class="sd">    sequentially. It is the default monitor used if a user provides X</span>
+<span class="sd">    or X_val to the barrista.solver.fit method.</span>
+
+<span class="sd">    If further processing of the original data is intended, by using the flag</span>
+<span class="sd">    ``only_preload``, the following monitors find a dictionary of lists of</span>
+<span class="sd">    the original datapoints with the name &#39;data_orig&#39; in their ``kwargs``.</span>
+<span class="sd">    The data is in this case NOT written to the network input layers! This</span>
+<span class="sd">    can make sense, e.g., for the ``ResizingMonitor``.</span>
+
+<span class="sd">    :param X: dict of numpy.ndarray or list,  or None.</span>
+<span class="sd">      If specified, is used as input data. It is used sequentially, so</span>
+<span class="sd">      shuffle it pre, if required. The keys of the dict must have</span>
+<span class="sd">      a corresponding layer name in the net. The values must be provided</span>
+<span class="sd">      already in network dimension order, i.e., usually channels, height,</span>
+<span class="sd">      width.</span>
+
+<span class="sd">    :param only_preload: list(string).</span>
+<span class="sd">      List of blobs for which the data will be loaded and stored in a dict</span>
+<span class="sd">      of (name: list) for further processing with other monitors.</span>
+
+<span class="sd">    :param virtual_batch_size: int or None.</span>
+<span class="sd">      Override the network batch size. May only be used if ``only_preload`` is</span>
+<span class="sd">      set to True. Only makes sense with another DataMonitor in succession.</span>
+
+<span class="sd">    :param color_data_augmentation_sigmas: dict(string, float) or None.</span>
+<span class="sd">      Enhance the color of the samples as described in (Krizhevsky et al.,</span>
+<span class="sd">      2012). The parameter gives the sigma for the normal distribution that is</span>
+<span class="sd">      sampled to obtain the weights for scaled pixel principal components per</span>
+<span class="sd">      blob.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># pylint: disable=too-many-arguments</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">X</span><span class="p">,</span>
+                 <span class="n">only_preload</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">input_processing_flags</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">virtual_batch_size</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">color_data_augmentation_sigmas</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;See class documentation.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">only_preload</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">only_preload</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">only_preload</span> <span class="o">=</span> <span class="n">only_preload</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_X</span> <span class="o">=</span> <span class="n">X</span>  <span class="c"># pylint: disable=C0103</span>
+        <span class="k">assert</span> <span class="n">X</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span>
+        <span class="k">if</span> <span class="n">input_processing_flags</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">input_processing_flags</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_input_processing_flags</span> <span class="o">=</span> <span class="n">input_processing_flags</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">input_processing_flags</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_padvals</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">input_processing_flags</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">assert</span> <span class="p">(</span><span class="n">val</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;n&#39;</span><span class="p">,</span> <span class="s">&#39;rn&#39;</span><span class="p">,</span> <span class="s">&#39;rc&#39;</span><span class="p">,</span> <span class="s">&#39;rl&#39;</span><span class="p">]</span> <span class="ow">or</span>
+                    <span class="n">val</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&#39;p&#39;</span><span class="p">)),</span> <span class="p">(</span>
+                        <span class="s">&quot;The input processing flags for the CyclingDataMonitor &quot;</span>
+                        <span class="s">&quot;must be in [&#39;n&#39;, &#39;rn&#39;, &#39;rc&#39;, &#39;rl&#39;, &#39;p&#39;]: {}!&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">val</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">val</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&#39;p&#39;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_padvals</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">only_preload</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sample_pointer</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_len_data</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialized</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">assert</span> <span class="n">virtual_batch_size</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">only_preload</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s">&quot;If the virtual_batch_size is set, `only_preload` must be used!&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">virtual_batch_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">virtual_batch_size</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_virtual_batch_size</span> <span class="o">=</span> <span class="n">virtual_batch_size</span>
+        <span class="k">if</span> <span class="n">color_data_augmentation_sigmas</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">color_data_augmentation_sigmas</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_color_data_augmentation_sigmas</span> <span class="o">=</span> <span class="n">color_data_augmentation_sigmas</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_color_data_augmentation_sigmas</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_color_data_augmentation_sigmas</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_color_data_augmentation_sigmas</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="c"># pylint: disable=invalid-name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_color_data_augmentation_weights</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="c"># pylint: disable=invalid-name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_color_data_augmentation_components</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+<div class="viewcode-block" id="CyclingDataMonitor.get_parallel_blob_names"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.CyclingDataMonitor.get_parallel_blob_names">[docs]</a>    <span class="k">def</span> <span class="nf">get_parallel_blob_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+</div>
+    <span class="k">def</span> <span class="nf">_initialize_train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c"># Calculate the color channel PCA per blob if required.</span>
+        <span class="k">for</span> <span class="n">bname</span><span class="p">,</span> <span class="n">sigma</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_color_data_augmentation_sigmas</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">sigma</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">:</span>
+                <span class="n">_LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Performing PCA for color data augmentation for &quot;</span>
+                             <span class="s">&quot;blob &#39;</span><span class="si">%s</span><span class="s">&#39;...&quot;</span><span class="p">,</span> <span class="n">bname</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">im</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="p">[</span><span class="n">bname</span><span class="p">]:</span>  <span class="c"># pylint: disable=invalid-name</span>
+                    <span class="k">assert</span> <span class="n">im</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">im</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span><span class="p">,</span> <span class="p">(</span>
+                        <span class="s">&quot;To perform the color data augmentation, images must &quot;</span>
+                        <span class="s">&quot;be provided in shape (3, height, width).&quot;</span><span class="p">)</span>
+                <span class="n">flldta</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">im</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="n">im</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">im</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span><span class="o">.</span><span class="n">T</span>
+                     <span class="k">for</span> <span class="n">im</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="p">[</span><span class="n">bname</span><span class="p">]])</span>
+                <span class="c"># No need to copy the data another time, since `vstack` already</span>
+                <span class="c"># copied it.</span>
+                <span class="n">pca</span> <span class="o">=</span> <span class="n">_PCA</span><span class="p">(</span><span class="n">copy</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">whiten</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+                <span class="n">pca</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">flldta</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_color_data_augmentation_weights</span><span class="p">[</span><span class="n">bname</span><span class="p">]</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+                    <span class="n">pca</span><span class="o">.</span><span class="n">explained_variance_</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s">&#39;float32&#39;</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_color_data_augmentation_components</span><span class="p">[</span><span class="n">bname</span><span class="p">]</span> <span class="o">=</span> \
+                    <span class="n">pca</span><span class="o">.</span><span class="n">components_</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s">&#39;float32&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_initialize_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="c"># we make sure, now that the network is available, that</span>
+        <span class="c"># all names in the provided data dict has a corresponding match</span>
+        <span class="c"># in the network</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_initialized</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;This DataProvider has already been intialized! &quot;</span>
+                            <span class="s">&quot;Did you maybe try to use it for train and test? &quot;</span>
+                            <span class="s">&quot;This is not possible!&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s">&#39;test&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]:</span>
+            <span class="n">net</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;testnet&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">net</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_len_data</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_processing_flags</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_input_processing_flags</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;n&#39;</span>
+            <span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="p">(</span>
+                <span class="s">&#39;data key has no corresponding network blob {} {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="o">.</span><span class="n">keys</span><span class="p">()))))</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_len_data</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s">&#39;all items need to have the same length {} vs {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_len_data</span><span class="p">))</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">_np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">),</span> <span class="p">(</span>
+                <span class="s">&#39;data must be a numpy nd array or list ({})&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialized</span> <span class="o">=</span> <span class="bp">True</span>
+
+    <span class="k">def</span> <span class="nf">_pre_fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s">&#39;test&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]:</span>
+            <span class="n">net</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;testnet&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">net</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_virtual_batch_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_virtual_batch_size</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span> <span class="o">=</span> <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">_pre_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pre_fit</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sample_pointer</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">_pre_train_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pre_batch</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">],</span> <span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_pre_test_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pre_batch</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;testnet&#39;</span><span class="p">],</span> <span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_color_augment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bname</span><span class="p">,</span> <span class="n">sample</span><span class="p">):</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_color_data_augmentation_sigmas</span><span class="p">[</span><span class="n">bname</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">sigma</span> <span class="o">==</span> <span class="mf">0.</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+                <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">sample</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s">&#39;float32&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">comp_weights</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s">&#39;float32&#39;</span><span class="p">)</span> <span class="o">*</span>\
+                           <span class="bp">self</span><span class="o">.</span><span class="n">_color_data_augmentation_weights</span><span class="p">[</span><span class="n">bname</span><span class="p">]</span>
+            <span class="n">noise</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_color_data_augmentation_components</span><span class="p">[</span><span class="n">bname</span><span class="p">],</span>
+                            <span class="n">comp_weights</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">sample</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s">&#39;float32&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="o">+</span> <span class="n">noise</span><span class="p">)</span>\
+                <span class="o">.</span><span class="n">transpose</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_pre_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">net</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pylint: disable=C0111, W0613, R0912</span>
         <span class="c"># this will simply cycle through the data.</span>
         <span class="n">samples_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">idx</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_len_data</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span>
                        <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sample_pointer</span><span class="p">,</span>
                              <span class="bp">self</span><span class="o">.</span><span class="n">_sample_pointer</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span><span class="p">)]</span>
-
         <span class="c"># updating the sample pointer for the next time</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_sample_pointer</span> <span class="o">=</span> <span class="p">(</span>
             <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sample_pointer</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">samples_ids</span><span class="p">))</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_len_data</span><span class="p">)</span>
 
-        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">only_preload</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">sample_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>  <span class="c"># pylint: disable=too-many-nested-blocks</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">only_preload</span><span class="p">:</span>
+                <span class="n">sample_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="c"># this will actually fill the data for the network</span>
-            <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">samples_ids</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-                    <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">sample_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span><span class="p">):</span>
+                <span class="n">augmented_sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_color_augment</span><span class="p">(</span>
+                    <span class="n">key</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">samples_ids</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">]])</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">only_preload</span><span class="p">:</span>
+                    <span class="n">sample_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">augmented_sample</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="p">(</span>
+                            <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">samples_ids</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">]],</span>
+                                       <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">or</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">samples_ids</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">]]</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">or</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">samples_ids</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">]]</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span>
+                            <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                            <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">]</span> <span class="o">=</span>\
+                                 <span class="n">augmented_sample</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                                <span class="n">augmented_sample</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+                                    <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_processing_flags</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;n&#39;</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">((</span><span class="s">&quot;Sample size {} does not match &quot;</span> <span class="o">+</span>
+                                             <span class="s">&quot;network input size {} and no &quot;</span> <span class="o">+</span>
+                                             <span class="s">&quot;preprocessing is allowed!&quot;</span><span class="p">)</span>
+                                            <span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                                <span class="n">augmented_sample</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
+                                                <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">))</span>
+                        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_processing_flags</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;rn&#39;</span><span class="p">,</span>
+                                                                   <span class="s">&#39;rc&#39;</span><span class="p">,</span>
+                                                                   <span class="s">&#39;rl&#39;</span><span class="p">]:</span>
+                            <span class="k">assert</span> <span class="p">(</span>
+                                <span class="n">augmented_sample</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                                <span class="o">==</span> <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_processing_flags</span> <span class="o">==</span> <span class="s">&#39;rn&#39;</span><span class="p">:</span>
+                                <span class="n">interp_method</span> <span class="o">=</span> <span class="n">_cv2INTER_NEAREST</span>
+                            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_processing_flags</span> <span class="o">==</span> <span class="s">&#39;rc&#39;</span><span class="p">:</span>
+                                <span class="n">interp_method</span> <span class="o">=</span> <span class="n">_cv2INTER_CUBIC</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">interp_method</span> <span class="o">=</span> <span class="n">_cv2INTER_LINEAR</span>
+                            <span class="k">for</span> <span class="n">channel_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
+                                    <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                                <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">,</span> <span class="n">channel_idx</span><span class="p">]</span> <span class="o">=</span>\
+                                    <span class="n">_cv2resize</span><span class="p">(</span>
+                                        <span class="n">augmented_sample</span><span class="p">[</span><span class="n">channel_idx</span><span class="p">],</span>
+                                        <span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+                                         <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+                                        <span class="n">interpolation</span><span class="o">=</span><span class="n">interp_method</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="c"># Padding.</span>
+                            <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">_pad</span><span class="p">(</span>
+                                <span class="n">augmented_sample</span><span class="p">,</span>
+                                <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">],</span>
+                                <span class="n">val</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_padvals</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">only_preload</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;data_orig&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sample_dict</span>
 
-<div class="viewcode-block" id="CyclingDataMonitor.finalize"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.CyclingDataMonitor.finalize">[docs]</a>    <span class="k">def</span> <span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pylint: disable=W0613</span>
-        <span class="sd">&quot;&quot;&quot;Nothing to do here.&quot;&quot;&quot;</span>
-        <span class="k">pass</span>
+</div>
+<div class="viewcode-block" id="ResizingMonitor"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.ResizingMonitor">[docs]</a><span class="k">class</span> <span class="nc">ResizingMonitor</span><span class="p">(</span><span class="n">ParallelMonitor</span><span class="p">,</span> <span class="n">Monitor</span><span class="p">):</span>  <span class="c"># pylint: disable=R0903</span>
 
-</div></div>
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Optionally resizes input data and adjusts the network input shape.</span>
+
+<span class="sd">    This monitor optionally resizes the input data randomly and adjusts</span>
+<span class="sd">    the network input size accordingly (this works only for batch size 1</span>
+<span class="sd">    and fully convolutional networks).</span>
+
+<span class="sd">    For this to work, it must be used with the ``CyclingDataMonitor`` with</span>
+<span class="sd">    ``only_preload`` set.</span>
+
+<span class="sd">    :param blobinfos: dict(string, int).</span>
+<span class="sd">      Describes which blobs to apply the resizing operation to, and which</span>
+<span class="sd">      padding value to use for the remaining space.</span>
+
+<span class="sd">    :param base_scale: float.</span>
+<span class="sd">      If set to a value different than 1., apply the given base scale first</span>
+<span class="sd">      to images. If set to a value different than 1., the parameter</span>
+<span class="sd">      ``interp_methods`` must be set.</span>
+
+<span class="sd">    :param random_change_up_to: float.</span>
+<span class="sd">      If set to a value different than 0., the scale change is altered</span>
+<span class="sd">      randomly with a uniformly drawn value from -``random_change_up_to`` to</span>
+<span class="sd">      ``random_change_up_to``, that is being added to the base value.</span>
+
+<span class="sd">    :param net_input_size_adjustment_multiple_of: int.</span>
+<span class="sd">      If set to a value greater than 0, the blobs shape is adjusted from its</span>
+<span class="sd">      initial value (which is used as minimal one) in multiples of the given</span>
+<span class="sd">      one.</span>
+
+<span class="sd">    :param interp_methods: dict(string, string).</span>
+<span class="sd">      Dictionary which stores for every blob the interpolation method. The</span>
+<span class="sd">      string must be for each blob in [&#39;n&#39;, &#39;c&#39;, &#39;l&#39;] (nearest neighbour,</span>
+<span class="sd">      cubic, linear).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>  <span class="c"># pylint: disable=R0913</span>
+                 <span class="n">blobinfos</span><span class="p">,</span>
+                 <span class="n">base_scale</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span>
+                 <span class="n">random_change_up_to</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span>
+                 <span class="n">net_input_size_adjustment_multiple_of</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                 <span class="n">interp_methods</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;See class documentation.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_blobinfos</span> <span class="o">=</span> <span class="n">blobinfos</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_base_scale</span> <span class="o">=</span> <span class="n">base_scale</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_random_change_up_to</span> <span class="o">=</span> <span class="n">random_change_up_to</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base_scale</span> <span class="o">!=</span> <span class="mf">1.</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_random_change_up_to</span> <span class="o">!=</span> <span class="mf">0.</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">interp_methods</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_blobinfos</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">interp_methods</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+                <span class="k">assert</span> <span class="n">interp_methods</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;n&#39;</span><span class="p">,</span> <span class="s">&#39;c&#39;</span><span class="p">,</span> <span class="s">&#39;l&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_interp_methods</span> <span class="o">=</span> <span class="n">interp_methods</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_adjustment_multiple_of</span> <span class="o">=</span> <span class="n">net_input_size_adjustment_multiple_of</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_min_input_size</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">_initialize_train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_initialize_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="c"># we make sure, now that the network is available, that</span>
+        <span class="c"># all names in the provided data dict have a corresponding match</span>
+        <span class="c"># in the network</span>
+        <span class="k">if</span> <span class="s">&#39;test&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]:</span>
+            <span class="n">net</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;testnet&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">net</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_blobinfos</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="p">(</span>
+                <span class="s">&#39;data key has no corresponding network blob {} {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="o">.</span><span class="n">keys</span><span class="p">()))))</span>
+            <span class="k">assert</span> <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">4</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adjustment_multiple_of</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_min_input_size</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_min_input_size</span> <span class="o">=</span> <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">assert</span> <span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span> <span class="o">==</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_min_input_size</span><span class="p">),</span> <span class="p">(</span>
+                                <span class="s">&#39;if automatic input size adjustment is &#39;</span>
+                                <span class="s">&#39;activated, all inputs must be of same size &#39;</span>
+                                <span class="s">&#39;(first: {}, {}: {})&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">_min_input_size</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span>
+                                    <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">]))</span>
+
+    <span class="k">def</span> <span class="nf">_pre_fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s">&#39;test&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]:</span>
+            <span class="n">net</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;testnet&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">net</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span> <span class="o">=</span> <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span>
+            <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_blobinfos</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adjustment_multiple_of</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s">&quot;If size adjustment is activated, the batch size must be one!&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_pre_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pre_fit</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_pre_train_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pre_batch</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">],</span> <span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_pre_test_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pre_batch</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;testnet&#39;</span><span class="p">],</span> <span class="n">kwargs</span><span class="p">)</span>
+
+     <span class="c"># pylint: disable=C0111, W0613, R0912, too-many-locals</span>
+    <span class="k">def</span> <span class="nf">_pre_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">net</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">scales</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="n">sizes</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;data_orig&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span>
+            <span class="k">if</span> <span class="n">sizes</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">sizes</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">img</span> <span class="ow">in</span> <span class="n">value</span><span class="p">:</span>
+                    <span class="n">sizes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">img_idx</span><span class="p">,</span> <span class="n">img</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+                    <span class="c"># pylint: disable=unsubscriptable-object</span>
+                    <span class="k">assert</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="n">sizes</span><span class="p">[</span><span class="n">img_idx</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">padval</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_blobinfos</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">scales</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">scales</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">sample_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_random_change_up_to</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">scales</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_base_scale</span> <span class="o">+</span>
+                            <span class="n">_np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">low</span><span class="o">=-</span><span class="bp">self</span><span class="o">.</span><span class="n">_random_change_up_to</span><span class="p">,</span>
+                                               <span class="n">high</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_random_change_up_to</span><span class="p">))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">scales</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_base_scale</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">sample_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span><span class="p">):</span>
+                <span class="c"># Get the scaled data.</span>
+                <span class="n">scaled_sample</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;data_orig&#39;</span><span class="p">][</span><span class="n">key</span><span class="p">][</span><span class="n">sample_idx</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">scales</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">]</span> <span class="o">!=</span> <span class="mf">1.</span><span class="p">:</span>
+                    <span class="n">scaled_sample</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">scaled_sample</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                               <span class="nb">int</span><span class="p">(</span><span class="n">scaled_sample</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span>
+                                                   <span class="n">scales</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">]),</span>
+                                               <span class="nb">int</span><span class="p">(</span><span class="n">scaled_sample</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span>
+                                                   <span class="n">scales</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">])),</span>
+                                              <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;float32&#39;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_interp_methods</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;n&#39;</span><span class="p">:</span>
+                        <span class="n">interpolation_method</span> <span class="o">=</span> <span class="n">_cv2INTER_NEAREST</span>
+                    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_interp_methods</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;l&#39;</span><span class="p">:</span>
+                        <span class="n">interpolation_method</span> <span class="o">=</span> <span class="n">_cv2INTER_LINEAR</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">interpolation_method</span> <span class="o">=</span> <span class="n">_cv2INTER_CUBIC</span>
+                    <span class="k">for</span> <span class="n">layer_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">scaled_sample</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                        <span class="n">scaled_sample</span><span class="p">[</span><span class="n">layer_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">_cv2resize</span><span class="p">(</span>
+                            <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;data_orig&#39;</span><span class="p">][</span><span class="n">key</span><span class="p">][</span><span class="n">sample_idx</span><span class="p">][</span><span class="n">layer_idx</span><span class="p">],</span>
+                            <span class="p">(</span><span class="n">scaled_sample</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                             <span class="n">scaled_sample</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+                            <span class="n">interpolation</span><span class="o">=</span><span class="n">interpolation_method</span><span class="p">)</span>
+                <span class="c"># If necessary, adjust the network input size.</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adjustment_multiple_of</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">image_height</span><span class="p">,</span> <span class="n">image_width</span> <span class="o">=</span> <span class="n">scaled_sample</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+                    <span class="n">netinput_height</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_min_input_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span>
+                        <span class="n">_np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span>
+                            <span class="nb">float</span><span class="p">(</span><span class="n">image_height</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_min_input_size</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_adjustment_multiple_of</span><span class="p">)</span> <span class="o">*</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_adjustment_multiple_of</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_min_input_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+                    <span class="n">netinput_width</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_min_input_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span>
+                        <span class="n">_np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span>
+                            <span class="nb">float</span><span class="p">(</span><span class="n">image_width</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_min_input_size</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_adjustment_multiple_of</span><span class="p">)</span> <span class="o">*</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_adjustment_multiple_of</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_min_input_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+                    <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span>
+                                           <span class="n">scaled_sample</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                           <span class="n">netinput_height</span><span class="p">,</span>
+                                           <span class="n">netinput_width</span><span class="p">)</span>
+                <span class="c"># Put the data in place.</span>
+                <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">_pad</span><span class="p">(</span>
+                    <span class="n">scaled_sample</span><span class="p">,</span>
+                    <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">],</span>
+                    <span class="n">val</span><span class="o">=</span><span class="n">padval</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ResizingMonitor.get_parallel_blob_names"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.ResizingMonitor.get_parallel_blob_names">[docs]</a>    <span class="k">def</span> <span class="nf">get_parallel_blob_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the names of all blobs that must be provided for the dummy.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_blobinfos</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+
+<span class="c"># pylint: disable=too-few-public-methods</span></div></div>
+<div class="viewcode-block" id="RotatingMirroringMonitor"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.RotatingMirroringMonitor">[docs]</a><span class="k">class</span> <span class="nc">RotatingMirroringMonitor</span><span class="p">(</span><span class="n">ParallelMonitor</span><span class="p">,</span> <span class="n">Monitor</span><span class="p">):</span>
+
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    Rotate and/or horizontally mirror samples within blobs.</span>
+
+<span class="sd">    For every sample, the rotation and mirroring will be consistent</span>
+<span class="sd">    across the blobs.</span>
+
+<span class="sd">    :param blobinfos: dict(string, int).</span>
+<span class="sd">      A dictionary containing the blob names and the padding values that</span>
+<span class="sd">      will be applied.</span>
+
+<span class="sd">    :param max_rotation_degrees: float.</span>
+<span class="sd">      The rotation will be sampled uniformly from the interval</span>
+<span class="sd">      [-rotation_degrees, rotation_degrees[ for each sample.</span>
+
+<span class="sd">    :param mirror_prob: float.</span>
+<span class="sd">      The probability that horizontal mirroring occurs. Is as well sampled</span>
+<span class="sd">      individually for every sample.</span>
+
+<span class="sd">    :param mirror_value_swaps: dict(string, dict(int, list(2-tuples))).</span>
+<span class="sd">      Specifies for every blob for every layer whether any values must be</span>
+<span class="sd">      swapped if mirroring is applied. This is important when, e.g.,</span>
+<span class="sd">      mirroring annotation maps with left-right information. Every 2-tuple</span>
+<span class="sd">      contains (original value, new value). The locations of the swaps are</span>
+<span class="sd">      determined before any change is applied, so the order of tuples does not</span>
+<span class="sd">      play a role.</span>
+
+<span class="sd">    :param mirror_layer_swaps: dict(string, list(2-tuples)).</span>
+<span class="sd">      Specifies for every blob whether any layers must be swapped if</span>
+<span class="sd">      mirroring is applied. Can be used together with mirror_value_swaps: in</span>
+<span class="sd">      this case, the `mirror_value_swaps` are applied first, then the layers</span>
+<span class="sd">      are swapped.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># pylint: disable=too-many-arguments</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">blobinfos</span><span class="p">,</span>
+                 <span class="n">max_rotation_degrees</span><span class="p">,</span>
+                 <span class="n">mirror_prob</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span>
+                 <span class="n">mirror_value_swaps</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">mirror_layer_swaps</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;See class documentation.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_blobinfos</span> <span class="o">=</span> <span class="n">blobinfos</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rotation_degrees</span> <span class="o">=</span> <span class="n">max_rotation_degrees</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mirror_prob</span> <span class="o">=</span> <span class="n">mirror_prob</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">if</span> <span class="n">mirror_value_swaps</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">mirror_value_swaps</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">mirror_value_swaps</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_blobinfos</span><span class="p">,</span> <span class="p">(</span><span class="s">&quot;Blob not in handled: {}!&quot;</span>\
+                                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">layer_idx</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">mirror_value_swaps</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                <span class="n">m_tochange</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">swappair</span> <span class="ow">in</span> <span class="n">mirror_value_swaps</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">layer_idx</span><span class="p">]:</span>
+                    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">swappair</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="p">(</span>
+                        <span class="s">&quot;Swaps must be specified as (from_value, to_value): {}&quot;</span>\
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">mirror_value_swaps</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">layer_idx</span><span class="p">]))</span>
+                    <span class="k">assert</span> <span class="n">swappair</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">m_tochange</span><span class="p">,</span> <span class="p">(</span>
+                        <span class="s">&quot;Every value may change only to one new: {}.&quot;</span>\
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">mirror_value_swaps</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">layer_idx</span><span class="p">]))</span>
+                    <span class="n">m_tochange</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">swappair</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="k">assert</span> <span class="n">blobinfos</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">swappair</span><span class="p">,</span> <span class="p">(</span>
+                        <span class="s">&quot;A specified swap value is the fill value for this &quot;</span>
+                        <span class="s">&quot;blob: {}, {}, {}.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span>
+                                                   <span class="n">blobinfos</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">layer_idx</span><span class="p">],</span>
+                                                   <span class="n">swappair</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">mirror_layer_swaps</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">mirror_layer_swaps</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">mirror_layer_swaps</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_blobinfos</span><span class="p">,</span> <span class="p">(</span><span class="s">&quot;Blob not handled: {}!&quot;</span>\
+                                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+            <span class="n">idx_tochange</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">swappair</span> <span class="ow">in</span> <span class="n">mirror_layer_swaps</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
+                <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">swappair</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="p">(</span>
+                    <span class="s">&quot;Swaps must be specified as (from_value, to_value): {}&quot;</span>\
+                    <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">swappair</span><span class="p">))</span>
+                <span class="k">assert</span> <span class="p">(</span><span class="n">swappair</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">idx_tochange</span> <span class="ow">and</span>
+                        <span class="n">swappair</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">idx_tochange</span><span class="p">),</span> <span class="p">(</span>
+                            <span class="s">&quot;Every value may only be swapped to or from one &quot;</span>
+                            <span class="s">&quot;position!&quot;</span><span class="p">)</span>
+                <span class="n">idx_tochange</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">swappair</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_blobinfos</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">mirror_value_swaps</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                <span class="n">mirror_value_swaps</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">mirror_layer_swaps</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                <span class="n">mirror_layer_swaps</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mirror_value_swaps</span> <span class="o">=</span> <span class="n">mirror_value_swaps</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mirror_layer_swaps</span> <span class="o">=</span> <span class="n">mirror_layer_swaps</span>
+
+<div class="viewcode-block" id="RotatingMirroringMonitor.get_parallel_blob_names"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.RotatingMirroringMonitor.get_parallel_blob_names">[docs]</a>    <span class="k">def</span> <span class="nf">get_parallel_blob_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the names of all blobs that must be provided for the dummy.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_blobinfos</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+</div>
+    <span class="k">def</span> <span class="nf">_initialize_train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_initialize_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="c"># we make sure, now that the network is available, that</span>
+        <span class="c"># all names in the provided data dict have a corresponding match</span>
+        <span class="c"># in the network</span>
+        <span class="k">if</span> <span class="s">&#39;test&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]:</span>
+            <span class="n">net</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;testnet&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">net</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_blobinfos</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="p">(</span>
+                <span class="s">&#39;data key has no corresponding network blob {} {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="o">.</span><span class="n">keys</span><span class="p">()))))</span>
+            <span class="k">assert</span> <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">4</span>
+            <span class="k">for</span> <span class="n">layer_idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mirror_value_swaps</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="k">assert</span> <span class="n">layer_idx</span> <span class="o">&lt;</span> <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">((</span>
+                    <span class="s">&quot;The data for blob {} has not enough layers for swapping &quot;</span>
+                    <span class="s">&quot;{}!&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">layer_idx</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">swappair</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mirror_layer_swaps</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
+                <span class="k">assert</span> <span class="p">(</span><span class="n">swappair</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">and</span>
+                        <span class="n">swappair</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="p">(</span>
+                            <span class="s">&quot;Not enough layers in blob {} to swap {}!&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                <span class="n">key</span><span class="p">,</span> <span class="n">swappair</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_pre_fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s">&#39;test&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]:</span>
+            <span class="n">net</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;testnet&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">net</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span> <span class="o">=</span> <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span>
+            <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_blobinfos</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_pre_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pre_fit</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_pre_train_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pre_batch</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">],</span> <span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_pre_test_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pre_batch</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;testnet&#39;</span><span class="p">],</span> <span class="n">kwargs</span><span class="p">)</span>
+
+     <span class="c"># pylint: disable=C0111, W0613, R0912, too-many-locals</span>
+    <span class="k">def</span> <span class="nf">_pre_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">net</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">rotations</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="n">mirrorings</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="n">spline_interpolation_order</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">prefilter</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">padval</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_blobinfos</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">rotations</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">rotations</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rotation_degrees</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">:</span>
+                    <span class="n">rotations</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">low</span><span class="o">=-</span><span class="bp">self</span><span class="o">.</span><span class="n">_rotation_degrees</span><span class="p">,</span>
+                                                   <span class="n">high</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_rotation_degrees</span><span class="p">,</span>
+                                                   <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">rotations</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span>
+            <span class="k">if</span> <span class="n">mirrorings</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">mirrorings</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mirror_prob</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">:</span>
+                    <span class="n">mirrorings</span> <span class="o">=</span> <span class="n">_bernoulli</span><span class="o">.</span><span class="n">rvs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mirror_prob</span><span class="p">,</span>
+                                                <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">mirrorings</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span>
+            <span class="k">for</span> <span class="n">sample_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">rotations</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">]</span> <span class="o">!=</span> <span class="mf">0.</span><span class="p">:</span>
+                    <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">_rotate</span><span class="p">(</span>
+                        <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">],</span>
+                        <span class="n">rotations</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">],</span>
+                        <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+                        <span class="n">reshape</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                        <span class="n">order</span><span class="o">=</span><span class="n">spline_interpolation_order</span><span class="p">,</span>
+                        <span class="n">mode</span><span class="o">=</span><span class="s">&#39;constant&#39;</span><span class="p">,</span>
+                        <span class="n">cval</span><span class="o">=</span><span class="n">padval</span><span class="p">,</span>
+                        <span class="n">prefilter</span><span class="o">=</span><span class="n">prefilter</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">mirrorings</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">]</span> <span class="o">==</span> <span class="mf">1.</span><span class="p">:</span>
+                    <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">]</span> <span class="o">=</span> \
+                        <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">layer_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                        <span class="k">if</span> <span class="p">(</span><span class="n">layer_idx</span> <span class="ow">not</span> <span class="ow">in</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">_mirror_value_swaps</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                            <span class="k">continue</span>
+                        <span class="n">swap_indices</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+                        <span class="n">swap_tuples</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mirror_value_swaps</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">layer_idx</span><span class="p">]</span>
+                        <span class="c"># Swaps.</span>
+                        <span class="k">for</span> <span class="n">swappair</span> <span class="ow">in</span> <span class="n">swap_tuples</span><span class="p">:</span>
+                            <span class="n">swap_indices</span><span class="p">[</span><span class="n">swappair</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span>
+                                <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">,</span> <span class="n">layer_idx</span><span class="p">]</span> <span class="o">==</span>\
+                                <span class="n">swappair</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                        <span class="k">for</span> <span class="n">swappair</span> <span class="ow">in</span> <span class="n">swap_tuples</span><span class="p">:</span>
+                            <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">sample_idx</span><span class="p">,</span> <span class="n">layer_idx</span><span class="p">][</span>
+                                <span class="n">swap_indices</span><span class="p">[</span><span class="n">swappair</span><span class="p">[</span><span class="mi">0</span><span class="p">]]]</span> <span class="o">=</span> <span class="n">swappair</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mirror_layer_swaps</span><span class="p">[</span><span class="n">key</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">new_layer_order</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+                            <span class="nb">range</span><span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+                        <span class="k">for</span> <span class="n">swappair</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mirror_layer_swaps</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
+                            <span class="n">new_layer_order</span><span class="p">[</span><span class="n">swappair</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>\
+                                <span class="n">new_layer_order</span><span class="p">[</span><span class="n">swappair</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> \
+                                    <span class="n">new_layer_order</span><span class="p">[</span><span class="n">swappair</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>\
+                                    <span class="n">new_layer_order</span><span class="p">[</span><span class="n">swappair</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+                        <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span>
+                            <span class="p">:,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">new_layer_order</span><span class="p">)]</span>
+
+</div>
 <span class="k">class</span> <span class="nc">_LossIndicator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>  <span class="c"># pylint: disable=R0903</span>
 
     <span class="sd">r&quot;&quot;&quot;</span>
@@ -330,8 +1117,10 @@
 <span class="sd">    It will extract the value of a layer and add the value to the cbparam.</span>
 
 <span class="sd">    :param cbparam_key: string.</span>
-<span class="sd">      The key we will overwrite/set in the cbparams dict</span>
+<span class="sd">      The key we will overwrite/set in the cbparams dict.</span>
 
+<span class="sd">    :param layer_name: string.</span>
+<span class="sd">      The layer to extract the value from.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cbparam_key</span><span class="p">,</span> <span class="n">layer_name</span><span class="p">):</span>
@@ -348,10 +1137,20 @@
             <span class="k">return</span>
         <span class="n">Monitor</span><span class="o">.</span><span class="n">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_pre_fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
-        <span class="n">tmp_net</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span>
+    <span class="k">def</span> <span class="nf">_initialize_train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_initialize_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_init</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;This ResultExtractor is already initialized! &quot;</span>
+                            <span class="s">&quot;Did you try to use it for train and test?&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="s">&#39;test&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;callback_signal&#39;</span><span class="p">]:</span>
             <span class="n">tmp_net</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;testnet&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tmp_net</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_layer_name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">tmp_net</span><span class="o">.</span><span class="n">blobs</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_not_layer_available</span> <span class="o">=</span> <span class="bp">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_init</span> <span class="o">=</span> <span class="bp">True</span>
@@ -386,7 +1185,7 @@
     <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">    Generates a progress bar with current information about the process.</span>
 
-<span class="sd">    The progress bar always displays completion percentag and ETA. If</span>
+<span class="sd">    The progress bar always displays completion percentage and ETA. If</span>
 <span class="sd">    available, it also displays loss, accuracy, test loss and test accuracy.</span>
 
 <span class="sd">    It makes use of the following keyword arguments (\* indicates required):</span>
@@ -488,7 +1287,13 @@
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">json_filename</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outf</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">json_package</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">,</span> <span class="n">outf</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_pre_fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_initialize_train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_initialize_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pylint: disable=unused-argument</span>
         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logging</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="k">assert</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;train&#39;</span><span class="p">,</span> <span class="s">&#39;test&#39;</span><span class="p">],</span> <span class="p">(</span>
                 <span class="s">&#39;only train and test is supported by this logger&#39;</span><span class="p">)</span>
@@ -502,10 +1307,15 @@
     <span class="k">def</span> <span class="nf">_post</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">phase_name</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pylint: disable=C0111</span>
         <span class="k">if</span> <span class="n">phase_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logging</span><span class="p">:</span>
             <span class="k">return</span>
+        <span class="k">if</span> <span class="n">phase_name</span> <span class="o">==</span> <span class="s">&#39;train&#39;</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logging</span><span class="p">[</span><span class="n">phase_name</span><span class="p">]:</span>
             <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="n">phase_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s">&#39;NumIters&#39;</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="n">phase_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s">&#39;NumIters&#39;</span><span class="p">:</span>
+                                              <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">],</span>
                                               <span class="n">key</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]})</span>
+        <span class="k">if</span> <span class="n">phase_name</span> <span class="o">==</span> <span class="s">&#39;train&#39;</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">-=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span>
 
 <div class="viewcode-block" id="JSONLogger.finalize"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.JSONLogger.finalize">[docs]</a>    <span class="k">def</span> <span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pylint: disable=W0613</span>
         <span class="sd">&quot;&quot;&quot;Write the json file.&quot;&quot;&quot;</span>
@@ -525,9 +1335,17 @@
 <span class="sd">    * ``net``\*,</span>
 <span class="sd">    * ``batch_size``\*.</span>
 
-<span class="sd">    :param name_prefix: string.</span>
-<span class="sd">      The first part of the output filenames to generate. The current</span>
-<span class="sd">      iteration is added, as well as &#39;.caffemodel&#39;.</span>
+<span class="sd">    :param name_prefix: string or None.</span>
+<span class="sd">      The first part of the output filenames to generate. The prefix &#39;_iter_,</span>
+<span class="sd">      the current iteration, as well as &#39;.caffemodel&#39; is added.</span>
+
+<span class="sd">      If you are using a caffe version from later than Dec. 2015, caffe&#39;s</span>
+<span class="sd">      internal snapshot method is exposed to Python and also snapshots the</span>
+<span class="sd">      solver. If it&#39;s available, then this method will be used. However,</span>
+<span class="sd">      in that case, it&#39;s not possible to influence the storage location</span>
+<span class="sd">      from Python. Please use the solver parameter ``snapshot_prefix``</span>
+<span class="sd">      when constructing the solver instead (this parameter may be None</span>
+<span class="sd">      and is unused then).</span>
 
 <span class="sd">    :param iterations: int &gt; 0.</span>
 <span class="sd">      Always if the current number of iterations is divisible by iterations,</span>
@@ -544,22 +1362,52 @@
                      <span class="s">&#39;</span><span class="si">%d</span><span class="s"> iterations.&#39;</span><span class="p">,</span> <span class="n">name_prefix</span><span class="p">,</span> <span class="n">iterations</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">name_prefix</span> <span class="o">=</span> <span class="n">name_prefix</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span> <span class="o">=</span> <span class="n">iterations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">created_checkpoints</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="k">def</span> <span class="nf">_post_train_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span> <span class="o">%</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
             <span class="s">&#39;iterations not multiple of batch_size, {} vs {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]))</span>
-
-        <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">checkpoint_filename</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">name_prefix</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="s">&#39;.caffemodel&#39;</span><span class="p">)</span>
-            <span class="n">_LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Writing checkpoint to file &#39;</span><span class="si">%s</span><span class="s">&#39;.&quot;</span><span class="p">,</span>
-                          <span class="n">checkpoint_filename</span><span class="p">)</span>
-            <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">checkpoint_filename</span><span class="p">)</span>
+        <span class="c"># Prevent double-saving.</span>
+        <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">created_checkpoints</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">created_checkpoints</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span><span class="o">+</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">])</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c"># pylint: disable=protected-access</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;solver&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">_solver</span><span class="p">,</span> <span class="s">&#39;snapshot&#39;</span><span class="p">):</span>
+                <span class="n">checkpoint_filename</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">name_prefix</span> <span class="o">+</span> <span class="s">&#39;_iter_&#39;</span> <span class="o">+</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">/</span>
+                            <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span>
+                    <span class="s">&#39;.caffemodel&#39;</span><span class="p">)</span>
+                <span class="n">_LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Writing checkpoint to file &#39;</span><span class="si">%s</span><span class="s">&#39;.&quot;</span><span class="p">,</span>
+                              <span class="n">checkpoint_filename</span><span class="p">)</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">checkpoint_filename</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c"># pylint: disable=protected-access</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;solver&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">_solver</span><span class="o">.</span><span class="n">snapshot</span><span class="p">()</span>
+                <span class="n">caffe_checkpoint_filename</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name_prefix</span> <span class="o">+</span>
+                                             <span class="s">&#39;_iter_&#39;</span> <span class="o">+</span>
+                                             <span class="nb">str</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">/</span>
+                                                 <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span>
+                                             <span class="s">&#39;.caffemodel&#39;</span><span class="p">)</span>
+                <span class="n">caffe_sstate_filename</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name_prefix</span> <span class="o">+</span>
+                                         <span class="s">&#39;_iter_&#39;</span> <span class="o">+</span>
+                                         <span class="nb">str</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">/</span>
+                                             <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span>
+                                         <span class="s">&#39;.solverstate&#39;</span><span class="p">)</span>
+                <span class="n">_LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&#39;Writing checkpoint to file &quot;[solverprefix]</span><span class="si">%s</span><span class="s">&quot; &#39;</span> <span class="o">+</span>
+                              <span class="s">&#39;and &quot;[solverprefix]</span><span class="si">%s</span><span class="s">&quot;.&#39;</span><span class="p">,</span>
+                              <span class="n">caffe_checkpoint_filename</span><span class="p">,</span>
+                              <span class="n">caffe_sstate_filename</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Checkpointer.finalize"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.Checkpointer.finalize">[docs]</a>    <span class="k">def</span> <span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Write a final checkpoint.&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_post_train_batch</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span></div></div>
+        <span class="c"># Account for the counting on iteration increase for the last batch.</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">-=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_post_train_batch</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span></div></div>
 </pre></div>
 
            </div>
@@ -571,7 +1419,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, University of Tuebingen.
+        &copy; Copyright 2016, University of Tuebingen.
 
     </p>
   </div>
