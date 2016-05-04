@@ -119,10 +119,8 @@ class Net(_caffe.Net):
           The filename of the file to load.
         """
         if hasattr(_caffe.Net, 'load_blobs_from'):
-            # Older barrista/caffe version.
-            #self.__class__.__bases__[0].load_blobs_from(self, filename)
-            # _caffe.Net.load_blobs_from(self, filename)
-            _caffe.Net.copy_from(self, filename)
+            # Older caffe version with barrista patch.
+            _caffe.Net.load_blobs_from(self, filename)
         else:
             self.copy_from(filename)
 
@@ -419,9 +417,6 @@ class Net(_caffe.Net):
           inferred. By default (None), use the first dimension of the first
           network blob as batch size and the first dimension of the associated
           inputs as amount of samples.
-        :returns : dict(string:np.array) or np.array.
-          Returns a dictionary of arrays if multiple outputs are returned
-          or directly the array in the case of just one output.
         :param allow_train_phase_for_test: bool.
           If set to True, allow using a network in its TRAIN phase for
           prediction.
@@ -433,6 +428,9 @@ class Net(_caffe.Net):
         :param net_input_size_adjustment_multiple_of: int.
           If set to a value>0, the networks input is resized in multiples of
           this value to take in the input images.
+        :returns : dict(string:np.array) or np.array.
+          Returns a dictionary of arrays if multiple outputs are returned
+          or directly the array in the case of just one output.
         """
         # Parameter checks.
         if not use_fit_network and self._predict_variant is not None:

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=F0401, E0611, C0103, R0902, R0913, R0914, E1101
+# pylint: disable=wrong-import-order
 """
 This module contains classes and functions to design networks with caffe.
 
@@ -202,6 +203,10 @@ class NetSpecification(object):
         Since this object is not derived from the protobuf objects, it is
         necessary to have this converter. Deriving is discouraged by the
         protobuf documentation and this object offers a lot more functionality.
+
+        :param drop_phase: Bool.
+          If set to ``True``, phase, level and stage are not serialized.
+          Default: False.
         """
         pblayers = []
         for idx, layer in enumerate(self.layers):
@@ -255,6 +260,13 @@ class NetSpecification(object):
         ``tops`` are not set. If the have multiple inputs or outputs, you
         will have to take care of that (there is no way of inferring
         the semantics then).
+
+        :param output_filename: String or None.
+          A file to write the prototxt information to.
+
+        :param drop_phase: Bool.
+          If set to ``True``, phase, level and stage will not be serialized.
+          Default: False.
         """
         messagestr = _gprototext.MessageToString(self.to_pbuf_message(drop_phase=drop_phase))
         if output_filename is not None:

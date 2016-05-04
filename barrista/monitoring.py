@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Defines several tools for monitoring net activity."""
-# pylint: disable=F0401, E1101, too-many-lines
+# pylint: disable=F0401, E1101, too-many-lines, wrong-import-order
 import logging as _logging
 import os as _os
 import numpy as _np
@@ -47,6 +47,21 @@ class Monitor(object):  # pylint: disable=R0903
 
         For available keyword arguments, see the documentation of
         :py:class:`barrista.solver.SolverInterface.Fit`.
+
+        The callback signals are used as follows:
+        * initialize_train: called once before training starts,
+        * initialize_test: called once before training starts (if training with
+          a validation set is used) or once before testing,
+        * pre_fit: called before fitting mode is used (e.g., before going
+          back to fitting during training after a validation run),
+        * pre_test: called before testing mode is used (e.g., during training
+          before validation starts),
+        * post_test: called when testing finished,
+        * pre_train_batch: before a training batch is fed to the network,
+        * post_train_batch: after forwarding a training batch,
+        * pre_test_batch: before a test batch is fed to the network,
+        * post_test_batch: after a test batch was forwarded through the
+          network.
         """
         if kwargs['callback_signal'] == 'initialize_train':
             self._initialize_train(kwargs)
@@ -106,8 +121,8 @@ class DataMonitor(Monitor):  # pylint: disable=R0903
 
     This is a specific monitor which will fill the blobs of the network
     for the forward pass or solver step.
-    Ideally there should only be one such monitor per callback,
-    but multiple ones are indeed possible.
+    Ideally, there should only be one such monitor per callback,
+    but multiple ones are possible.
     """
 
     pass
@@ -300,13 +315,6 @@ class CyclingDataMonitor(DataMonitor, ParallelMonitor):
     :param only_preload: list(string).
       List of blobs for which the data will be loaded and stored in a dict
       of (name: list) for further processing with other monitors.
-
-    :param input_processing_flags: dict(string, string) or None.
-      If the samples are specified via list, they may have to be size adjusted
-      to the network. You may specify for each blob a type of preprocessing
-      from 'n' (none, default, size must fit), to 'pX' (pad, where X is the
-      padding value (int) to use) or 'rY' (resize), where Y in ['c', 'n', 'l']
-      (Cubic, Nearest or Linear interpolation).
 
     :param virtual_batch_size: int or None.
       Override the network batch size. May only be used if ``only_preload`` is
@@ -982,8 +990,10 @@ class ResultExtractor(Monitor):  # pylint: disable=R0903
     It will extract the value of a layer and add the value to the cbparam.
 
     :param cbparam_key: string.
-      The key we will overwrite/set in the cbparams dict
+      The key we will overwrite/set in the cbparams dict.
 
+    :param layer_name: string.
+      The layer to extract the value from.
     """
 
     def __init__(self, cbparam_key, layer_name):
@@ -1048,7 +1058,7 @@ class ProgressIndicator(Monitor):  # pylint: disable=R0903
     r"""
     Generates a progress bar with current information about the process.
 
-    The progress bar always displays completion percentag and ETA. If
+    The progress bar always displays completion percentage and ETA. If
     available, it also displays loss, accuracy, test loss and test accuracy.
 
     It makes use of the following keyword arguments (\* indicates required):

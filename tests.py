@@ -879,7 +879,8 @@ class NetTestCase(unittest.TestCase):
             netspec.to_prototxt(output_filename=tmpfile.name)
             tmpfile.file.flush()
             net = Net(tmpfile.name, Phase.TEST)
-        self.assertEqual(len(net.layers), 2)
+        # In older versions of caffe, the input layer was not visible.
+        self.assertTrue(len(net.layers) in [2, 3])
         self.assertEqual(net.blobs[net.inputs[0]].data.shape, (10, 3, 3, 3))
         self.assertTrue(net.blobs[net.inputs[1]].data.shape == (10,) or
                         net.blobs[net.inputs[1]].data.shape == (10, 1, 1, 1))

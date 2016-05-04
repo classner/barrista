@@ -213,7 +213,7 @@ class Solver(object):
         * iter,
         * batch_size,
         * net,
-        * testnet\[only if there is a test phase, e.g. X_val is set]
+        * testnet\[only if there is a test phase, i.e., X_val is set]
         * solver,
         * callback_signal\[is automatically set by the fit function],
         * X\-[only if provided by the user],

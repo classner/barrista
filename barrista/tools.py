@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Implements some useful tools."""
-# pylint: disable=C0103
+# pylint: disable=C0103, wrong-import-order, no-member
 from __future__ import print_function
 
 

@@ -16,7 +16,7 @@ with open(file_path_requirements, 'r') as fi:
     requirements = fi.read().splitlines()
 
 setup(name='barrista',
-      version='0.3',
+      version='0.4',
       description='Serving your caffe right',
       author='Christoph Lassner',
       author_email='classner@tue.mpg.de',
