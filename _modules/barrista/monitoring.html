@@ -1271,14 +1271,37 @@
 <span class="sd">      For each of those a list of keys can be provided, those keys</span>
 <span class="sd">      have to be available in the kwargs/cbparams structure.</span>
 <span class="sd">      Usually the required data is provided by the ResultExtractor.</span>
+
+<span class="sd">    :param base_iter: int or None.</span>
+<span class="sd">      If provided, add this value to the number of iterations. This overrides</span>
+<span class="sd">      the number of iterations retrieved from a loaded JSON log to append to.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">logging</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">logging</span><span class="p">,</span> <span class="n">base_iter</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;See class documentation.&quot;&quot;&quot;</span>
         <span class="kn">import</span> <span class="nn">json</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">json_package</span> <span class="o">=</span> <span class="n">json</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">json_filename</span> <span class="o">=</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s">&#39;barrista_&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s">&#39;.json&#39;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dict</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;train&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s">&#39;test&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s">&#39;barrista_produced&#39;</span><span class="p">:</span> <span class="bp">True</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">json_filename</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">path</span><span class="p">,</span>
+            <span class="s">&#39;barrista_&#39;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s">&#39;.json&#39;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">base_iter</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">base_iter</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">base_iter</span> <span class="o">=</span> <span class="n">base_iter</span>
+        <span class="k">if</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">json_filename</span><span class="p">):</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">json_filename</span><span class="p">,</span> <span class="s">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">json_package</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">base_iter</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;train&#39;</span><span class="p">,</span> <span class="s">&#39;test&#39;</span><span class="p">]:</span>
+                    <span class="k">for</span> <span class="n">infdict</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
+                        <span class="k">if</span> <span class="n">infdict</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="s">&#39;NumIters&#39;</span><span class="p">):</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">base_iter</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_iter</span><span class="p">,</span>
+                                                 <span class="n">infdict</span><span class="p">[</span><span class="s">&#39;NumIters&#39;</span><span class="p">])</span>
+            <span class="n">_LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Appending to JSON log at </span><span class="si">%s</span><span class="s"> from iteration </span><span class="si">%d</span><span class="s">.&quot;</span><span class="p">,</span>
+                         <span class="bp">self</span><span class="o">.</span><span class="n">json_filename</span><span class="p">,</span>
+                         <span class="bp">self</span><span class="o">.</span><span class="n">base_iter</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dict</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;train&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s">&#39;test&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s">&#39;barrista_produced&#39;</span><span class="p">:</span> <span class="bp">True</span><span class="p">}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_logging</span> <span class="o">=</span> <span class="n">logging</span>
 
     <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
@@ -1312,7 +1335,7 @@
         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logging</span><span class="p">[</span><span class="n">phase_name</span><span class="p">]:</span>
             <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="n">phase_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s">&#39;NumIters&#39;</span><span class="p">:</span>
-                                              <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">],</span>
+                                              <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_iter</span><span class="p">,</span>
                                               <span class="n">key</span><span class="p">:</span> <span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]})</span>
         <span class="k">if</span> <span class="n">phase_name</span> <span class="o">==</span> <span class="s">&#39;train&#39;</span><span class="p">:</span>
             <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">-=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span>
