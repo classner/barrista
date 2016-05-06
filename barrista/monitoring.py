@@ -1150,8 +1150,23 @@ class JSONLogger(Monitor):  # pylint: disable=R0903
         """See class documentation."""
         import json
         self.json_package = json
-        self.json_filename = _os.path.join(path, 'barrista_' + name + '.json')
-        self.dict = {'train': [], 'test': [], 'barrista_produced': True}
+        self.json_filename = str(_os.path.join(
+            path,
+            'barrista_' + name + '.json'))
+        self.base_iter = 0
+        if _os.path.exists(self.json_filename):
+            with open(self.json_filename, 'r') as infile:
+                self.dict = self.json_package.load(infile)
+            for key in ['train', 'test']:
+                for infdict in self.dict[key]:
+                    if infdict.has_key('NumIters'):
+                        self.base_iter = max(self.base_iter,
+                                             infdict['NumIters'])
+            _LOGGER.info("Appending to JSON log at %s from iteration %d.",
+                         self.json_filename,
+                         self.base_iter)
+        else:
+            self.dict = {'train': [], 'test': [], 'barrista_produced': True}
         self._logging = logging
 
     def __call__(self, kwargs):
@@ -1185,7 +1200,7 @@ class JSONLogger(Monitor):  # pylint: disable=R0903
         for key in self._logging[phase_name]:
             if key in kwargs:
                 self.dict[phase_name].append({'NumIters':
-                                              kwargs['iter'],
+                                              kwargs['iter'] + self.base_iter,
                                               key: kwargs[key]})
         if phase_name == 'train':
             kwargs['iter'] -= kwargs['batch_size']
