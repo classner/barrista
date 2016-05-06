@@ -1144,24 +1144,32 @@ class JSONLogger(Monitor):  # pylint: disable=R0903
       For each of those a list of keys can be provided, those keys
       have to be available in the kwargs/cbparams structure.
       Usually the required data is provided by the ResultExtractor.
+
+    :param base_iter: int or None.
+      If provided, add this value to the number of iterations. This overrides
+      the number of iterations retrieved from a loaded JSON log to append to.
     """
 
-    def __init__(self, path, name, logging):
+    def __init__(self, path, name, logging, base_iter=None):
         """See class documentation."""
         import json
         self.json_package = json
         self.json_filename = str(_os.path.join(
             path,
             'barrista_' + name + '.json'))
-        self.base_iter = 0
+        if base_iter is None:
+            self.base_iter = 0
+        else:
+            self.base_iter = base_iter
         if _os.path.exists(self.json_filename):
             with open(self.json_filename, 'r') as infile:
                 self.dict = self.json_package.load(infile)
-            for key in ['train', 'test']:
-                for infdict in self.dict[key]:
-                    if infdict.has_key('NumIters'):
-                        self.base_iter = max(self.base_iter,
-                                             infdict['NumIters'])
+            if base_iter is None:
+                for key in ['train', 'test']:
+                    for infdict in self.dict[key]:
+                        if infdict.has_key('NumIters'):
+                            self.base_iter = max(self.base_iter,
+                                                 infdict['NumIters'])
             _LOGGER.info("Appending to JSON log at %s from iteration %d.",
                          self.json_filename,
                          self.base_iter)
