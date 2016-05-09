@@ -349,7 +349,7 @@ class Net(_caffe.Net):
         return output_images
 
     def predict(self,  # pylint: disable=R0915
-                input_sequence,
+                input_sequence=None,
                 test_callbacks=None,
                 out_blob_names=None,
                 use_fit_network=None,
@@ -368,7 +368,7 @@ class Net(_caffe.Net):
           the number of channels).
         * The method will match the data to the input size of the network and
           forward propagate it in batches.
-        :param input_sequence: iterable(3D numpy arrays) or dict(string: ...).
+        :param input_sequence: iterable(3D numpy arrays) or dict(string: ...) or None.
           The 3D numpy arrays must match in their first dimension with the
           second dimension of the network input (number of channels). E.g.,
           for a network with input shape [10, 3, 24, 24], you could provide
@@ -378,7 +378,8 @@ class Net(_caffe.Net):
           you can provide a dictionary of iterables of 3D numpy arrays before,
           where the keys are the input blob names to fill. Use the
           `input_processing_flags` to specify how preprocessing is
-          done in any scenario.
+          done in any scenario. If the input sequence is None, you must provide
+          a DataMonitor with the callbacks to fill the net inputs.
         :param test_callbacks: list(barrista.monitoring.Monitor) or None.
           List of callback callables. Will be called pre and post batch
           processing. This list will be processed sequentially, meaning that
@@ -451,7 +452,7 @@ class Net(_caffe.Net):
                     "Specified input blob not found: {}.".format(
                         input_blob_name)
                 )
-        else:
+        elif input_sequence is not None:
             assert len(prednet.inputs) == 1, (
                 "You did not specify the `input_sequence` as dictionary. "
                 "This only works for networks with one input! Inputs: {}."
@@ -514,6 +515,9 @@ class Net(_caffe.Net):
              .format(covered_inputs, prednet.inputs)
             )
         if input_size_spec is None:
+            assert input_sequence is not None, (
+                "If you provide the training data via monitor, you must "
+                "provide `input_size_spec`.")
             batch_size = prednet.blobs[prednet.inputs[0]].data.shape[0]
             nsamples = len(input_sequence[prednet.inputs[0]])
         else:
@@ -748,7 +752,11 @@ class Net(_caffe.Net):
         simply provide X dict and we internally create
         the CyclingDataMonitor.
         """
-        data_prov_blobs = [key for (key, val) in X.items() if val is not None]
+        if X is None:
+            data_prov_blobs = []
+        else:
+            data_prov_blobs = [key for (key, val) in X.items()
+                               if val is not None]
         if len(data_prov_blobs) > 0:
             if len(static_inputs) > 0:
                 static_data_monitor = _monitoring.StaticDataMonitor(

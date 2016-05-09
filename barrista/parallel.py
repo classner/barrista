@@ -5,6 +5,9 @@ from __future__ import print_function
 
 import warnings as _warnings
 import multiprocessing as _multiprocessing
+from multiprocessing import Array as _mpa
+from multiprocessing import log_to_stderr as _log_to_stderr
+#import multiprocessing.dummy as _multiprocessing
 import numpy as _np
 
 import barrista.monitoring as _monitoring
@@ -62,7 +65,7 @@ def init_filler(dummynet, filler_cbs, in_train_mode):
     """Initialize a filler thread."""
     # pylint: disable=global-variable-undefined, global-variable-not-assigned
     global net, cbs, train_mode, initialized, logger
-    logger = _multiprocessing.log_to_stderr()
+    logger = _log_to_stderr()
     logger.debug("Initializing filler. Train mode: %s.", in_train_mode)
     net = dummynet
     cbs = filler_cbs
@@ -134,11 +137,11 @@ def init_prebatch(self,  # pylint: disable=too-many-locals
             real_shape = (bsh[0], bsh[1], bsh[2] * 3, bsh[3] * 3)
         else:
             real_shape = bsh
-        shared_arr = _multiprocessing.Array(
+        shared_arr = _mpa(
             'f',
             _np.zeros(_np.prod(real_shape), dtype='float32'),
             lock=False)
-        shared_sh = _multiprocessing.Array(
+        shared_sh = _mpa(
             'i',
             _np.zeros(len(bsh), dtype='int'),
             lock=False)
@@ -263,10 +266,11 @@ def finalize_prebatch(self, cbparams):
     """Cleanup workers and artifacts."""
     ncbparams = _extract_ncbparams(cbparams)
     if hasattr(self, '_parallel_train_filler'):
-        self._parallel_train_filler.apply(finalize_cbs, args=(ncbparams,))
-        self._parallel_train_filler.close()
-        self._parallel_train_filler.join()
-        self._parallel_train_filler = None
+        if self._parallel_train_filler is not None:
+            self._parallel_train_filler.apply(finalize_cbs, args=(ncbparams,))
+            self._parallel_train_filler.close()
+            self._parallel_train_filler.join()
+            self._parallel_train_filler = None
         self._train_net_dummy = None
         self._parallel_batch_res_train = None
     if (hasattr(self, '_parallel_test_filler') and

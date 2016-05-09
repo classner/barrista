@@ -316,6 +316,15 @@ class CyclingDataMonitor(DataMonitor, ParallelMonitor):
       List of blobs for which the data will be loaded and stored in a dict
       of (name: list) for further processing with other monitors.
 
+    :param input_processing_flags: dict(string, string).
+      Dictionary associating input blob names with intended preprocessing
+      methods. Valid values are:
+        * n: none,
+        * rn: resize, nearest neighbour,
+        * rc: resize, cubic,
+        * rl: resize, linear,
+        * pX: padding, with value X.
+
     :param virtual_batch_size: int or None.
       Override the network batch size. May only be used if ``only_preload`` is
       set to True. Only makes sense with another DataMonitor in succession.
