@@ -1,3 +1,9 @@
+
+[![Build Status](https://travis-ci.org/classner/barrista.svg?branch=unstable)](https://travis-ci.org/classner/barrista)
+[![Requirements Status](https://requires.io/github/classner/barrista/requirements.svg?branch=unstable)](https://requires.io/github/classner/barrista/requirements/?branch=unstable)
+[![Coverage Status](https://coveralls.io/repos/github/classner/barrista/badge.svg?branch=unstable)](https://coveralls.io/github/classner/barrista?branch=unstable)
+
+
 # The Barrista
 
 The barrista is a tool to enjoy [caffe](https://github.com/BVLC/caffe.git)

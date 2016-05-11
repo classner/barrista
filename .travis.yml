@@ -45,6 +45,7 @@ before_script:
 script:
   - ../patches/build_support/build.sh
   - cd ..
+  - export GLOG_minloglevel=2
   - coverage run --source=barrista setup.py test
 
 after_success:

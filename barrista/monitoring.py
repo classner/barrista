@@ -1106,7 +1106,7 @@ class ProgressIndicator(Monitor):  # pylint: disable=R0903
             self.accuracy = kwargs['train_accuracy']
         self.pbar.update(value=kwargs['iter'])
 
-    def _post_test(self, kwargs):
+    def _post_test_batch(self, kwargs):
         if self.pbar is None:
             if 'test_loss' in list(kwargs.keys()):
                 widgets = [_LossIndicator(self)] + self.widgets
