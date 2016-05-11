@@ -18,11 +18,7 @@ cache:
 compiler: gcc
 
 before_install:
-  - git submodule update --init
-  #- git clone https://github.com/BVLC/caffe.git
   - cd caffe
-  #- git checkout 6eae122a8eb84f8371dde815986cd7524fc4cbaa
-  #- git apply ../patches/barrista-patch-caffe-6eae122a8eb84f8371dde815986cd7524fc4cbaa.patch
   - export CAFFE_PYTHON_FOLDER=`pwd`/python
   - export CAFFE_BIN_FOLDER=`pwd`/build/install/bin
   - export NUM_THREADS=2

@@ -49,7 +49,7 @@ class DummyBlob(object):
         else:
             return data.reshape(self.real_shape)
 
-    def reshape(self, num, chan, height, width):
+    def reshape(self, num, chan, height, width):  # pragma: no cover
         """Simulate the blob reshape method."""
         shape = self.shape
         if len(shape) != 4:
@@ -62,7 +62,8 @@ class DummyBlob(object):
         shape[3] = width
 
 
-def init_filler(dummynet, filler_cbs, in_train_mode):
+# Coverage can not be detected in sub-threads.
+def init_filler(dummynet, filler_cbs, in_train_mode):  # pragma: no cover
     """Initialize a filler thread."""
     # pylint: disable=global-variable-undefined, global-variable-not-assigned
     global net, cbs, train_mode, initialized, logger
@@ -74,7 +75,7 @@ def init_filler(dummynet, filler_cbs, in_train_mode):
     initialized = False
 
 
-def run_cbs(cbparams):
+def run_cbs(cbparams):  # pragma: no cover
     """Run the callbacks in this filler thread."""
     # pylint: disable=global-variable-undefined, global-variable-not-assigned
     global net, cbs, train_mode, initialized, logger
@@ -87,7 +88,7 @@ def run_cbs(cbparams):
         cb(cbparams)
 
 
-def finalize_cbs(cbparams):
+def finalize_cbs(cbparams):  # pragma: no cover
     """Finalize the callbacks in this filler thread."""
     # pylint: disable=global-variable-undefined, global-variable-not-assigned
     global cbs, logger

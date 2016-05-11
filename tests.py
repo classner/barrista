@@ -36,10 +36,11 @@ class NetSpecificationTestCase(unittest.TestCase):
             _ = design.NetSpecification([[2, 2]],
                                         predict_inputs=['test'],
                                         predict_input_shapes=[[]])
-        _ = design.NetSpecification([[10, 3, 51, 51], [10]],              # noqa
+        _ = design.NetSpecification([[10, 3, 51, 51], [10]],  # noqa
                                     inputs=['data', 'annotations'],
                                     predict_inputs=['data'],
                                     predict_input_shapes=[[10, 3]])
+
 
     def test_get_predict_net_specification(self):
         """Test the method ``get_predict_net_specification``."""
@@ -202,7 +203,14 @@ class LayerSpecificationTestCase(unittest.TestCase):
     def test_instantiation(self):
         """Test instantiation."""
         import barrista.design as design
-        _ = design.LayerSpecification()  # noqa
+        import copy
+        sspec = design.LayerSpecification()  # noqa
+        self.assertTrue(sspec == sspec)
+        cspec = copy.deepcopy(sspec)
+        self.assertTrue(sspec == cspec)
+        cspec.include_min_level = 2
+        self.assertTrue(sspec != cspec)
+
 
     def test_to_pbuf(self):
         """Test protobuf conversion."""
@@ -344,6 +352,41 @@ class MonitoringTestCase(unittest.TestCase):
                           if 'test_loss' in dct.keys() and
                              dct['NumIters'] == 30][0]
         self.assertEqual(last_test_loss, predres['loss'][0])
+
+    def test_StaticDataMonitor(self):
+        """Test the static data monitor."""
+        import barrista.design as design
+        import numpy as np
+        from barrista.monitoring import StaticDataMonitor
+
+        netspec = design.NetSpecification([[3], [3]],
+                                          inputs=['a', 'b'],
+                                          phase=design.Phase.TRAIN)
+        net = netspec.instantiate()
+        tmon = StaticDataMonitor(X={'a': np.array(range(3)),
+                                     'b': np.array(range(5, 8))})
+        tmon_test = StaticDataMonitor(X={'a': np.array(range(3)),
+                                          'b': np.array(range(5, 8))})
+        kwargs = {'net': net,
+                  'testnet': net,
+                  'callback_signal': 'initialize_train'}
+        tmon._initialize_train(kwargs)
+        assert len(tmon.get_parallel_blob_names()) == 2
+        kwargs['callback_signal'] = 'initialize_test'
+        tmon_test._initialize_test(kwargs)
+        kwargs['callback_signal'] = 'pre_fit'
+        tmon._pre_fit(kwargs)
+        tmon._pre_train_batch({'net': net})
+        assert np.all(net.blobs['a'].data[...] == [0, 1, 2])
+        assert np.all(net.blobs['b'].data[...] == [5, 6, 7])
+        tmon._pre_train_batch({'net': net})
+        assert np.all(net.blobs['a'].data[...] == [0, 1, 2])
+        assert np.all(net.blobs['b'].data[...] == [5, 6, 7])
+        kwargs['callback_signal'] = 'pre_test'
+        tmon_test._pre_test(kwargs)
+        tmon_test._pre_test_batch({'testnet': net})
+        assert np.all(net.blobs['a'].data[...] == [0, 1, 2])
+        assert np.all(net.blobs['b'].data[...] == [5, 6, 7])
 
     def test_CyclingDataMonitor(self):
         """Test the cycling data monitor."""
@@ -541,6 +584,7 @@ class MonitoringTestCase(unittest.TestCase):
     def test_ResizingMonitor(self):
         """Test the resizing monitor."""
         import barrista.design as design
+        import barrista.solver as sv
         import numpy as np
         from barrista.monitoring import CyclingDataMonitor, ResizingMonitor
 
@@ -579,6 +623,19 @@ class MonitoringTestCase(unittest.TestCase):
         tmon._pre_test_batch(kwargs)
         self.assertEqual(np.sum(net.blobs['a'].data[...]), 39.)
         self.assertEqual(np.sum(net.blobs['b'].data[...]), 36. + 26.)
+        # Check that the parallel filling works.
+        dmon = CyclingDataMonitor(
+            only_preload=['a', 'b'],
+            X={'a': [np.zeros((3, 6, 6)), np.zeros((3, 7, 9))],
+               'b': [np.ones((1, 6, 6)), np.ones((1, 7, 9))]})
+        tmon = ResizingMonitor(
+            blobinfos={'a': 1, 'b': 2},
+            net_input_size_adjustment_multiple_of=2
+        )
+        net.fit(3, sv.SGDSolver(base_lr=0.01), train_callbacks=[dmon, tmon])
+        self.assertEqual(np.sum(net.blobs['a'].data[...]), 39.)
+        self.assertEqual(np.sum(net.blobs['b'].data[...]), 36. + 26.)
+
 
     def test_ResizingMonitor_fixed_scale(self):
         """Test the resizing monitor scaling capability."""

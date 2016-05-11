@@ -667,6 +667,11 @@ class ResizingMonitor(ParallelMonitor, Monitor):  # pylint: disable=R0903
     def _pre_batch(self, net, kwargs):
         scales = None
         sizes = None
+        if not 'data_orig' in kwargs.keys():
+            raise Exception(
+                "This data monitor needs a data providing monitor "
+                "to run in advance (e.g., a CyclingDataMonitor with "
+                "`only_preload`)!")
         for key, value in kwargs['data_orig'].items():
             assert len(value) == self._batch_size
             if sizes is None:

@@ -233,7 +233,7 @@ class NetSpecification(object):
                                                  force_backward=self.force_backward,  # noqa
                                                  state=pbstate,
                                                  debug_info=self.debug_info)
-        else:
+        else:  # pragma: no cover
             shapes_to_use = []
             for shape in self.input_shape:
                 if len(shape) != 4:
@@ -327,7 +327,7 @@ class NetSpecification(object):
                 assert len(message.input_shape) == 0
             assert len(message.input_dim) % 4 == 0
             input_shape = _copy.deepcopy(list(_chunks(message.input_dim, 4)))
-        else:
+        else:  # pragma: no cover
             input_shape = _copy.deepcopy([bshape.dim for
                                           bshape in message.input_shape])
         inputs = _copy.deepcopy(message.input)
@@ -371,7 +371,7 @@ class NetSpecification(object):
                        specification=_specification)
         return net
 
-    def visualize(self,  # pragma: no cover
+    def visualize(self,
                   layout_dir='LR',
                   display=False):
         """
@@ -389,17 +389,18 @@ class NetSpecification(object):
         """
         if _draw is None or _cv2 is None:  # pragma: no cover
             raise Exception('Drawing is not available!')
-        with _NamedTemporaryFile(mode='w+b', suffix='.png') as tmpfile:
-            _draw.draw_net_to_file(self.to_pbuf_message(),
-                                   tmpfile.name,
-                                   rankdir=layout_dir)
-            result_image = _cv2.imread(tmpfile.name)
-            assert result_image is not None
-        if display:  # pragma: no cover
-            _cv2.imshow(self.name, result_image)
-            _cv2.waitKey(0)
-            _cv2.destroyWindow(self.name)
-        return result_image
+        else:  # pragma: no cover
+            with _NamedTemporaryFile(mode='w+b', suffix='.png') as tmpfile:
+                _draw.draw_net_to_file(self.to_pbuf_message(),
+                                       tmpfile.name,
+                                       rankdir=layout_dir)
+                result_image = _cv2.imread(tmpfile.name)
+                assert result_image is not None
+            if display:  # pragma: no cover
+                _cv2.imshow(self.name, result_image)
+                _cv2.waitKey(0)
+                _cv2.destroyWindow(self.name)
+            return result_image
 
 
 class LayerSpecification(object):
@@ -541,7 +542,7 @@ class LayerSpecification(object):
             message.param)
         if _HAS_PROPAGATE_DOWN:
             propagate_down = _copy.deepcopy(message.propagate_down)
-        else:
+        else:  # pragma: no cover
             propagate_down = None
         loss_param = (None if 'loss_param' not in fieldnames else
                       _copy.deepcopy(message.loss_param))
