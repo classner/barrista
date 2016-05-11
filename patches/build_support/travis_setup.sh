@@ -73,7 +73,9 @@ $MAKE install
 popd
 
 if [ "$PYTHON_VERSION" -eq "3" ]; then
-	pip install --pre protobuf
+	  pip install --pre protobuf
 else
-	pip install --pre protobuf
+	  pip install --pre protobuf
+    pip install coveralls
+    pip install coverage
 fi

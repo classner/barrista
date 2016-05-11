@@ -3,9 +3,10 @@
 # pylint: disable=F0401, C0103, E1101, W0611, no-name-in-module
 import os
 import sys
+import logging
+
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 import numpy as np  # noqa
-import logging
 
 # This provides us with tools to design a network.
 import barrista.design as design  # noqa
@@ -42,7 +43,7 @@ layers.append(ConvolutionLayer(**conv_params))
 layers.append(ReLULayer())
 layers.append(ConvolutionLayer(**conv_params))
 layers.append(ReLULayer())
-layers.append(PoolingLayer(Pooling_kernel_size=2))
+layers.append(PoolingLayer(Pooling_kernel_size=2, Pooling_stride=2))
 layers.append(DropoutLayer(Dropout_dropout_ratio=0.25))
 
 conv_params['Convolution_num_output'] = 64
@@ -50,7 +51,7 @@ layers.append(ConvolutionLayer(**conv_params))
 layers.append(ReLULayer())
 layers.append(ConvolutionLayer(**conv_params))
 layers.append(ReLULayer())
-layers.append(PoolingLayer(Pooling_kernel_size=2))
+layers.append(PoolingLayer(Pooling_kernel_size=2, Pooling_stride=2))
 layers.append(DropoutLayer(Dropout_dropout_ratio=0.25))
 
 layers.append(InnerProductLayer(InnerProduct_num_output=256))
@@ -111,7 +112,7 @@ with TemporaryDirectory() as tmpdir:
 
     # Predict some new data. Note, that this is automatically using the weights
     # of the trained net, but in the `predict` layout.
-    results = net.predict(np.zeros((30, 3, 51, 51), dtype='float32'),
+    results = net.predict(np.zeros((100, 3, 51, 51), dtype='float32'),
                           test_callbacks=[ProgressIndicator()])
 
     # Reloading a model.
@@ -122,7 +123,7 @@ with TemporaryDirectory() as tmpdir:
     # pylint: disable=W0212
     if design._draw is not None:
         viz = netspec.visualize()
-        import cv2
+        import cv2  # pylint: disable=wrong-import-order, wrong-import-position
         cv2.imwrite(os.path.join(tmpdir, 'test.png'), viz)
 
     # Going back to medieval age:

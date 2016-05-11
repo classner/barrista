@@ -1157,9 +1157,14 @@ class JSONLogger(Monitor):  # pylint: disable=R0903
     :param base_iter: int or None.
       If provided, add this value to the number of iterations. This overrides
       the number of iterations retrieved from a loaded JSON log to append to.
-    """
 
-    def __init__(self, path, name, logging, base_iter=None):
+    :param write_every: int or None.
+      Write the JSON log every `write_every` iterations. The log is always
+      written upon completion of the training. If it is None, the log is only
+      written on completion.
+    """
+    # pylint: disable=too-many-arguments
+    def __init__(self, path, name, logging, base_iter=None, write_every=None):
         """See class documentation."""
         import json
         self.json_package = json
@@ -1184,13 +1189,9 @@ class JSONLogger(Monitor):  # pylint: disable=R0903
                          self.base_iter)
         else:
             self.dict = {'train': [], 'test': [], 'barrista_produced': True}
+        assert write_every is None or write_every > 0
+        self._write_every = write_every
         self._logging = logging
-
-    def __call__(self, kwargs):
-        """Callback implementation."""
-        Monitor.__call__(self, kwargs)
-        with open(self.json_filename, 'w') as outf:
-            self.json_package.dump(self.dict, outf)
 
     def _initialize_train(self, kwargs):
         self._initialize(kwargs)
@@ -1214,6 +1215,10 @@ class JSONLogger(Monitor):  # pylint: disable=R0903
             return
         if phase_name == 'train':
             kwargs['iter'] += kwargs['batch_size']
+            if (self._write_every is not None and
+                    kwargs['iter'] % self._write_every == 0):
+                with open(self.json_filename, 'w') as outf:
+                    self.json_package.dump(self.dict, outf)
         for key in self._logging[phase_name]:
             if key in kwargs:
                 self.dict[phase_name].append({'NumIters':

@@ -3,6 +3,7 @@
 # pylint: disable=invalid-name, protected-access, redefined-outer-name
 from __future__ import print_function
 
+import logging as _logging
 import warnings as _warnings
 import multiprocessing as _multiprocessing
 from multiprocessing import Array as _mpa
@@ -65,7 +66,7 @@ def init_filler(dummynet, filler_cbs, in_train_mode):
     """Initialize a filler thread."""
     # pylint: disable=global-variable-undefined, global-variable-not-assigned
     global net, cbs, train_mode, initialized, logger
-    logger = _log_to_stderr()
+    logger = _log_to_stderr(_logging.WARN)
     logger.debug("Initializing filler. Train mode: %s.", in_train_mode)
     net = dummynet
     cbs = filler_cbs

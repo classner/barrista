@@ -4,7 +4,7 @@
 
 import unittest
 import logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARN)
 
 try:
     import cv2  # pylint: disable=W0611
@@ -469,8 +469,8 @@ class MonitoringTestCase(unittest.TestCase):
         self.assertTrue(np.all(kwargs['data_orig']['a'][0][2] == 0))
         diff0 = ddta1[0, 0, 0] - kwargs['data_orig']['a'][0][0, 0, 0]
         # pylint: disable=superfluous-parens
-        print(np.max(np.abs(ddta1[0] - kwargs['data_orig']['a'][0][0] -
-                            diff0)))
+        # print(np.max(np.abs(ddta1[0] - kwargs['data_orig']['a'][0][0] -
+        #                     diff0)))
         self.assertTrue(np.all(np.isclose(
             ddta1[0] - kwargs['data_orig']['a'][0][0],
             diff0, rtol=1e-04, atol=1e-07)))

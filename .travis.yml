@@ -45,4 +45,7 @@ before_script:
 script:
   - ../patches/build_support/build.sh
   - cd ..
-  - python tests.py
+  - coverage run --source=barrista setup.py test
+
+after_success:
+  - coveralls

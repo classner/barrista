@@ -1,6 +1,10 @@
 *.pyc
 .nfs*
 
+# Coverage analysis.
+.coverage
+htmlcov
+
 # The setuptools temp-folders.
 *.egg-info
 *.egg
