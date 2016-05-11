@@ -848,7 +848,7 @@ class Net(_caffe.Net):
                           ),
                           allow_test_phase_for_train=allow_test_phase_for_train)
 
-    def visualize(self,
+    def visualize(self,  # pragma: no cover
                   layout_dir='LR',
                   display=False):
         """

@@ -25,7 +25,7 @@ from .config import CAFFE_BIN_FOLDER as _CAFFE_BIN_FOLDER
 from .tools import chunks as _chunks, pbufToPyEnum as _pbufToPyEnum
 
 import caffe.proto.caffe_pb2 as _caffe_pb2
-try:
+try:  # pragma: no cover
     import caffe.draw as _draw
     import cv2 as _cv2
 except ImportError:  # pragma: no cover
@@ -371,7 +371,7 @@ class NetSpecification(object):
                        specification=_specification)
         return net
 
-    def visualize(self,
+    def visualize(self,  # pragma: no cover
                   layout_dir='LR',
                   display=False):
         """
