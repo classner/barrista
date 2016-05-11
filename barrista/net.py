@@ -5,13 +5,13 @@
 
 import time as _time
 import logging as _logging
-try:
+try:  # pragma: no cover
     import cv2 as _cv2
     _cv2INTER_CUBIC = _cv2.INTER_CUBIC
     _cv2INTER_LINEAR = _cv2.INTER_LINEAR
     _cv2INTER_NEAREST = _cv2.INTER_NEAREST
     _cv2resize = _cv2.resize
-except ImportError:
+except ImportError:  # pragma: no cover
     _cv2 = None
     _cv2INTER_CUBIC = None
     _cv2INTER_LINEAR = None
@@ -34,7 +34,7 @@ _Phase = _pbufToPyEnum(_caffe_pb2.Phase)
 
 _init()
 _LOGGER = _logging.getLogger(__name__)
-if _cv2 is None:
+if _cv2 is None:  # pragma: no cover
     _LOGGER.warn('Could not import cv2! Resizing is not available!')
 
 
@@ -118,7 +118,7 @@ class Net(_caffe.Net):
         :param filename: string.
           The filename of the file to load.
         """
-        if hasattr(_caffe.Net, 'load_blobs_from'):
+        if hasattr(_caffe.Net, 'load_blobs_from'):  # pragma: no cover
             # Older caffe version with barrista patch.
             _caffe.Net.load_blobs_from(self, filename)
         else:

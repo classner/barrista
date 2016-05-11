@@ -82,7 +82,8 @@ def pad(image, input_dims, get_padding=False, val=0, pad_at_least=False):
         return padded
 
 
-class TemporaryDirectory(object):  # pylint: disable=R0903
+# pylint: disable=R0903
+class TemporaryDirectory(object):  # pragma: no cover
 
     """Create and return a temporary directory.
 

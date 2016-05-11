@@ -28,7 +28,7 @@ import caffe.proto.caffe_pb2 as _caffe_pb2
 try:
     import caffe.draw as _draw
     import cv2 as _cv2
-except ImportError:
+except ImportError:  # pragma: no cover
     _draw = None
     _cv2 = None
 from .net import Net as _Net
@@ -46,7 +46,7 @@ _HAS_BLOB_SHAPE = hasattr(_caffe_pb2, 'BlobShape')
 
 _init()
 _LOGGER = _logging.getLogger(__name__)
-if _draw is None:
+if _draw is None:  # pragma: no cover
     _LOGGER.warn('Could not import caffe.draw or cv2! Drawing is not available. ' +
                  'Probably this is due to the package pydot not being ' +
                  'available.')
@@ -285,7 +285,7 @@ class NetSpecification(object):
         # Check if the user erroneously specified a filename as text.
         if text is not None:
             if _os.linesep not in text:
-                if _os.path.exists(text):
+                if _os.path.exists(text):  # pragma: no cover
                     _LOGGER.warn('You probably mistakenly specified a filename '
                                  'as text: "%s"! Trying to recover...', text)
                     filename = text
@@ -387,7 +387,7 @@ class NetSpecification(object):
         :returns: 3D numpy array.
           Graphic of the visualization as (H, W, C) image in BGR format.
         """
-        if _draw is None or _cv2 is None:
+        if _draw is None or _cv2 is None:  # pragma: no cover
             raise Exception('Drawing is not available!')
         with _NamedTemporaryFile(mode='w+b', suffix='.png') as tmpfile:
             _draw.draw_net_to_file(self.to_pbuf_message(),
@@ -395,7 +395,7 @@ class NetSpecification(object):
                                    rankdir=layout_dir)
             result_image = _cv2.imread(tmpfile.name)
             assert result_image is not None
-        if display:
+        if display:  # pragma: no cover
             _cv2.imshow(self.name, result_image)
             _cv2.waitKey(0)
             _cv2.destroyWindow(self.name)
@@ -477,7 +477,7 @@ class LayerSpecification(object):
         if propagate_down is None:
             propagate_down = []
         else:
-            if not _HAS_PROPAGATE_DOWN:
+            if not _HAS_PROPAGATE_DOWN:  # pragma: no cover
                 raise Exception("This caffe version does not support the "
                                 "`propagate_down` layer property!")
         self.propagate_down = propagate_down
@@ -700,7 +700,7 @@ for _layerkey in list(_LAYER_TYPES.keys()):
         _obj_type = None
         try:
             exec('_obj_type = _caffe_pb2.' + _param_obj)  # pylint: disable=W0122
-        except AttributeError as nfe:
+        except AttributeError as nfe:  # pragma: no cover
             print(("[WARNING] Parameter {} not found in caffe proto "
                    "configuration of {}! Adjust your barrista.config! "
                    "Skipping layer!").format(_param_obj, _layerkey))
@@ -715,7 +715,7 @@ for _layerkey in list(_LAYER_TYPES.keys()):
                                     True,
                                     _param_obj,
                                     _fieldname))
-    if _layer_error:
+    if _layer_error:  # pragma: no cover
         continue
     # Analyzed the layers. Generating layer objects...
     _layer_prefix = _layerkey

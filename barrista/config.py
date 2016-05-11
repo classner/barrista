@@ -13,7 +13,7 @@ import os as _os
 #: path after the first inclusion of the `initialization` module.
 if 'CAFFE_PYTHON_FOLDER' in list(_os.environ.keys()):
     CAFFE_PYTHON_FOLDER = _os.environ['CAFFE_PYTHON_FOLDER']
-else:
+else:  # pragma: no cover
     CAFFE_PYTHON_FOLDER = _os.path.abspath(
         _os.path.join(
             _os.path.dirname(__file__), '..', '..'))
@@ -21,7 +21,7 @@ else:
 #: This folder contains the file ``upgrade_net_proto_text``.
 if 'CAFFE_BIN_FOLDER' in list(_os.environ.keys()):
     CAFFE_BIN_FOLDER = _os.environ['CAFFE_BIN_FOLDER']
-else:
+else:  # pragma: no cover
     CAFFE_BIN_FOLDER = _os.path.join(CAFFE_PYTHON_FOLDER,
                                      '..', 'build', 'tools')
 

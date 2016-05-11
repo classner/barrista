@@ -1945,6 +1945,89 @@ class SolverTestCase(unittest.TestCase):
                            allow_train_phase_for_test=True)['accuracy'][0]
         self.assertEqual(accy, 1.0)
 
+    def test_adagrad(self):
+        """Test the AdaGrad solver."""
+        import numpy as np
+        import barrista.design as design
+        from barrista.design import (ConvolutionLayer, InnerProductLayer,
+                                     SoftmaxWithLossLayer, AccuracyLayer)
+
+        netspec = design.NetSpecification([[10, 3, 3, 3], [10]],
+                                          inputs=['data', 'annotations'],
+                                          phase=design.Phase.TRAIN)
+        layers = []
+        conv_params = {'Convolution_kernel_size': 3,
+                       'Convolution_num_output': 3,
+                       'Convolution_pad': 1}
+
+        layers.append(ConvolutionLayer(**conv_params))
+        layers.append(InnerProductLayer(InnerProduct_num_output=2,
+                                        tops=['out']))
+        layers.append(SoftmaxWithLossLayer(bottoms=['out', 'annotations']))
+        layers.append(AccuracyLayer(name='accuracy',
+                                    bottoms=['out', 'annotations']))
+        netspec.layers.extend(layers)
+        net = netspec.instantiate()
+
+        #######################################################################
+        # test AdaGrad solver
+        #######################################################################
+        from barrista import solver as _solver
+        if not hasattr(_solver.SolverType, 'ADAGRAD'):
+            return
+        tmp = _solver.Get_solver_class('adagrad')
+        self.assertTrue(issubclass(tmp, _solver.AdagradSolver))
+        tmp = _solver.Get_caffe_solver_class(_solver.SolverType.ADAGRAD)
+        self.assertTrue(issubclass(tmp, _solver.AdagradSolver))
+
+        with self.assertRaises(TypeError):
+            tmp(2)
+
+        with self.assertRaises(Exception):
+            tmp(iter_size=2)
+
+        with self.assertRaises(Exception):
+            tmp(base_lr=2)
+
+        tmp_instance = tmp(base_lr=2,
+                           delta=0.1)
+        solver_parameter_dict = tmp_instance.Get_parameter_dict()
+        self.assertEqual(solver_parameter_dict['base_lr'], 2)
+        if 'iter_size' in solver_parameter_dict.keys():
+            self.assertEqual(solver_parameter_dict['iter_size'], 1)
+        self.assertEqual(solver_parameter_dict['lr_policy'], 'fixed')
+        self.assertEqual(solver_parameter_dict['regularization_type'], 'L2')
+        self.assertEqual(solver_parameter_dict['delta'], 0.1)
+        self.assertNotIn('weight_decay', list(solver_parameter_dict.keys()))
+        self.assertNotIn('power', list(solver_parameter_dict.keys()))
+
+        params = {'net': net, 'base_lr': 2, 'delta': 0.1}
+        if 'iter_size' in solver_parameter_dict.keys():
+            params['iter_size'] = 2
+        tmp_instance = tmp(**params)
+        solver_parameter_dict = tmp_instance.Get_parameter_dict()
+        self.assertEqual(solver_parameter_dict['base_lr'], 2)
+        if 'iter_size' in solver_parameter_dict.keys():
+            self.assertEqual(solver_parameter_dict['iter_size'], 2)
+        self.assertEqual(solver_parameter_dict['lr_policy'], 'fixed')
+        self.assertEqual(solver_parameter_dict['regularization_type'], 'L2')
+        self.assertEqual(solver_parameter_dict['delta'], 0.1)
+        self.assertNotIn('weight_decay', list(solver_parameter_dict.keys()))
+        self.assertNotIn('power', list(solver_parameter_dict.keys()))
+
+        solver = tmp(base_lr=0.001,
+                     delta=0.1)
+
+        X = {'data': np.zeros((10, 3, 3, 3), dtype='float32'),
+             'annotations': np.ones((10, 1), dtype='float32')}
+
+        net.fit(20,
+                solver,
+                X)
+        accy = net.predict(X,
+                           allow_train_phase_for_test=True)['accuracy'][0]
+        self.assertEqual(accy, 1.0)
+
     def test_adam(self):
         """Test the ADAM solver."""
         import numpy as np

@@ -32,25 +32,25 @@ _HAS_ITER_SIZE = hasattr(_caffe_pb2.SolverParameter, 'iter_size')
 try:
     _ADAM_SOLVER_CLASS = _caffe.AdamSolver
     _ADAM_SOLVER_ENUM = SolverType.ADAM
-except AttributeError:
+except AttributeError:  # pragma: no cover
     _ADAM_SOLVER_CLASS = None
     _ADAM_SOLVER_ENUM = None
 try:
     _ADADELTA_SOLVER_CLASS = _caffe.AdaDeltaSolver
     _ADADELTA_SOLVER_ENUM = SolverType.ADADELTA
-except AttributeError:
+except AttributeError:  # pragma: no cover
     _ADADELTA_SOLVER_CLASS = None
     _ADADELTA_SOLVER_ENUM = None
 try:
     _ADAGRAD_SOLVER_CLASS = _caffe.AdaGradSolver
     _ADAGRAD_SOLVER_ENUM = SolverType.ADAGRAD
-except AttributeError:
+except AttributeError:  # pragma: no cover
     _ADAGRAD_SOLVER_CLASS = None
     _ADAGRAD_SOLVER_ENUM = None
 try:
     _RMSPROP_SOLVER_CLASS = _caffe.RMSPropSolver
     _RMSPROP_SOLVER_ENUM = SolverType.RMSPROP
-except AttributeError:
+except AttributeError:  # pragma: no cover
     _RMSPROP_SOLVER_CLASS = None
     _RMSPROP_SOLVER_ENUM = None
 
@@ -470,7 +470,7 @@ class Solver(object):
         """Run ``number_of_batches`` solver steps."""
         tmp_hash = self.Get_parameter_hash(self.Get_parameter_dict())
         if self._parameter_hash != tmp_hash:
-            if self._print_warning:
+            if self._print_warning:  # pragma: no cover
                 print('WARNING::---------------------------------------------')
                 print('you are re-initializing a new solver which will delete')
                 print('the weight history of the solver.')

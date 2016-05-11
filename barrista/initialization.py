@@ -15,7 +15,7 @@ import logging as _logging
 
 _LOGGER = _logging.getLogger(__name__)
 
-if not _os.path.exists(_os.path.join(_PYCAFFE_FOLDER, 'caffe')):
+if not _os.path.exists(_os.path.join(_PYCAFFE_FOLDER, 'caffe')):  # pragma: no cover
     _LOGGER.warn('The caffe module does not exist in %s! It is specified as ' +
                  'barrista.CAFFE_PYTHON_FOLDER! Trying to fall back on ' +
                  'caffe on the python path.',

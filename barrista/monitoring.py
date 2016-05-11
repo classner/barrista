@@ -14,13 +14,13 @@ from .tools import pad as _pad
 from .initialization import init as _init
 
 import caffe as _caffe
-try:
+try:  # pragma: no cover
     import cv2 as _cv2
     _cv2INTER_CUBIC = _cv2.INTER_CUBIC  # pylint: disable=invalid-name
     _cv2INTER_LINEAR = _cv2.INTER_LINEAR  # pylint: disable=invalid-name
     _cv2INTER_NEAREST = _cv2.INTER_NEAREST  # pylint: disable=invalid-name
     _cv2resize = _cv2.resize  # pylint: disable=invalid-name
-except ImportError:
+except ImportError:  # pragma: no cover
     _cv2 = None
     _cv2INTER_CUBIC = None  # pylint: disable=invalid-name
     _cv2INTER_LINEAR = None  # pylint: disable=invalid-name
@@ -139,7 +139,7 @@ class ParallelMonitor(Monitor):
     to the next batch execution.
     """
 
-    def get_parallel_blob_names(self):
+    def get_parallel_blob_names(self):  # pragma: no cover
         """Get the names of all blobs that must be provided for the dummy."""
         raise NotImplementedError()
 
@@ -517,7 +517,7 @@ class CyclingDataMonitor(DataMonitor, ParallelMonitor):
                                 augmented_sample.reshape(
                                     net.blobs[key].data.shape[1:]))
                     else:
-                        if self._input_processing_flags[key] == 'n':
+                        if self._input_processing_flags[key] == 'n':  # pragma: no cover
                             raise Exception(("Sample size {} does not match " +
                                              "network input size {} and no " +
                                              "preprocessing is allowed!")
@@ -945,7 +945,10 @@ class RotatingMirroringMonitor(ParallelMonitor, Monitor):
                             :, tuple(new_layer_order)]
 
 
-class _LossIndicator(object):  # pylint: disable=R0903
+# Is covered in example.py, which is run in a subprocess and not detected by
+# coverage.py.
+# pylint: disable=R0903
+class _LossIndicator(object):  # pragma: no cover
 
     r"""
     A plugin indicator for the ``progressbar`` package.
@@ -1062,7 +1065,9 @@ class ResultExtractor(Monitor):  # pylint: disable=R0903
         kwargs[self._cbparam_key] = self._test_data[-1]
 
 
-class ProgressIndicator(Monitor):  # pylint: disable=R0903
+# Again, tested in a subprocess and not discovered.
+# pylint: disable=R0903
+class ProgressIndicator(Monitor):  # pragma: no cover
 
     r"""
     Generates a progress bar with current information about the process.
@@ -1285,7 +1290,7 @@ class Checkpointer(Monitor):  # pylint: disable=R0903
             self.created_checkpoints.append(kwargs['iter'])
         if (kwargs['iter']+kwargs['batch_size']) % self.iterations == 0:
             # pylint: disable=protected-access
-            if not hasattr(kwargs['solver']._solver, 'snapshot'):
+            if not hasattr(kwargs['solver']._solver, 'snapshot'):  # pragma: no cover
                 checkpoint_filename = (
                     self.name_prefix + '_iter_' +
                     str(int(kwargs['iter'] /
