@@ -278,9 +278,10 @@ class MonitoringTestCase(unittest.TestCase):
         if hasattr(fitpi.pbar, 'finished'):
             # progressbar2 compatibility.
             self.assertEqual(fitpi.pbar.finished, True)
+
         # For predict.
         predpi = ProgressIndicator()
-        net.predict(np.zeros((10, 3, 3, 3)),
+        net.predict(np.zeros((20, 3, 3, 3)),
                     test_callbacks=[predpi])
         if hasattr(predpi.pbar, 'finished'):
             self.assertEqual(predpi.pbar.finished, True)
@@ -591,6 +592,9 @@ class MonitoringTestCase(unittest.TestCase):
         netspec = design.NetSpecification([[1, 3, 5, 5], [1, 1, 5, 5]],
                                           inputs=['a', 'b'],
                                           phase=design.Phase.TRAIN)
+        netspec.layers.append(design.ConvolutionLayer(
+            Convolution_kernel_size=3,
+            Convolution_num_output=1))
         net = netspec.instantiate()
 
         dmon = CyclingDataMonitor(
@@ -907,6 +911,47 @@ class MonitoringTestCase(unittest.TestCase):
             self.assertIn('_iter_2.solverstate', dircontents)
             self.assertIn('_iter_3.solverstate', dircontents)
         shutil.rmtree(dirpath)
+
+    def test_GradientMonitor(self):
+        """Test the ``GradientMonitor``."""
+        import barrista.design as design
+        import numpy as np
+        from barrista.design import (ConvolutionLayer, ReLULayer,
+                                     SoftmaxWithLossLayer, InnerProductLayer)
+        from barrista.monitoring import GradientMonitor
+        from barrista import solver as _solver
+        netspec = design.NetSpecification([[10, 3, 3, 3], [10]],
+                                          inputs=['data', 'annotations'],
+                                          phase=design.PROTODETAIL.TRAIN)
+        layers = []
+        conv_params = {'Convolution_kernel_size': 3,
+                       'Convolution_num_output': 32,
+                       'Convolution_pad': 0,
+                       'Convolution_weight_filler': design.PROTODETAIL.FillerParameter(
+                           type='xavier')}
+
+        layers.append(ConvolutionLayer(**conv_params))
+        layers.append(ReLULayer())
+        layers.append(InnerProductLayer(
+            InnerProduct_num_output=2,
+            name='net_out',
+            InnerProduct_weight_filler=design.PROTODETAIL.FillerParameter(
+                type='xavier')))
+        layers.append(SoftmaxWithLossLayer(bottoms=['net_out', 'annotations']))
+        netspec.layers.extend(layers)
+        net = netspec.instantiate()
+        # For fit.
+        solver = _solver.SGDSolver(
+            base_lr=0.01)
+
+        X = {'data': np.zeros((10, 3, 3, 3), dtype='float32'),
+             'annotations': np.ones((10, 1), dtype='float32')}
+        X['data'][:, 0, 0, 0] = 1.
+
+        net.fit(100,
+                solver,
+                X,
+                train_callbacks=[GradientMonitor(10, './')])
 
 
 class NetTestCase(unittest.TestCase):
@@ -1363,7 +1408,7 @@ class ExampleTestCase(unittest.TestCase):
         import sys
         import subprocess
         subprocess.check_call([sys.executable,
-                               'example.py'])
+                               'examples/showcase.py'])
 
 
 class SolverTestCase(unittest.TestCase):

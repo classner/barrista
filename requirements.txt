@@ -1,5 +1,8 @@
 numpy
+scipy
+natsort
 protobuf
 progressbar
 scikit-image
 scikit-learn
+skdata

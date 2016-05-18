@@ -105,7 +105,7 @@ class Solver(object):
         :param step_stepsize: float or None.
           The stepsize for the step policy.
 
-        :param stepvalue: float or None.
+        :param stepvalue: list(int) or None.
           The stepvalue parameter for the multistep policy.
 
         :param clip_gradients: float or None.
@@ -336,7 +336,9 @@ class Solver(object):
             batch_size,
             iterations,
             test_interval,
-            test_iterations)
+            test_iterations,
+            self._parameter_dict.get('stepvalue')
+        )
 
         self._Init_cycling_monitor(X,
                                    X_val,
@@ -345,7 +347,6 @@ class Solver(object):
                                    test_interval,
                                    train_callbacks,
                                    test_callbacks)
-
         run_pre = True
         iteration = 0
         cbparams = dict()
@@ -500,7 +501,7 @@ class Solver(object):
         # of what is really required without loading the actuall net which
         # might take a bit of time
         if self._parameter_dict['lr_policy'] == 'fixed':
-            return True
+            return 'base_lr' in self._parameter_dict
         if self._parameter_dict['lr_policy'] == 'step':
             return 'gamma' in self._parameter_dict
         if self._parameter_dict['lr_policy'] == 'exp':
@@ -510,8 +511,8 @@ class Solver(object):
                     'power' in self._parameter_dict)
         if self._parameter_dict['lr_policy'] == 'multistep':
             return ('stepvalue' in self._parameter_dict and
-                    'stepsize' in self._parameter_dict and
-                    'gamma')
+                    'base_lr' in self._parameter_dict and
+                    'gamma' in self._parameter_dict)
         if self._parameter_dict['lr_policy'] == 'poly':
             return 'power' in self._parameter_dict
         if self._parameter_dict['lr_policy'] == 'sigmoid':
@@ -663,8 +664,22 @@ class Solver(object):
             if (test_interval != 0 and
                     test_iterations == 0 and
                     X_val is not None):
-                test_iterations = _np.ceil(float(len(X_val)) /
-                                           float(batch_size)) * batch_size
+                if isinstance(X_val, dict):
+                    if len(X_val.values()[0]) % batch_size != 0:
+                        _LOGGER.warn(
+                            "The number of test samples is not a multiple "
+                            "of the batch size. Test performance estimates "
+                            "will be slightly off.")
+                    test_iterations = _np.ceil(float(len(X_val.values()[0])) /
+                                               float(batch_size)) * batch_size
+                else:
+                    if len(X_val) % batch_size != 0:
+                        _LOGGER.warn(
+                            "The number of test samples is not a multiple "
+                            "of the batch size. Test performance estimates "
+                            "will be slightly off.")
+                    test_iterations = _np.ceil(float(len(X_val)) /
+                                               float(batch_size)) * batch_size
             if read_input_batch_size_from_blob_name is not None:
                 tmp_batch_size = net.blobs[
                     read_input_batch_size_from_blob_name].data.shape[0]
@@ -686,26 +701,34 @@ class Solver(object):
                            batch_size,
                            iterations,
                            test_interval,
-                           test_iterations):
+                           test_iterations,
+                           multistep_stepvalue):
         """Make sure iterations follow all of our rules."""
         # namely being a multiple of the batch_size
         assert iterations % batch_size == 0, (
-            'error iterations do not match {} {}'.format(iterations,
-                                                         batch_size))
+            'Error: iterations do not match {} {}'.format(iterations,
+                                                          batch_size))
         if test_interval > 0:
             assert test_iterations > 0, (
-                'test iterations must be > 0 but is {}'.format(
+                'Test iterations must be > 0 but is {}'.format(
                     test_iterations))
         # Set the configurable arguments.
         assert test_iterations >= 0, (
-            'test iterations must be >= 0 but is {}'.format(
+            'Test iterations must be >= 0 but is {}'.format(
                 test_iterations))
         assert test_interval >= 0, (
-            'test interval must be >= 0 but is {}'.format(
+            'Test interval must be >= 0 but is {}'.format(
                 test_iterations))
         assert test_interval % batch_size == 0, (
-            'the test interval must be a multiple of the batch size: {}, {}',
+            'The test interval must be a multiple of the batch size: {}, {}',
             test_iterations, batch_size)
+        if multistep_stepvalue is not None:
+            for val in multistep_stepvalue:
+                assert val % batch_size == 0, (
+                    "The step values must be multiples  of the batch size "
+                    "(is given in sample iterations)! Is %d, batch size %d." % (
+                        val, batch_size))
+
 
     @classmethod
     def _Assert_callbacks(cls, net, callbacks, phase):
@@ -753,7 +776,7 @@ class Solver(object):
             tmp_data_monitor = _monitoring.CyclingDataMonitor(
                 X=X,
                 input_processing_flags=input_processing_flags)
-            train_callbacks.append(tmp_data_monitor)
+            train_callbacks.insert(0, tmp_data_monitor)
 
         if test_interval > 0 and X_val is not None:
             assert X_val is not None
@@ -767,7 +790,7 @@ class Solver(object):
             tmp_data_monitor = _monitoring.CyclingDataMonitor(
                 X=X_val,
                 input_processing_flags=input_processing_flags)
-            test_callbacks.append(tmp_data_monitor)
+            test_callbacks.insert(0, tmp_data_monitor)
 
     def _Init_testnet(self, test_interval, use_fit_phase_for_validation):
         """Initialize the test phase network."""

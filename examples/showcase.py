@@ -5,7 +5,8 @@ import os
 import sys
 import logging
 
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+sys.path.insert(0, os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                                '..'))
 import numpy as np  # noqa
 
 # This provides us with tools to design a network.

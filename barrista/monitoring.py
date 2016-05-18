@@ -3,6 +3,9 @@
 # pylint: disable=F0401, E1101, too-many-lines, wrong-import-order
 import logging as _logging
 import os as _os
+import time as _time
+import subprocess as _subprocess
+import collections as _collections
 import numpy as _np
 # pylint: disable=no-name-in-module
 from scipy.stats import bernoulli as _bernoulli
@@ -26,6 +29,14 @@ except ImportError:  # pragma: no cover
     _cv2INTER_LINEAR = None  # pylint: disable=invalid-name
     _cv2INTER_NEAREST = None  # pylint: disable=invalid-name
     _cv2resize = None  # pylint: disable=invalid-name
+try:  # pragma: no cover
+    import matplotlib.pyplot as _plt
+    import matplotlib.ticker as _tkr
+    import matplotlib.colorbar as _colorbar
+    from mpl_toolkits.axes_grid1 import make_axes_locatable as _make_axes_locatable
+    _PLT_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    _PLT_AVAILABLE = False
 _init()
 _LOGGER = _logging.getLogger(__name__)
 
@@ -992,6 +1003,41 @@ class _LossIndicator(object):  # pragma: no cover
         return ret_val
 
 
+# Is covered in example.py, which is run in a subprocess and not detected by
+# coverage.py.
+# pylint: disable=R0903
+class _SpeedIndicator(object):  # pragma: no cover
+
+    r"""
+    A plugin indicator for the ``progressbar`` package.
+
+    :param progress_indicator:
+      :py:class:`barrista.monitoring.ProgressIndicator`. The information
+      source to use.
+    """
+
+    def __init__(self, progress_indicator):
+        self._progress_indicator = progress_indicator
+        self._active = True
+        self._last_ret = None
+
+    def __call__(self, pbar, stats):
+        r"""Compatibility with new versions of ``progressbar2``."""
+        return self.update(pbar)
+
+    def update(self, pbar):  # pylint: disable=W0613
+        """The update method to implement by the ``progressbar`` interface."""
+        if not self._active:
+            if self._last_ret is not None:
+                return self._last_ret
+            else:
+                return ''
+        # pylint: disable=protected-access
+        ret_val = '|%.2f smpl./s' % (self._progress_indicator._smplps)
+        self._last_ret = ret_val
+        return ret_val
+
+
 class ResultExtractor(Monitor):  # pylint: disable=R0903
 
     r"""
@@ -1100,13 +1146,18 @@ class ProgressIndicator(Monitor):  # pragma: no cover
         self.widgets = [Bar(), Percentage(), ' ', ETA()]
         self.pbarclass = ProgressBar
         self.pbar = None
+        self._speed_indicator = None
+        self._last_update = _time.time()
+        self._smplps = 0
 
     def _post_train_batch(self, kwargs):
         if self.pbar is None:
+            self._speed_indicator = _SpeedIndicator(self)
             if 'train_loss' in list(kwargs.keys()):
-                widgets = [_LossIndicator(self)] + self.widgets
+                widgets = [_LossIndicator(self),
+                           self._speed_indicator] + self.widgets
             else:
-                widgets = self.widgets
+                widgets = [self._speed_indicator] + self.widgets
             self.pbar = self.pbarclass(maxval=kwargs['max_iter'],
                                        widgets=widgets)
             self.pbar.start()
@@ -1114,14 +1165,19 @@ class ProgressIndicator(Monitor):  # pragma: no cover
             self.loss = kwargs['train_loss']
         if 'train_accuracy' in list(kwargs.keys()):
             self.accuracy = kwargs['train_accuracy']
+        self._smplps = float(kwargs['batch_size']) / (
+            _time.time() - self._last_update)
+        self._last_update = _time.time()
         self.pbar.update(value=kwargs['iter'])
 
     def _post_test_batch(self, kwargs):
         if self.pbar is None:
+            self._speed_indicator = _SpeedIndicator(self)
             if 'test_loss' in list(kwargs.keys()):
-                widgets = [_LossIndicator(self)] + self.widgets
+                widgets = [_LossIndicator(self),
+                           self._speed_indicator] + self.widgets
             else:
-                widgets = self.widgets
+                widgets = [self._speed_indicator] + self.widgets
             self.pbar = self.pbarclass(maxval=kwargs['max_iter'],
                                        widgets=widgets)
             self.pbar.start()
@@ -1129,12 +1185,66 @@ class ProgressIndicator(Monitor):  # pragma: no cover
             self.test_loss = kwargs['test_loss']
         if 'test_accuracy' in list(kwargs.keys()):
             self.test_accuracy = kwargs['test_accuracy']
+        self._smplps = float(kwargs['batch_size']) / (
+            _time.time() - self._last_update)
+        self._last_update = _time.time()
         self.pbar.update(value=kwargs['iter'])
+
+    def _post_test(self, kwargs):
+        # Write the mean if possible.
+        if self.pbar is not None:
+            if 'test_loss' in list(kwargs.keys()):
+                self.test_loss = kwargs['test_loss']
+            if 'test_accuracy' in list(kwargs.keys()):
+                self.test_accuracy = kwargs['test_accuracy']
+            self.pbar.update(value=kwargs['iter'])
 
     def finalize(self, kwargs):  # pylint: disable=W0613
         """Call ``progressbar.finish()``."""
+        if self._speed_indicator is not None:
+            # pylint: disable=protected-access
+            self._speed_indicator._active = False
         if self.pbar is not None:
             self.pbar.finish()
+
+
+def _sorted_ar_from_dict(inf, key):
+    iters = []
+    vals = []
+    for values in inf:
+        if values.has_key(key):
+            iters.append(int(values['NumIters']))
+            vals.append(float(values[key]))
+    sortperm = _np.argsort(iters)
+    arr = _np.array([iters, vals]).T
+    return arr[sortperm, :]
+
+
+def _draw_perfplot(phases, categories, ars, outfile):
+    """Draw the performance plots."""
+    fig, axes = _plt.subplots(nrows=len(categories), sharex=True)
+    for category_idx, category in enumerate(categories):
+        ax = axes[category_idx]  # pylint: disable=invalid-name
+        ax.set_title(category.title())
+        for phase in phases:
+            if phase + '_' + category not in ars.keys():
+                continue
+            ar = ars[phase + '_' + category]  # pylint: disable=invalid-name
+            alpha = 0.7
+            color = 'b'
+            if phase == 'test':
+                alpha = 1.0
+                color = 'g'
+            ax.plot(ar[:, 0], ar[:, 1],
+                    label=phase.title(), c=color, alpha=alpha)
+            if phase == 'test':
+                ax.scatter(ar[:, 0], ar[:, 1],
+                           c=color, s=50)
+        ax.set_ylabel(category.title())
+        ax.grid()
+        ax.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+    _plt.savefig(outfile, bbox_inches='tight')
+    _plt.close(fig)
 
 
 class JSONLogger(Monitor):  # pylint: disable=R0903
@@ -1172,9 +1282,19 @@ class JSONLogger(Monitor):  # pylint: disable=R0903
       Write the JSON log every `write_every` iterations. The log is always
       written upon completion of the training. If it is None, the log is only
       written on completion.
+
+    :param create_plot: bool.
+      If set to True, create a plot at `path` when the JSON log is written with
+      the name of the JSON file + `_plot.png`. Default: False.
     """
     # pylint: disable=too-many-arguments
-    def __init__(self, path, name, logging, base_iter=None, write_every=None):
+    def __init__(self,
+                 path,
+                 name,
+                 logging,
+                 base_iter=None,
+                 write_every=None,
+                 create_plot=False):
         """See class documentation."""
         import json
         self.json_package = json
@@ -1202,6 +1322,7 @@ class JSONLogger(Monitor):  # pylint: disable=R0903
         assert write_every is None or write_every > 0
         self._write_every = write_every
         self._logging = logging
+        self._create_plot = create_plot
 
     def _initialize_train(self, kwargs):
         self._initialize(kwargs)
@@ -1229,6 +1350,18 @@ class JSONLogger(Monitor):  # pylint: disable=R0903
                     kwargs['iter'] % self._write_every == 0):
                 with open(self.json_filename, 'w') as outf:
                     self.json_package.dump(self.dict, outf)
+                if self._create_plot:
+                    categories = set()
+                    arrs = dict()
+                    for plot_phase_name in ['train', 'test']:
+                        for key in self._logging[plot_phase_name]:
+                            categories.add(key[len(plot_phase_name) + 1:])
+                            arrs[key] = _sorted_ar_from_dict(self.dict[plot_phase_name],
+                                                             key)
+                    _draw_perfplot(['train', 'test'],
+                                   categories,
+                                   arrs,
+                                   self.json_filename + '_plot.png')
         for key in self._logging[phase_name]:
             if key in kwargs:
                 self.dict[phase_name].append({'NumIters':
@@ -1241,6 +1374,18 @@ class JSONLogger(Monitor):  # pylint: disable=R0903
         """Write the json file."""
         with open(self.json_filename, 'w') as outf:
             self.json_package.dump(self.dict, outf)
+        if self._create_plot:
+            categories = set()
+            arrs = dict()
+            for phase_name in ['train', 'test']:
+                for key in self._logging[phase_name]:
+                    categories.add(key[len(phase_name) + 1:])
+                    arrs[key] = _sorted_ar_from_dict(self.dict[phase_name], key)
+            _draw_perfplot(['train', 'test'],
+                           categories,
+                           arrs,
+                           self.json_filename + '_plot.png')
+
 
 
 class Checkpointer(Monitor):  # pylint: disable=R0903
@@ -1275,7 +1420,8 @@ class Checkpointer(Monitor):  # pylint: disable=R0903
 
     def __init__(self,
                  name_prefix,
-                 iterations):
+                 iterations,
+                 base_iterations=0):
         """See class documentation."""
         assert iterations > 0
         _LOGGER.info('Setting up checkpointing with name prefix %s every ' +
@@ -1283,22 +1429,25 @@ class Checkpointer(Monitor):  # pylint: disable=R0903
         self.name_prefix = name_prefix
         self.iterations = iterations
         self.created_checkpoints = []
+        self._base_iterations = base_iterations
 
-    def _post_train_batch(self, kwargs):
+    # pylint: disable=arguments-differ
+    def _post_train_batch(self, kwargs, finalize=False):
         assert self.iterations % kwargs['batch_size'] == 0, (
             'iterations not multiple of batch_size, {} vs {}'.format(
                 self.iterations, kwargs['batch_size']))
         # Prevent double-saving.
         if kwargs['iter'] in self.created_checkpoints:
             return
-        else:
+        if ((kwargs['iter'] + self._base_iterations +
+             kwargs['batch_size']) % self.iterations == 0 or
+                finalize):
             self.created_checkpoints.append(kwargs['iter'])
-        if (kwargs['iter']+kwargs['batch_size']) % self.iterations == 0:
             # pylint: disable=protected-access
             if not hasattr(kwargs['solver']._solver, 'snapshot'):  # pragma: no cover
                 checkpoint_filename = (
                     self.name_prefix + '_iter_' +
-                    str(int(kwargs['iter'] /
+                    str(int((kwargs['iter'] + self._base_iterations) /
                             kwargs['batch_size']) + 1) +
                     '.caffemodel')
                 _LOGGER.debug("Writing checkpoint to file '%s'.",
@@ -1309,22 +1458,521 @@ class Checkpointer(Monitor):  # pylint: disable=R0903
                 kwargs['solver']._solver.snapshot()
                 caffe_checkpoint_filename = (self.name_prefix +
                                              '_iter_' +
-                                             str(kwargs['iter'] /
+                                             str((kwargs['iter'] + self._base_iterations) /
                                                  kwargs['batch_size'] + 1) +
                                              '.caffemodel')
                 caffe_sstate_filename = (self.name_prefix +
                                          '_iter_' +
-                                         str(kwargs['iter'] /
+                                         str((kwargs['iter'] + self._base_iterations) /
                                              kwargs['batch_size'] + 1) +
                                          '.solverstate')
                 _LOGGER.debug('Writing checkpoint to file "[solverprefix]%s" ' +
                               'and "[solverprefix]%s".',
                               caffe_checkpoint_filename,
                               caffe_sstate_filename)
+                assert _os.path.exists(caffe_checkpoint_filename), (
+                    "An error occured checkpointing to {}. File not found. "
+                    "Make sure the `base_iterations` and the `name_prefix` "
+                    "are correct.").format(caffe_checkpoint_filename)
+                assert _os.path.exists(caffe_sstate_filename), (
+                    "An error occured checkpointing to {}. File not found. "
+                    "Make sure the `base_iterations` and the `name_prefix` "
+                    "are correct.").format(caffe_sstate_filename)
 
     def finalize(self, kwargs):
         """Write a final checkpoint."""
         # Account for the counting on iteration increase for the last batch.
         kwargs['iter'] -= kwargs['batch_size']
-        self._post_train_batch(kwargs)
+        self._post_train_batch(kwargs, finalize=True)
         kwargs['iter'] += kwargs['batch_size']
+
+
+class GradientMonitor(Monitor):
+
+    """
+    Tools to keep an eye on the gradient.
+
+    Create plots of the gradient. Creates histograms of the gradient for all
+    ``selected_parameters`` and creates an overview plot with the maximum
+    absolute gradient per layer. If ``create_videos`` is set and ffmpeg is
+    available, automatically creates videos.
+
+    :param write_every: int.
+      Write every x iterations. Since matplotlib takes some time to run, choose
+      with care.
+
+    :param output_folder: string.
+      Where to store the outputs.
+
+    :param selected_parameters: dict(string, list(int)) or None.
+      Which parameters to include in the plots. The string is the name of the
+      layer, the list of integers contains the parts to include, e.g., for a
+      convolution layer, specify the name of the layer as key and 0 for
+      the parameters of the convolution weights, 1 for the biases per channel.
+      The order and meaning of parameter blobs is determined by caffe. If
+      None, then all parameters are plotted. Default: None.
+
+    :param relative: Bool.
+      If set to True, will give the weights relative to the max absolute weight
+      in the target parameter blob. Default: False.
+
+    :param iteroffset: int.
+      An iteration offset if training is resumed to not overwrite existing
+      output. Default: 0.
+
+    :param create_videos: Bool.
+      If set to True, try to create a video using ffmpeg. Default: True.
+
+    :param video_frame_rate: int.
+      The video frame rate.
+    """
+
+    def __init__(self,  # pylint: disable=too-many-arguments
+                 write_every,
+                 output_folder,
+                 selected_parameters=None,
+                 relative=False,
+                 iteroffset=0,
+                 create_videos=True,
+                 video_frame_rate=1):
+        assert write_every > 0
+        self._write_every = write_every
+        self._output_folder = output_folder
+        self._selected_parameters = selected_parameters
+        self._relative = relative
+        self._n_parameters = None
+        self._iteroffset = iteroffset
+        self._create_videos = create_videos
+        self._video_frame_rate = video_frame_rate
+
+    def _initialize_train(self, kwargs):  # pragma: no cover
+        assert _PLT_AVAILABLE, (
+            "Matplotlib must be available to use the GradientMonitor!")
+        assert self._write_every % kwargs['batch_size'] == 0, (
+            "`write_every` must be a multiple of the batch size!")
+        self._n_parameters = 0
+        if self._selected_parameters is not None:
+            for name in self._selected_parameters.keys():
+                assert name in kwargs['net'].params.keys()
+                for p_idx in self._selected_parameters[name]:
+                    assert p_idx >= 0
+                    assert len(kwargs['net'].params[name]) > p_idx
+                    self._n_parameters += 1
+        else:
+            self._selected_parameters = _collections.OrderedDict()
+            for name in kwargs['net'].params.keys():
+                self._selected_parameters[name] = range(len(
+                    kwargs['net'].params[name]))
+                self._n_parameters += len(kwargs['net'].params[name])
+
+    # pylint: disable=too-many-locals
+    def _post_train_batch(self, kwargs):  # pragma: no cover
+        if kwargs['iter'] % self._write_every == 0:
+            net = kwargs['net']
+            maxabsupdates = {}
+            maxabsupdates_flat = []
+            # Create histograms.
+            fig, axes = _plt.subplots(nrows=1,
+                                      ncols=self._n_parameters,
+                                      figsize=(self._n_parameters * 3, 3))
+            ax_idx = 0
+            xfmt = _tkr.FormatStrFormatter('%.1e')
+            for lname in self._selected_parameters.keys():
+                maxabsupdates[lname] = []
+                for p_idx in self._selected_parameters[lname]:
+                    if self._relative:
+                        lgradient = (net.params[lname][p_idx].diff /
+                                     net.params[lname][p_idx].data.max())
+                    else:
+                        lgradient = net.params[lname][p_idx].diff
+                    maxabsupdates[lname].append(_np.max(_np.abs(lgradient)))
+                    maxabsupdates_flat.append(_np.max(_np.abs(lgradient)))
+                    axes[ax_idx].set_title(lname + ', p%d' % (p_idx))
+                    axes[ax_idx].hist(list(lgradient.flat),
+                                      25,
+                                      normed=1,
+                                      alpha=0.5)
+                    axes[ax_idx].set_xticks(_np.linspace(-maxabsupdates_flat[-1],
+                                                         maxabsupdates_flat[-1],
+                                                         num=3))
+                    axes[ax_idx].yaxis.set_visible(False)
+                    axes[ax_idx].xaxis.set_major_formatter(xfmt)
+                    ax_idx += 1
+            _plt.tight_layout()
+            _plt.suptitle("Gradient histograms for iteration %d" % (
+                kwargs['iter'] + self._iteroffset))
+            if self._relative:
+                ghname = self._output_folder + 'gradient_hists_rel_%d.png' % (
+                    (self._iteroffset + kwargs['iter']) /
+                    self._write_every)
+            else:
+                ghname = self._output_folder + 'gradient_hists_%d.png' % (
+                    (self._iteroffset + kwargs['iter']) /
+                    self._write_every)
+            _plt.savefig(ghname)
+            _plt.close(fig)
+            # Create the magnitude overview plot.
+            fig = _plt.figure(figsize=(self._n_parameters * 1, 1.5))
+            _plt.title("Maximum absolute gradient per layer (iteration %d)" % (
+                kwargs['iter'] + self._iteroffset))
+            ax = _plt.gca()  # pylint: disable=invalid-name
+            # pylint: disable=invalid-name
+            im = ax.imshow(_np.atleast_2d(_np.array(maxabsupdates_flat)),
+                           interpolation='none')
+            ax.yaxis.set_visible(False)
+            divider = _make_axes_locatable(ax)
+            cax = divider.append_axes("right", size="10%", pad=0.05)
+            _plt.colorbar(im, cax=cax, ticks=_np.linspace(_np.min(maxabsupdates_flat),
+                                                          _np.max(maxabsupdates_flat),
+                                                          5))
+            if self._relative:
+                gmname = self._output_folder + 'gradient_magnitude_rel_%d.png' % (
+                    (self._iteroffset + kwargs['iter']) /
+                    self._write_every)
+            else:
+                gmname = self._output_folder + 'gradient_magnitude_%d.png' % (
+                    (self._iteroffset + kwargs['iter']) /
+                    self._write_every)
+            _plt.savefig(gmname)
+            _plt.close(fig)
+
+    def finalize(self, kwargs):
+        if self._create_videos:
+            try:
+                if not _os.path.exists(_os.path.join(self._output_folder,
+                                                     'videos')):
+                    _os.mkdir(_os.path.join(self._output_folder, 'videos'))
+                if self._relative:
+                    rel_add = '_rel'
+                else:
+                    rel_add = ''
+                with open(_os.devnull, 'w') as quiet:
+                    _subprocess.check_call([
+                        'ffmpeg',
+                        '-start_number', str(0),
+                        '-r', str(self._video_frame_rate),
+                        '-i', _os.path.join(self._output_folder,
+                                            'gradient_hists' + rel_add + '_%d.png'),
+                        _os.path.join(self._output_folder,
+                                      'videos',
+                                      'gradient_hists' + rel_add + '.mp4')
+                    ], stdout=quiet, stderr=quiet)
+                    _subprocess.check_call([
+                        'ffmpeg',
+                        '-start_number', str(0),
+                        '-r', str(self._video_frame_rate),
+                        '-i', _os.path.join(self._output_folder,
+                                            'gradient_magnitude' + rel_add + '_%d.png'),
+                        _os.path.join(self._output_folder,
+                                      'videos',
+                                      'gradient_magnitude' + rel_add + '.mp4')
+                    ], stdout=quiet, stderr=quiet)
+            except Exception as ex:  # pylint: disable=broad-except
+                _LOGGER.error(
+                    "Could not create videos! Error: %s. Is " +
+                    "ffmpeg available on the command line?",
+                    str(ex))
+
+
+class ActivationMonitor(Monitor):
+
+    """
+    Tools to keep an eye on the net activations.
+
+    Create plots of the net activations. If ``create_videos`` is set and
+    ffmpeg is available, automatically creates videos.
+
+    :param write_every: int.
+      Write every x iterations. Since matplotlib takes some time to run, choose
+      with care.
+
+    :param output_folder: string.
+      Where to store the outputs.
+
+    :param selected_blobs: list(string) or None.
+      Which blobs to include in the plots. If
+      None, then all parameters are plotted. Default: None.
+
+    :param iteroffset: int.
+      An iteration offset if training is resumed to not overwrite existing
+      output. Default: 0.
+
+    :param sample: dict(string, NDarray(3D)).
+      A sample to use that will be forward propagated to obtain the activations.
+      Must contain one for every input layer of the network. Each sample is not
+      preprocessed and must fit the input. If None, use the existing values
+      from the blobs.
+
+    :param create_videos: Bool.
+      If set to True, try to create a video using ffmpeg. Default: True.
+
+    :param video_frame_rate: int.
+      The video frame rate.
+    """
+
+    # pylint: disable=too-many-arguments
+    def __init__(self,
+                 write_every,
+                 output_folder,
+                 selected_blobs=None,
+                 iteroffset=0,
+                 sample=None,
+                 create_videos=True,
+                 video_frame_rate=1):
+        assert write_every > 0
+        self._write_every = write_every
+        self._output_folder = output_folder
+        self._selected_blobs = selected_blobs
+        self._n_parameters = None
+        self._iteroffset = iteroffset
+        self._create_videos = create_videos
+        self._video_frame_rate = video_frame_rate
+        self._sample = sample
+
+    def _initialize_train(self, kwargs):  # pragma: no cover
+        assert _PLT_AVAILABLE, (
+            "Matplotlib must be available to use the ActivationMonitor!")
+        assert self._write_every % kwargs['batch_size'] == 0, (
+            "`write_every` must be a multiple of the batch size!")
+        self._n_parameters = 0
+        if self._selected_blobs is not None:
+            for name in self._selected_blobs:
+                assert name in kwargs['net'].blobs.keys(), (
+                    "The activation monitor should monitor {}, which is not "
+                    "part of the net!").format(name)
+                self._n_parameters += 1
+        else:
+            self._selected_blobs = []
+            for name in kwargs['net'].blobs.keys():
+                bshape = kwargs['net'].blobs[name].data.shape
+                if len(bshape) == 4:
+                    self._selected_blobs.append(name)
+                    self._n_parameters += 1
+        if self._sample is not None:
+            for inp_name in self._sample.keys():
+                assert (kwargs['net'].blobs[inp_name].data.shape[1:] ==
+                        self._sample[inp_name].shape), (
+                            "All provided inputs as `sample` must have the shape "
+                            "of an input blob, starting from its sample "
+                            "dimension. Does not match for %s: %s vs. %s." % (
+                                inp_name,
+                                str(kwargs['net'].blobs[inp_name].data.shape[1:]),
+                                str(self._sample[inp_name].shape)))
+
+    # pylint: disable=too-many-locals
+    def _post_train_batch(self, kwargs):  # pragma: no cover
+        if kwargs['iter'] % self._write_every == 0:
+            net = kwargs['net']
+            if self._sample is not None:
+                for bname in self._sample.keys():
+                    net.blobs[bname].data[-1, ...] = self._sample[bname]
+                    net.forward()
+            for bname in self._selected_blobs:
+                blob = net.blobs[bname].data
+                nchannels = blob.shape[1]
+                gridlen = int(_np.ceil(_np.sqrt(nchannels)))
+                fig, axes = _plt.subplots(nrows=gridlen,
+                                          ncols=gridlen,
+                                          squeeze=False)
+                bmin = blob[-1].min()
+                bmax = blob[-1].max()
+                for c_idx in range(nchannels):
+                    ax = axes.flat[c_idx]  # pylint: disable=invalid-name
+                    im = ax.imshow(blob[-1, c_idx],  # pylint: disable=invalid-name
+                                   vmin=bmin,
+                                   vmax=bmax,
+                                   cmap='Greys_r',
+                                   interpolation='none')
+                    ax.set_title('C%d' % (c_idx))
+                    ax.yaxis.set_visible(False)
+                    ax.xaxis.set_visible(False)
+                # pylint: disable=undefined-loop-variable
+                for blank_idx in range(c_idx + 1, gridlen * gridlen):
+                    ax = axes.flat[blank_idx]  # pylint: disable=invalid-name
+                    ax.axis('off')
+                _plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+                _plt.suptitle("Activations in blob %s (iteration %d)" % (
+                    bname, self._iteroffset + kwargs['iter']))
+                cbax, cbkw = _colorbar.make_axes([ax for ax in axes.flat])
+                fig.colorbar(im, cax=cbax, **cbkw)
+                _plt.savefig(self._output_folder +
+                             'activations_%s_%d.png' % (
+                                 bname,
+                                 (self._iteroffset + kwargs['iter']) /
+                                 self._write_every))
+                _plt.close(fig)
+
+    def finalize(self, kwargs):
+        if self._create_videos:
+            try:
+                if not _os.path.exists(_os.path.join(self._output_folder,
+                                                     'videos')):
+                    _os.mkdir(_os.path.join(self._output_folder, 'videos'))
+                for bname in self._selected_blobs:
+                    with open(_os.devnull, 'w') as quiet:
+                        _subprocess.check_call([
+                            'ffmpeg',
+                            '-start_number', str(0),
+                            '-r', str(self._video_frame_rate),
+                            '-i', _os.path.join(self._output_folder,
+                                                'activations_' + bname + '_%d.png'),
+                            _os.path.join(self._output_folder,
+                                          'videos',
+                                          'activations_' + bname + '.mp4')
+                        ], stdout=quiet, stderr=quiet)
+            except Exception as ex:  # pylint: disable=broad-except
+                _LOGGER.error(
+                    "Could not create videos! Error: %s. Is " +
+                    "ffmpeg available on the command line?",
+                    str(ex))
+
+
+class FilterMonitor(Monitor):
+
+    """
+    Tools to keep an eye on the filters.
+
+    Create plots of the network filters. Creates filter plots for all
+    ``selected_parameters``. If ``create_videos`` is set and ffmpeg is
+    available, automatically creates videos.
+
+    :param write_every: int.
+      Write every x iterations. Since matplotlib takes some time to run, choose
+      with care.
+
+    :param output_folder: string.
+      Where to store the outputs.
+
+    :param selected_parameters: dict(string, list(int)) or None.
+      Which parameters to include in the plots. The string is the name of the
+      layer, the list of integers contains the parts to include, e.g., for a
+      convolution layer, specify the name of the layer as key and 0 for
+      the parameters of the convolution weights, 1 for the biases per channel.
+      The order and meaning of parameter blobs is determined by caffe. If
+      None, then all parameters are plotted. **Only 4D blobs can be plotted!**
+      Default: None.
+
+    :param iteroffset: int.
+      An iteration offset if training is resumed to not overwrite existing
+      output. Default: 0.
+
+    :param create_videos: Bool.
+      If set to True, try to create a video using ffmpeg. Default: True.
+
+    :param video_frame_rate: int.
+      The video frame rate.
+    """
+
+    # pylint: disable=too-many-arguments
+    def __init__(self,
+                 write_every,
+                 output_folder,
+                 selected_parameters=None,
+                 iteroffset=0,
+                 create_videos=True,
+                 video_frame_rate=1):
+        assert write_every > 0
+        self._write_every = write_every
+        self._output_folder = output_folder
+        self._selected_parameters = selected_parameters
+        self._n_parameters = None
+        self._iteroffset = iteroffset
+        self._create_videos = create_videos
+        self._video_frame_rate = video_frame_rate
+
+    def _initialize_train(self, kwargs):  # pragma: no cover
+        assert _PLT_AVAILABLE, (
+            "Matplotlib must be available to use the FilterMonitor!")
+        assert self._write_every % kwargs['batch_size'] == 0, (
+            "`write_every` must be a multiple of the batch size!")
+        self._n_parameters = 0
+        if self._selected_parameters is not None:
+            for name in self._selected_parameters.keys():
+                assert name in kwargs['net'].params.keys()
+                for p_idx in self._selected_parameters[name]:
+                    assert p_idx >= 0
+                    assert len(kwargs['net'].params[name][p_idx].data.shape) == 4
+                    self._n_parameters += 1
+        else:
+            self._selected_parameters = _collections.OrderedDict()
+            for name in kwargs['net'].params.keys():
+                self._selected_parameters[name] = []
+                for pindex in range(len(kwargs['net'].params[name])):
+                    if len(kwargs['net'].params[name][pindex].data.shape) == 4:
+                        self._selected_parameters[name].append(pindex)
+                        self._n_parameters += 1
+
+    def _post_train_batch(self, kwargs):  # pragma: no cover
+        if kwargs['iter'] % self._write_every == 0:
+            net = kwargs['net']
+            for pname in self._selected_parameters.keys():
+                for pindex in self._selected_parameters[pname]:
+                    fig = _plt.figure()
+                    param = net.params[pname][pindex].data
+                    border = 2
+                    collected_weights = _np.zeros((param.shape[0] *
+                                                   (param.shape[2] + border) +
+                                                   border,
+                                                   param.shape[1] *
+                                                   (param.shape[3] + border) +
+                                                   border), dtype='float32')
+                    pmin = param.min()
+                    pmax = param.max()
+                    # Build up the plot manually because matplotlib is too slow.
+                    for filter_idx in range(param.shape[0]):
+                        for layer_idx in range(param.shape[1]):
+                            collected_weights[border + filter_idx * (param.shape[2] + border):
+                                              border + filter_idx * (param.shape[2] + border) +
+                                              param.shape[2],
+                                              border + layer_idx * (param.shape[3] + border):
+                                              border + layer_idx * (param.shape[3] + border) +
+                                              param.shape[3]] = (
+                                                  (param[filter_idx, layer_idx] - pmin)
+                                                  / (pmax - pmin))
+                    _plt.imshow(collected_weights,
+                                cmap='Greys_r',
+                                interpolation='none')
+                    ax = _plt.gca()  # pylint: disable=invalid-name
+                    ax.yaxis.set_visible(False)
+                    ax.xaxis.set_visible(False)
+                    ax.set_title((
+                        "Values of layer %s, param %d\n" +
+                        "(iteration %d, min %.1e, max %.1e)") % (
+                            pname, pindex, self._iteroffset + kwargs['iter'], pmin, pmax))
+                    _plt.savefig(self._output_folder +
+                                 'parameters_%s_%d_%d.png' % (
+                                     pname,
+                                     pindex,
+                                     (self._iteroffset + kwargs['iter']) /
+                                     self._write_every))
+                    _plt.close(fig)
+
+    def finalize(self, kwargs):
+        if self._create_videos:
+            try:
+                if not _os.path.exists(_os.path.join(self._output_folder,
+                                                     'videos')):
+                    _os.mkdir(_os.path.join(self._output_folder, 'videos'))
+                for pname in self._selected_parameters.keys():
+                    for pindex in self._selected_parameters[pname]:
+                        with open(_os.devnull, 'w') as quiet:
+                            _subprocess.check_call([
+                                'ffmpeg',
+                                '-start_number', str(0),
+                                '-r', str(self._video_frame_rate),
+                                '-i', _os.path.join(self._output_folder,
+                                                    'parameters_' +
+                                                    pname + '_' +
+                                                    str(pindex) + '_' +
+                                                    '%d.png'),
+                                _os.path.join(self._output_folder,
+                                              'videos',
+                                              'parameters_' +
+                                              pname + '_' +
+                                              str(pindex) + '.mp4')
+                            ], stdout=quiet, stderr=quiet)
+            except Exception as ex:  # pylint: disable=broad-except
+                _LOGGER.error(
+                    "Could not create videos! Error: %s. Is " +
+                    "ffmpeg available on the command line?",
+                    str(ex))

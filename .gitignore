@@ -11,3 +11,11 @@ htmlcov
 
 # Generated documentation.
 documentation/_build
+
+# Example data results
+examples/MNIST/data
+examples/MNIST/models/*.png
+examples/MNIST/results
+examples/residual-nets/data
+examples/residual-nets/models/*.png
+examples/residual-nets/results
