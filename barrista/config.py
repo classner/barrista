@@ -16,14 +16,14 @@ if 'CAFFE_PYTHON_FOLDER' in list(_os.environ.keys()):
 else:  # pragma: no cover
     CAFFE_PYTHON_FOLDER = _os.path.abspath(
         _os.path.join(
-            _os.path.dirname(__file__), '..', '..'))
+            _os.path.dirname(__file__), '..', 'caffe', 'build', 'install', 'python'))
 
 #: This folder contains the file ``upgrade_net_proto_text``.
 if 'CAFFE_BIN_FOLDER' in list(_os.environ.keys()):
     CAFFE_BIN_FOLDER = _os.environ['CAFFE_BIN_FOLDER']
 else:  # pragma: no cover
     CAFFE_BIN_FOLDER = _os.path.join(CAFFE_PYTHON_FOLDER,
-                                     '..', 'build', 'tools')
+                                     '..', 'bin')
 
 #: This dictionary specifies the layer types and their configuration
 #: parameters. The keys are the layer keys, and the values a list of
