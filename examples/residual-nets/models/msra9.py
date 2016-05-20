@@ -148,7 +148,7 @@ def _construct_resnet(blocks_per_part):
         bottoms=['net_out_bnscale', 'labels'],
         include_stages=['fit']))
 
-_construct_resnet(3)
+_construct_resnet(9)
 _netspec.layers = _layers
 MODEL = _netspec.instantiate()
 for pname, pval in MODEL.params.items():
