@@ -338,12 +338,27 @@ class MonitoringTestCase(unittest.TestCase):
                 test_interval=10,
                 train_callbacks=[fitlog],
                 test_callbacks=[fitlog])
+        # append.
+        fitlog = JSONLogger(dirpath,
+                            'tmp',
+                            {'test': ['test_loss',
+                                      'test_accuracy'],
+                             'train': ['train_loss',
+                                       'train_accuracy']})
+        net.fit(30,
+                solver,
+                X=X,
+                X_val=X,
+                test_initialization=True,
+                test_interval=10,
+                train_callbacks=[fitlog],
+                test_callbacks=[fitlog])
         with open(os.path.join(dirpath, 'barrista_tmp.json'), 'r') as inf:
             json_load = json.load(inf)
         self.assertIn('train', list(json_load.keys()))
         self.assertIn('test', list(json_load.keys()))
-        self.assertEqual(len(json_load['train']), 6)
-        self.assertEqual(len(json_load['test']), 8)
+        self.assertEqual(len(json_load['train']), 12)
+        self.assertEqual(len(json_load['test']), 16)
         shutil.rmtree(dirpath)
         # Verify values.
         predres = net.predict(X,
@@ -351,7 +366,7 @@ class MonitoringTestCase(unittest.TestCase):
                               allow_train_phase_for_test=True)
         last_test_loss = [dct['test_loss'] for dct in json_load['test']
                           if 'test_loss' in dct.keys() and
-                             dct['NumIters'] == 30][0]
+                             dct['NumIters'] == 60][0]
         self.assertEqual(last_test_loss, predres['loss'][0])
 
     def test_StaticDataMonitor(self):
@@ -1425,6 +1440,31 @@ class NetTestCase(unittest.TestCase):
             pad_border=False))
         self.assertEqual(np.sum(predictions != 0.), 90)
 
+    def test_predict_sliding_window_eq_out(self):
+        """Test the ``predict_sliding_window`` method with full size output."""
+        if not CV2_AVAILABLE:
+            return
+        import numpy as np
+        import barrista.design as design
+        from barrista.design import (ConvolutionLayer, InnerProductLayer,
+                                     EuclideanLossLayer)
+        from barrista import solver as _solver
+        netspec = design.NetSpecification([[10, 3, 3, 3]],
+                                          inputs=['data'])
+        layers = []
+        conv_params = {'Convolution_kernel_size': 3,
+                       'Convolution_num_output': 3,
+                       'Convolution_pad': 1}
+
+        layers.append(ConvolutionLayer(**conv_params))
+        netspec.layers.extend(layers)
+        net = netspec.instantiate()
+        _ = np.array(net.predict_sliding_window(
+            np.zeros((10, 3, 5, 5))))
+        _ = np.array(net.predict_sliding_window(
+            np.zeros((10, 3, 5, 5)),
+            overlap_combine_max=False))
+
     def test_predict(self):
         """Test the ``predict`` method."""
         import numpy as np
@@ -1477,9 +1517,22 @@ class NetTestCase(unittest.TestCase):
         predictions = np.array(
             net.predict(np.zeros((10, 3, 1, 1)),
                         input_processing_flags={'data': 'p0'},
-                        out_blob_names=['out']))
+                        out_blob_names=['out'],
+                        input_size_spec=(10, 10)))
         predictions = np.argmax(predictions, axis=1)
         self.assertEqual(np.sum(predictions == 1), 10)
+        # Static inputs.
+        predictions = np.array(net.predict(
+            {'data': np.zeros((10, 3, 3, 3))},
+            static_inputs=['data']))
+        predictions = np.argmax(predictions, axis=1)
+        self.assertEqual(np.sum(predictions == 1), 10)
+        # Upscaling.
+        predictions_us = np.array(
+            net.predict(np.zeros((10, 3, 1, 1)),
+                        input_processing_flags={'data': 'p0'},
+                        output_processing_flags={'softmax': 'p0'}))
+        print(predictions_us.shape)
         # Oversample.
         predictions = np.array(net.predict(np.zeros((10, 3, 1, 1)),
                                            oversample=True))
@@ -1489,6 +1542,50 @@ class NetTestCase(unittest.TestCase):
                                                oversample=True,
                                                before_oversample_resize_to=(5, 5)))
             np.testing.assert_allclose(predictions, predictions_padded, rtol=1e-05)
+
+    def test_predict_upscaling(self):
+        """Test the ``predict`` method upscaling capability."""
+        if not CV2_AVAILABLE:
+            return
+        import numpy as np
+        import barrista.design as design
+        from barrista.design import (ConvolutionLayer, InnerProductLayer,
+                                     SoftmaxWithLossLayer, SoftmaxLayer)
+        from barrista import solver as _solver
+        netspec = design.NetSpecification([[10, 3, 3, 3], [10, 1, 1, 1]],
+                                          inputs=['data', 'annotations'],
+                                          predict_inputs=['data'],
+                                          predict_input_shapes=[[10, 3, 3, 3]])
+        layers = []
+        conv_params = {'Convolution_kernel_size': 3,
+                       'Convolution_num_output': 3,
+                       'Convolution_pad': 0,
+                       'name': 'out'}
+
+        layers.append(ConvolutionLayer(**conv_params))
+        layers.append(SoftmaxLayer(bottoms=['out'],
+                                   include_stages=['predict'],
+                                   name='softmax'))
+        layers.append(SoftmaxWithLossLayer(bottoms=['out', 'annotations'],
+                                           include_stages=['fit']))
+        netspec.layers.extend(layers)
+        net = netspec.instantiate()
+
+        solver = _solver.SGDSolver(
+            base_lr=0.01)
+
+        X = {'data': np.zeros((10, 3, 3, 3), dtype='float32'),
+             'annotations': np.ones((10, 1), dtype='float32')}
+
+        net.fit(20,
+                solver,
+                X)
+        # Upscaling.
+        predictions_us = np.array(
+            net.predict(np.zeros((10, 3, 1, 1)),
+                        input_processing_flags={'data': 'p0'},
+                        output_processing_flags={'softmax': 'p0'}))
+        self.assertTrue(np.all(predictions_us.shape == (10, 3, 1, 1)))
 
     def test_visualize(self):
         """Test the ``visualize`` function."""

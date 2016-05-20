@@ -296,7 +296,7 @@ class Net(_caffe.Net):
                     for val_idx, val in enumerate(results):
                         try:
                             val.shape = (results[0].shape[0],)
-                        except:
+                        except:  # pragma: no cover
                             raise Exception(
                                 ("The output shape of the net must be "
                                  "(X, 1, 1) or (X, input_height, input_width) "
@@ -334,7 +334,7 @@ class Net(_caffe.Net):
                     for val_idx, val in enumerate(results):
                         try:
                             val.shape = (results[0].shape[0],)
-                        except:
+                        except:  # pragma: no cover
                             raise Exception(
                                 ("The output shape of the net must be (X, 1, 1) to be "  # noqa
                                  "used with the `predict_sliding_window` method. It is "  # noqa
@@ -761,7 +761,7 @@ class Net(_caffe.Net):
             if len(static_inputs) > 0:
                 static_data_monitor = _monitoring.StaticDataMonitor(
                     dict(item for item in data_prov_blobs
-                         if item in static_inputs))
+                         if item[0] in static_inputs))
                 test_callbacks.insert(0, static_data_monitor)
             if oversample:
                 if before_oversample_resize_to is not None:
@@ -791,7 +791,7 @@ class Net(_caffe.Net):
                     if val.startswith('p'):
                         # Go for the resizing monitor.
                         blobinfos[key] = int(val[1:])
-                    else:
+                    elif key not in static_inputs:
                         plain_inp_proc_flags[key] = val
                 if len(blobinfos) > 0:
                     res_data_monitor = _monitoring.ResizingMonitor(
@@ -870,7 +870,7 @@ class Net(_caffe.Net):
         :returns: 3D numpy array.
           Graphic of the visualization as (H, W, C) image in BGR format.
         """
-        if self._specification is not None:
+        if self._specification is not None:  # pragma: no cover
             return self._specification.visualize(layout_dir, display)
-        else:
+        else:  # pragma: no cover
             raise Exception("This model has no specification set!")
