@@ -20,10 +20,16 @@ While barrista 'serves' caffe right, some beans must be added for the
 perfect flavor. This translates to just a few lines of C++ code that must
 be changed in the core library.
 
-We offer a .patch file for the caffe rc2 and the version with added
-parallelization support and the new solvers from September 2015. But even
+We offer a .patch file for various versions since caffe rc2. But even
 if you are not using one of these version, don't worry, you will be able to
-easily add them by hand.
+easily add them by hand. Alternatively, you can run::
+
+    git submodule update --init
+
+in the barrista folder, and an already patched caffe version is loaded to the
+`caffe` subfolder of barrista. We keep this in sync with upstream caffe in
+regular intervals, and you can build it as described by the
+`BVLC team <http://caffe.berkeleyvision.org/>`_.
 
 The patch files are located in the barrista folder `patches` and can be applied
 (for example) by navigating to your caffe root folder and executing::
@@ -72,6 +78,15 @@ on the fly, you can also do this easily! In this case::
     # Now use your configured barrista:
     import barrista.design
     # ...
+
+A side note on the google logging facilities of caffe: the output is very useful
+for debugging, but may clutter your terminal unnecessary otherwise. To change
+the log-level, simply::
+
+    export GLOG_minloglevel=2
+
+and add this to your favorite place, e.g., `.bashrc`. The levels are 0 (debug,
+default), 1 (info), 2 (warnings), 3 (errors).
 
 =======
 Testing

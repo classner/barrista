@@ -1528,11 +1528,10 @@ class NetTestCase(unittest.TestCase):
         predictions = np.argmax(predictions, axis=1)
         self.assertEqual(np.sum(predictions == 1), 10)
         # Upscaling.
-        predictions_us = np.array(
+        _ = np.array(
             net.predict(np.zeros((10, 3, 1, 1)),
                         input_processing_flags={'data': 'p0'},
                         output_processing_flags={'softmax': 'p0'}))
-        print(predictions_us.shape)
         # Oversample.
         predictions = np.array(net.predict(np.zeros((10, 3, 1, 1)),
                                            oversample=True))
