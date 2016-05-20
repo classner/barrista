@@ -130,6 +130,9 @@
 <span class="c"># pylint: disable=F0401, E1101, too-many-lines, wrong-import-order</span>
 <span class="kn">import</span> <span class="nn">logging</span> <span class="kn">as</span> <span class="nn">_logging</span>
 <span class="kn">import</span> <span class="nn">os</span> <span class="kn">as</span> <span class="nn">_os</span>
+<span class="kn">import</span> <span class="nn">time</span> <span class="kn">as</span> <span class="nn">_time</span>
+<span class="kn">import</span> <span class="nn">subprocess</span> <span class="kn">as</span> <span class="nn">_subprocess</span>
+<span class="kn">import</span> <span class="nn">collections</span> <span class="kn">as</span> <span class="nn">_collections</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">_np</span>
 <span class="c"># pylint: disable=no-name-in-module</span>
 <span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">bernoulli</span> <span class="k">as</span> <span class="n">_bernoulli</span>
@@ -141,18 +144,26 @@
 <span class="kn">from</span> <span class="nn">.initialization</span> <span class="kn">import</span> <span class="n">init</span> <span class="k">as</span> <span class="n">_init</span>
 
 <span class="kn">import</span> <span class="nn">caffe</span> <span class="kn">as</span> <span class="nn">_caffe</span>
-<span class="k">try</span><span class="p">:</span>
+<span class="k">try</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
     <span class="kn">import</span> <span class="nn">cv2</span> <span class="kn">as</span> <span class="nn">_cv2</span>
     <span class="n">_cv2INTER_CUBIC</span> <span class="o">=</span> <span class="n">_cv2</span><span class="o">.</span><span class="n">INTER_CUBIC</span>  <span class="c"># pylint: disable=invalid-name</span>
     <span class="n">_cv2INTER_LINEAR</span> <span class="o">=</span> <span class="n">_cv2</span><span class="o">.</span><span class="n">INTER_LINEAR</span>  <span class="c"># pylint: disable=invalid-name</span>
     <span class="n">_cv2INTER_NEAREST</span> <span class="o">=</span> <span class="n">_cv2</span><span class="o">.</span><span class="n">INTER_NEAREST</span>  <span class="c"># pylint: disable=invalid-name</span>
     <span class="n">_cv2resize</span> <span class="o">=</span> <span class="n">_cv2</span><span class="o">.</span><span class="n">resize</span>  <span class="c"># pylint: disable=invalid-name</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
     <span class="n">_cv2</span> <span class="o">=</span> <span class="bp">None</span>
     <span class="n">_cv2INTER_CUBIC</span> <span class="o">=</span> <span class="bp">None</span>  <span class="c"># pylint: disable=invalid-name</span>
     <span class="n">_cv2INTER_LINEAR</span> <span class="o">=</span> <span class="bp">None</span>  <span class="c"># pylint: disable=invalid-name</span>
     <span class="n">_cv2INTER_NEAREST</span> <span class="o">=</span> <span class="bp">None</span>  <span class="c"># pylint: disable=invalid-name</span>
     <span class="n">_cv2resize</span> <span class="o">=</span> <span class="bp">None</span>  <span class="c"># pylint: disable=invalid-name</span>
+<span class="k">try</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
+    <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">_plt</span>
+    <span class="kn">import</span> <span class="nn">matplotlib.ticker</span> <span class="kn">as</span> <span class="nn">_tkr</span>
+    <span class="kn">import</span> <span class="nn">matplotlib.colorbar</span> <span class="kn">as</span> <span class="nn">_colorbar</span>
+    <span class="kn">from</span> <span class="nn">mpl_toolkits.axes_grid1</span> <span class="kn">import</span> <span class="n">make_axes_locatable</span> <span class="k">as</span> <span class="n">_make_axes_locatable</span>
+    <span class="n">_PLT_AVAILABLE</span> <span class="o">=</span> <span class="bp">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
+    <span class="n">_PLT_AVAILABLE</span> <span class="o">=</span> <span class="bp">False</span>
 <span class="n">_init</span><span class="p">()</span>
 <span class="n">_LOGGER</span> <span class="o">=</span> <span class="n">_logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
 
@@ -266,7 +277,7 @@
 <span class="sd">    to the next batch execution.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="ParallelMonitor.get_parallel_blob_names"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.ParallelMonitor.get_parallel_blob_names">[docs]</a>    <span class="k">def</span> <span class="nf">get_parallel_blob_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="ParallelMonitor.get_parallel_blob_names"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.ParallelMonitor.get_parallel_blob_names">[docs]</a>    <span class="k">def</span> <span class="nf">get_parallel_blob_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c"># pragma: no cover</span>
         <span class="sd">&quot;&quot;&quot;Get the names of all blobs that must be provided for the dummy.&quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
 
@@ -376,12 +387,12 @@
                 <span class="s">&#39;data key has no corresponding network blob {} {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                     <span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="o">.</span><span class="n">keys</span><span class="p">()))))</span>
 
-    <span class="k">def</span> <span class="nf">_pre_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_pre_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pragma: no cover</span>
         <span class="n">net</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;testnet&#39;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span> <span class="o">=</span> <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span>
             <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_blobinfos</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">_pre_test_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_pre_test_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pragma: no cover</span>
         <span class="k">for</span> <span class="n">blob_name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_blobinfos</span><span class="p">):</span>
             <span class="k">assert</span> <span class="n">blob_name</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;data_orig&#39;</span><span class="p">],</span> <span class="p">(</span>
                 <span class="s">&quot;The unchanged data must be provided by another DataProvider, &quot;</span>
@@ -443,6 +454,15 @@
 <span class="sd">      List of blobs for which the data will be loaded and stored in a dict</span>
 <span class="sd">      of (name: list) for further processing with other monitors.</span>
 
+<span class="sd">    :param input_processing_flags: dict(string, string).</span>
+<span class="sd">      Dictionary associating input blob names with intended preprocessing</span>
+<span class="sd">      methods. Valid values are:</span>
+<span class="sd">        * n: none,</span>
+<span class="sd">        * rn: resize, nearest neighbour,</span>
+<span class="sd">        * rc: resize, cubic,</span>
+<span class="sd">        * rl: resize, linear,</span>
+<span class="sd">        * pX: padding, with value X.</span>
+
 <span class="sd">    :param virtual_batch_size: int or None.</span>
 <span class="sd">      Override the network batch size. May only be used if ``only_preload`` is</span>
 <span class="sd">      set to True. Only makes sense with another DataMonitor in succession.</span>
@@ -452,6 +472,9 @@
 <span class="sd">      2012). The parameter gives the sigma for the normal distribution that is</span>
 <span class="sd">      sampled to obtain the weights for scaled pixel principal components per</span>
 <span class="sd">      blob.</span>
+
+<span class="sd">    :param shuffle: Bool.</span>
+<span class="sd">      If set to True, shuffle the data every epoch. Default: False.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c"># pylint: disable=too-many-arguments</span>
@@ -460,7 +483,8 @@
                  <span class="n">only_preload</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                  <span class="n">input_processing_flags</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                  <span class="n">virtual_batch_size</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-                 <span class="n">color_data_augmentation_sigmas</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+                 <span class="n">color_data_augmentation_sigmas</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">shuffle</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;See class documentation.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">only_preload</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">only_preload</span> <span class="o">=</span> <span class="p">[]</span>
@@ -504,6 +528,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_color_data_augmentation_weights</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
         <span class="c"># pylint: disable=invalid-name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_color_data_augmentation_components</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_shuffle</span> <span class="o">=</span> <span class="n">shuffle</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sample_order</span> <span class="o">=</span> <span class="bp">None</span>
 
 <div class="viewcode-block" id="CyclingDataMonitor.get_parallel_blob_names"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.CyclingDataMonitor.get_parallel_blob_names">[docs]</a>    <span class="k">def</span> <span class="nf">get_parallel_blob_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_X</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
@@ -560,6 +586,10 @@
             <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">_np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">),</span> <span class="p">(</span>
                 <span class="s">&#39;data must be a numpy nd array or list ({})&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
             <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sample_order</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_len_data</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shuffle</span><span class="p">:</span>
+            <span class="n">_np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_sample_order</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sample_order</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_initialized</span> <span class="o">=</span> <span class="bp">True</span>
 
     <span class="k">def</span> <span class="nf">_pre_fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
@@ -600,12 +630,17 @@
 
     <span class="k">def</span> <span class="nf">_pre_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">net</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pylint: disable=C0111, W0613, R0912</span>
         <span class="c"># this will simply cycle through the data.</span>
-        <span class="n">samples_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">idx</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_len_data</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span>
+        <span class="n">samples_ids</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_sample_order</span><span class="p">[</span><span class="n">idx</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_len_data</span><span class="p">]</span>
+                       <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span>
                        <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sample_pointer</span><span class="p">,</span>
                              <span class="bp">self</span><span class="o">.</span><span class="n">_sample_pointer</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span><span class="p">)]</span>
         <span class="c"># updating the sample pointer for the next time</span>
+        <span class="n">old_sample_pointer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sample_pointer</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_sample_pointer</span> <span class="o">=</span> <span class="p">(</span>
             <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sample_pointer</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">samples_ids</span><span class="p">))</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_len_data</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shuffle</span> <span class="ow">and</span> <span class="n">old_sample_pointer</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sample_pointer</span><span class="p">:</span>
+            <span class="c"># Epoch ended. Reshuffle.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_sample_order</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sample_order</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">only_preload</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">sample_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
@@ -635,7 +670,7 @@
                                 <span class="n">augmented_sample</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
                                     <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]))</span>
                     <span class="k">else</span><span class="p">:</span>
-                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_processing_flags</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;n&#39;</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_processing_flags</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;n&#39;</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
                             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">((</span><span class="s">&quot;Sample size {} does not match &quot;</span> <span class="o">+</span>
                                              <span class="s">&quot;network input size {} and no &quot;</span> <span class="o">+</span>
                                              <span class="s">&quot;preprocessing is allowed!&quot;</span><span class="p">)</span>
@@ -785,6 +820,11 @@
     <span class="k">def</span> <span class="nf">_pre_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">net</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
         <span class="n">scales</span> <span class="o">=</span> <span class="bp">None</span>
         <span class="n">sizes</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="s">&#39;data_orig&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="s">&quot;This data monitor needs a data providing monitor &quot;</span>
+                <span class="s">&quot;to run in advance (e.g., a CyclingDataMonitor with &quot;</span>
+                <span class="s">&quot;`only_preload`)!&quot;</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;data_orig&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_size</span>
             <span class="k">if</span> <span class="n">sizes</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
@@ -1062,8 +1102,11 @@
                         <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span>
                             <span class="p">:,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">new_layer_order</span><span class="p">)]</span>
 
-</div>
-<span class="k">class</span> <span class="nc">_LossIndicator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>  <span class="c"># pylint: disable=R0903</span>
+
+<span class="c"># Is covered in example.py, which is run in a subprocess and not detected by</span>
+<span class="c"># coverage.py.</span>
+<span class="c"># pylint: disable=R0903</span></div>
+<span class="k">class</span> <span class="nc">_LossIndicator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>  <span class="c"># pragma: no cover</span>
 
     <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">    A plugin indicator for the ``progressbar`` package.</span>
@@ -1099,6 +1142,41 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">progress_indicator</span><span class="o">.</span><span class="n">test_accuracy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">ret_val</span> <span class="o">+=</span> <span class="s">&#39;|TAccy: {0:.4f}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">progress_indicator</span><span class="o">.</span><span class="n">test_accuracy</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ret_val</span>
+
+
+<span class="c"># Is covered in example.py, which is run in a subprocess and not detected by</span>
+<span class="c"># coverage.py.</span>
+<span class="c"># pylint: disable=R0903</span>
+<span class="k">class</span> <span class="nc">_SpeedIndicator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>  <span class="c"># pragma: no cover</span>
+
+    <span class="sd">r&quot;&quot;&quot;</span>
+<span class="sd">    A plugin indicator for the ``progressbar`` package.</span>
+
+<span class="sd">    :param progress_indicator:</span>
+<span class="sd">      :py:class:`barrista.monitoring.ProgressIndicator`. The information</span>
+<span class="sd">      source to use.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">progress_indicator</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_progress_indicator</span> <span class="o">=</span> <span class="n">progress_indicator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_active</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_ret</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pbar</span><span class="p">,</span> <span class="n">stats</span><span class="p">):</span>
+        <span class="sd">r&quot;&quot;&quot;Compatibility with new versions of ``progressbar2``.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">pbar</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pbar</span><span class="p">):</span>  <span class="c"># pylint: disable=W0613</span>
+        <span class="sd">&quot;&quot;&quot;The update method to implement by the ``progressbar`` interface.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_active</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_ret</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_ret</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s">&#39;&#39;</span>
+        <span class="c"># pylint: disable=protected-access</span>
+        <span class="n">ret_val</span> <span class="o">=</span> <span class="s">&#39;|</span><span class="si">%.2f</span><span class="s"> smpl./s&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_progress_indicator</span><span class="o">.</span><span class="n">_smplps</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_ret</span> <span class="o">=</span> <span class="n">ret_val</span>
         <span class="k">return</span> <span class="n">ret_val</span>
 
 
@@ -1179,8 +1257,10 @@
             <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;testnet&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_layer_name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">...</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()[</span><span class="mi">0</span><span class="p">]))</span>
         <span class="n">kwargs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_cbparam_key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_test_data</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
-</div>
-<div class="viewcode-block" id="ProgressIndicator"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.ProgressIndicator">[docs]</a><span class="k">class</span> <span class="nc">ProgressIndicator</span><span class="p">(</span><span class="n">Monitor</span><span class="p">):</span>  <span class="c"># pylint: disable=R0903</span>
+
+<span class="c"># Again, tested in a subprocess and not discovered.</span>
+<span class="c"># pylint: disable=R0903</span></div>
+<div class="viewcode-block" id="ProgressIndicator"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.ProgressIndicator">[docs]</a><span class="k">class</span> <span class="nc">ProgressIndicator</span><span class="p">(</span><span class="n">Monitor</span><span class="p">):</span>  <span class="c"># pragma: no cover</span>
 
     <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">    Generates a progress bar with current information about the process.</span>
@@ -1208,13 +1288,18 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">widgets</span> <span class="o">=</span> <span class="p">[</span><span class="n">Bar</span><span class="p">(),</span> <span class="n">Percentage</span><span class="p">(),</span> <span class="s">&#39; &#39;</span><span class="p">,</span> <span class="n">ETA</span><span class="p">()]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pbarclass</span> <span class="o">=</span> <span class="n">ProgressBar</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pbar</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_speed_indicator</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_update</span> <span class="o">=</span> <span class="n">_time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_smplps</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="k">def</span> <span class="nf">_post_train_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pbar</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_speed_indicator</span> <span class="o">=</span> <span class="n">_SpeedIndicator</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
             <span class="k">if</span> <span class="s">&#39;train_loss&#39;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
-                <span class="n">widgets</span> <span class="o">=</span> <span class="p">[</span><span class="n">_LossIndicator</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">widgets</span>
+                <span class="n">widgets</span> <span class="o">=</span> <span class="p">[</span><span class="n">_LossIndicator</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">_speed_indicator</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">widgets</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">widgets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">widgets</span>
+                <span class="n">widgets</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_speed_indicator</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">widgets</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">pbar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pbarclass</span><span class="p">(</span><span class="n">maxval</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;max_iter&#39;</span><span class="p">],</span>
                                        <span class="n">widgets</span><span class="o">=</span><span class="n">widgets</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">pbar</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
@@ -1222,14 +1307,19 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;train_loss&#39;</span><span class="p">]</span>
         <span class="k">if</span> <span class="s">&#39;train_accuracy&#39;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">accuracy</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;train_accuracy&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_smplps</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span>
+            <span class="n">_time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_update</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_update</span> <span class="o">=</span> <span class="n">_time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pbar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">])</span>
 
-    <span class="k">def</span> <span class="nf">_post_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_post_test_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pbar</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_speed_indicator</span> <span class="o">=</span> <span class="n">_SpeedIndicator</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
             <span class="k">if</span> <span class="s">&#39;test_loss&#39;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
-                <span class="n">widgets</span> <span class="o">=</span> <span class="p">[</span><span class="n">_LossIndicator</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">widgets</span>
+                <span class="n">widgets</span> <span class="o">=</span> <span class="p">[</span><span class="n">_LossIndicator</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">_speed_indicator</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">widgets</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">widgets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">widgets</span>
+                <span class="n">widgets</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_speed_indicator</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">widgets</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">pbar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pbarclass</span><span class="p">(</span><span class="n">maxval</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;max_iter&#39;</span><span class="p">],</span>
                                        <span class="n">widgets</span><span class="o">=</span><span class="n">widgets</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">pbar</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
@@ -1237,14 +1327,68 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">test_loss</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;test_loss&#39;</span><span class="p">]</span>
         <span class="k">if</span> <span class="s">&#39;test_accuracy&#39;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">test_accuracy</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;test_accuracy&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_smplps</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span>
+            <span class="n">_time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_update</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_update</span> <span class="o">=</span> <span class="n">_time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pbar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">_post_test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="c"># Write the mean if possible.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pbar</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s">&#39;test_loss&#39;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">test_loss</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;test_loss&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s">&#39;test_accuracy&#39;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">test_accuracy</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;test_accuracy&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pbar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">])</span>
 
 <div class="viewcode-block" id="ProgressIndicator.finalize"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.ProgressIndicator.finalize">[docs]</a>    <span class="k">def</span> <span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pylint: disable=W0613</span>
         <span class="sd">&quot;&quot;&quot;Call ``progressbar.finish()``.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_speed_indicator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="c"># pylint: disable=protected-access</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_speed_indicator</span><span class="o">.</span><span class="n">_active</span> <span class="o">=</span> <span class="bp">False</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pbar</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">pbar</span><span class="o">.</span><span class="n">finish</span><span class="p">()</span>
 
 </div></div>
+<span class="k">def</span> <span class="nf">_sorted_ar_from_dict</span><span class="p">(</span><span class="n">inf</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>  <span class="c"># pragma: no cover</span>
+    <span class="n">iters</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">vals</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">inf</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">values</span><span class="o">.</span><span class="n">has_key</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+            <span class="n">iters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="s">&#39;NumIters&#39;</span><span class="p">]))</span>
+            <span class="n">vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="n">key</span><span class="p">]))</span>
+    <span class="n">sortperm</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">iters</span><span class="p">)</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">iters</span><span class="p">,</span> <span class="n">vals</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
+    <span class="k">return</span> <span class="n">arr</span><span class="p">[</span><span class="n">sortperm</span><span class="p">,</span> <span class="p">:]</span>
+
+
+<span class="k">def</span> <span class="nf">_draw_perfplot</span><span class="p">(</span><span class="n">phases</span><span class="p">,</span> <span class="n">categories</span><span class="p">,</span> <span class="n">ars</span><span class="p">,</span> <span class="n">outfile</span><span class="p">):</span>  <span class="c"># pragma: no cover</span>
+    <span class="sd">&quot;&quot;&quot;Draw the performance plots.&quot;&quot;&quot;</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">_plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">nrows</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">categories</span><span class="p">),</span> <span class="n">sharex</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">category_idx</span><span class="p">,</span> <span class="n">category</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">categories</span><span class="p">):</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="n">category_idx</span><span class="p">]</span>  <span class="c"># pylint: disable=invalid-name</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">category</span><span class="o">.</span><span class="n">title</span><span class="p">())</span>
+        <span class="k">for</span> <span class="n">phase</span> <span class="ow">in</span> <span class="n">phases</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">phase</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="n">category</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ars</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="k">continue</span>
+            <span class="n">ar</span> <span class="o">=</span> <span class="n">ars</span><span class="p">[</span><span class="n">phase</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="n">category</span><span class="p">]</span>  <span class="c"># pylint: disable=invalid-name</span>
+            <span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.7</span>
+            <span class="n">color</span> <span class="o">=</span> <span class="s">&#39;b&#39;</span>
+            <span class="k">if</span> <span class="n">phase</span> <span class="o">==</span> <span class="s">&#39;test&#39;</span><span class="p">:</span>
+                <span class="n">alpha</span> <span class="o">=</span> <span class="mf">1.0</span>
+                <span class="n">color</span> <span class="o">=</span> <span class="s">&#39;g&#39;</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ar</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">ar</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
+                    <span class="n">label</span><span class="o">=</span><span class="n">phase</span><span class="o">.</span><span class="n">title</span><span class="p">(),</span> <span class="n">c</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">phase</span> <span class="o">==</span> <span class="s">&#39;test&#39;</span><span class="p">:</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">ar</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">ar</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
+                           <span class="n">c</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">category</span><span class="o">.</span><span class="n">title</span><span class="p">())</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">()</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">bbox_to_anchor</span><span class="o">=</span><span class="p">(</span><span class="mf">1.05</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">loc</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">borderaxespad</span><span class="o">=</span><span class="mf">0.</span><span class="p">)</span>
+    <span class="n">_plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s">&#39;tight&#39;</span><span class="p">)</span>
+    <span class="n">_plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="JSONLogger"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.JSONLogger">[docs]</a><span class="k">class</span> <span class="nc">JSONLogger</span><span class="p">(</span><span class="n">Monitor</span><span class="p">):</span>  <span class="c"># pylint: disable=R0903</span>
 
     <span class="sd">r&quot;&quot;&quot;</span>
@@ -1275,9 +1419,24 @@
 <span class="sd">    :param base_iter: int or None.</span>
 <span class="sd">      If provided, add this value to the number of iterations. This overrides</span>
 <span class="sd">      the number of iterations retrieved from a loaded JSON log to append to.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">logging</span><span class="p">,</span> <span class="n">base_iter</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+<span class="sd">    :param write_every: int or None.</span>
+<span class="sd">      Write the JSON log every `write_every` iterations. The log is always</span>
+<span class="sd">      written upon completion of the training. If it is None, the log is only</span>
+<span class="sd">      written on completion.</span>
+
+<span class="sd">    :param create_plot: bool.</span>
+<span class="sd">      If set to True, create a plot at `path` when the JSON log is written with</span>
+<span class="sd">      the name of the JSON file + `_plot.png`. Default: False.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># pylint: disable=too-many-arguments</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">path</span><span class="p">,</span>
+                 <span class="n">name</span><span class="p">,</span>
+                 <span class="n">logging</span><span class="p">,</span>
+                 <span class="n">base_iter</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">write_every</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">create_plot</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;See class documentation.&quot;&quot;&quot;</span>
         <span class="kn">import</span> <span class="nn">json</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">json_package</span> <span class="o">=</span> <span class="n">json</span>
@@ -1302,13 +1461,13 @@
                          <span class="bp">self</span><span class="o">.</span><span class="n">base_iter</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dict</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;train&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s">&#39;test&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s">&#39;barrista_produced&#39;</span><span class="p">:</span> <span class="bp">True</span><span class="p">}</span>
+        <span class="k">assert</span> <span class="n">write_every</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">write_every</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write_every</span> <span class="o">=</span> <span class="n">write_every</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_logging</span> <span class="o">=</span> <span class="n">logging</span>
-
-    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Callback implementation.&quot;&quot;&quot;</span>
-        <span class="n">Monitor</span><span class="o">.</span><span class="n">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">json_filename</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outf</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">json_package</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">,</span> <span class="n">outf</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_create_plot</span> <span class="o">=</span> <span class="n">create_plot</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_plot</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">_PLT_AVAILABLE</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s">&quot;Matplotlib must be available to use plotting!&quot;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_initialize_train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_initialize</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
@@ -1328,10 +1487,26 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_post</span><span class="p">(</span><span class="s">&#39;train&#39;</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_post</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">phase_name</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pylint: disable=C0111</span>
-        <span class="k">if</span> <span class="n">phase_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logging</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">phase_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logging</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
             <span class="k">return</span>
         <span class="k">if</span> <span class="n">phase_name</span> <span class="o">==</span> <span class="s">&#39;train&#39;</span><span class="p">:</span>
             <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_write_every</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span>
+                    <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_write_every</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">json_filename</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outf</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">json_package</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">,</span> <span class="n">outf</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_plot</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
+                    <span class="n">categories</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+                    <span class="n">arrs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+                    <span class="k">for</span> <span class="n">plot_phase_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;train&#39;</span><span class="p">,</span> <span class="s">&#39;test&#39;</span><span class="p">]:</span>
+                        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logging</span><span class="p">[</span><span class="n">plot_phase_name</span><span class="p">]:</span>
+                            <span class="n">categories</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">plot_phase_name</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:])</span>
+                            <span class="n">arrs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">_sorted_ar_from_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="n">plot_phase_name</span><span class="p">],</span>
+                                                             <span class="n">key</span><span class="p">)</span>
+                    <span class="n">_draw_perfplot</span><span class="p">([</span><span class="s">&#39;train&#39;</span><span class="p">,</span> <span class="s">&#39;test&#39;</span><span class="p">],</span>
+                                   <span class="n">categories</span><span class="p">,</span>
+                                   <span class="n">arrs</span><span class="p">,</span>
+                                   <span class="bp">self</span><span class="o">.</span><span class="n">json_filename</span> <span class="o">+</span> <span class="s">&#39;_plot.png&#39;</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logging</span><span class="p">[</span><span class="n">phase_name</span><span class="p">]:</span>
             <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="n">phase_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s">&#39;NumIters&#39;</span><span class="p">:</span>
@@ -1344,6 +1519,18 @@
         <span class="sd">&quot;&quot;&quot;Write the json file.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">json_filename</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outf</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">json_package</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">,</span> <span class="n">outf</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_plot</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
+            <span class="n">categories</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+            <span class="n">arrs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">phase_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;train&#39;</span><span class="p">,</span> <span class="s">&#39;test&#39;</span><span class="p">]:</span>
+                <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logging</span><span class="p">[</span><span class="n">phase_name</span><span class="p">]:</span>
+                    <span class="n">categories</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">phase_name</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:])</span>
+                    <span class="n">arrs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">_sorted_ar_from_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="n">phase_name</span><span class="p">],</span> <span class="n">key</span><span class="p">)</span>
+            <span class="n">_draw_perfplot</span><span class="p">([</span><span class="s">&#39;train&#39;</span><span class="p">,</span> <span class="s">&#39;test&#39;</span><span class="p">],</span>
+                           <span class="n">categories</span><span class="p">,</span>
+                           <span class="n">arrs</span><span class="p">,</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">json_filename</span> <span class="o">+</span> <span class="s">&#39;_plot.png&#39;</span><span class="p">)</span>
+
 
 </div></div>
 <div class="viewcode-block" id="Checkpointer"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.Checkpointer">[docs]</a><span class="k">class</span> <span class="nc">Checkpointer</span><span class="p">(</span><span class="n">Monitor</span><span class="p">):</span>  <span class="c"># pylint: disable=R0903</span>
@@ -1378,7 +1565,8 @@
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">name_prefix</span><span class="p">,</span>
-                 <span class="n">iterations</span><span class="p">):</span>
+                 <span class="n">iterations</span><span class="p">,</span>
+                 <span class="n">base_iterations</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;See class documentation.&quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">iterations</span> <span class="o">&gt;</span> <span class="mi">0</span>
         <span class="n">_LOGGER</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Setting up checkpointing with name prefix </span><span class="si">%s</span><span class="s"> every &#39;</span> <span class="o">+</span>
@@ -1386,22 +1574,25 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">name_prefix</span> <span class="o">=</span> <span class="n">name_prefix</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span> <span class="o">=</span> <span class="n">iterations</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">created_checkpoints</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_base_iterations</span> <span class="o">=</span> <span class="n">base_iterations</span>
 
-    <span class="k">def</span> <span class="nf">_post_train_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+    <span class="c"># pylint: disable=arguments-differ</span>
+    <span class="k">def</span> <span class="nf">_post_train_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">,</span> <span class="n">finalize</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span> <span class="o">%</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
             <span class="s">&#39;iterations not multiple of batch_size, {} vs {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]))</span>
         <span class="c"># Prevent double-saving.</span>
         <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">created_checkpoints</span><span class="p">:</span>
             <span class="k">return</span>
-        <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">((</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base_iterations</span> <span class="o">+</span>
+             <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">])</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span>
+                <span class="n">finalize</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">created_checkpoints</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">])</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span><span class="o">+</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">])</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterations</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="c"># pylint: disable=protected-access</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;solver&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">_solver</span><span class="p">,</span> <span class="s">&#39;snapshot&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;solver&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">_solver</span><span class="p">,</span> <span class="s">&#39;snapshot&#39;</span><span class="p">):</span>  <span class="c"># pragma: no cover</span>
                 <span class="n">checkpoint_filename</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">name_prefix</span> <span class="o">+</span> <span class="s">&#39;_iter_&#39;</span> <span class="o">+</span>
-                    <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">/</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">((</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base_iterations</span><span class="p">)</span> <span class="o">/</span>
                             <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span>
                     <span class="s">&#39;.caffemodel&#39;</span><span class="p">)</span>
                 <span class="n">_LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Writing checkpoint to file &#39;</span><span class="si">%s</span><span class="s">&#39;.&quot;</span><span class="p">,</span>
@@ -1412,25 +1603,525 @@
                 <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;solver&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">_solver</span><span class="o">.</span><span class="n">snapshot</span><span class="p">()</span>
                 <span class="n">caffe_checkpoint_filename</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name_prefix</span> <span class="o">+</span>
                                              <span class="s">&#39;_iter_&#39;</span> <span class="o">+</span>
-                                             <span class="nb">str</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">/</span>
+                                             <span class="nb">str</span><span class="p">((</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base_iterations</span><span class="p">)</span> <span class="o">/</span>
                                                  <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span>
                                              <span class="s">&#39;.caffemodel&#39;</span><span class="p">)</span>
                 <span class="n">caffe_sstate_filename</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name_prefix</span> <span class="o">+</span>
                                          <span class="s">&#39;_iter_&#39;</span> <span class="o">+</span>
-                                         <span class="nb">str</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">/</span>
+                                         <span class="nb">str</span><span class="p">((</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base_iterations</span><span class="p">)</span> <span class="o">/</span>
                                              <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span>
                                          <span class="s">&#39;.solverstate&#39;</span><span class="p">)</span>
                 <span class="n">_LOGGER</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&#39;Writing checkpoint to file &quot;[solverprefix]</span><span class="si">%s</span><span class="s">&quot; &#39;</span> <span class="o">+</span>
                               <span class="s">&#39;and &quot;[solverprefix]</span><span class="si">%s</span><span class="s">&quot;.&#39;</span><span class="p">,</span>
                               <span class="n">caffe_checkpoint_filename</span><span class="p">,</span>
                               <span class="n">caffe_sstate_filename</span><span class="p">)</span>
+                <span class="k">assert</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">caffe_checkpoint_filename</span><span class="p">),</span> <span class="p">(</span>
+                    <span class="s">&quot;An error occured checkpointing to {}. File not found. &quot;</span>
+                    <span class="s">&quot;Make sure the `base_iterations` and the `name_prefix` &quot;</span>
+                    <span class="s">&quot;are correct.&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">caffe_checkpoint_filename</span><span class="p">)</span>
+                <span class="k">assert</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">caffe_sstate_filename</span><span class="p">),</span> <span class="p">(</span>
+                    <span class="s">&quot;An error occured checkpointing to {}. File not found. &quot;</span>
+                    <span class="s">&quot;Make sure the `base_iterations` and the `name_prefix` &quot;</span>
+                    <span class="s">&quot;are correct.&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">caffe_sstate_filename</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Checkpointer.finalize"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.Checkpointer.finalize">[docs]</a>    <span class="k">def</span> <span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Write a final checkpoint.&quot;&quot;&quot;</span>
         <span class="c"># Account for the counting on iteration increase for the last batch.</span>
         <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">-=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_post_train_batch</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_post_train_batch</span><span class="p">(</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">finalize</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span>
+
+</div></div>
+<div class="viewcode-block" id="GradientMonitor"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.GradientMonitor">[docs]</a><span class="k">class</span> <span class="nc">GradientMonitor</span><span class="p">(</span><span class="n">Monitor</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Tools to keep an eye on the gradient.</span>
+
+<span class="sd">    Create plots of the gradient. Creates histograms of the gradient for all</span>
+<span class="sd">    ``selected_parameters`` and creates an overview plot with the maximum</span>
+<span class="sd">    absolute gradient per layer. If ``create_videos`` is set and ffmpeg is</span>
+<span class="sd">    available, automatically creates videos.</span>
+
+<span class="sd">    :param write_every: int.</span>
+<span class="sd">      Write every x iterations. Since matplotlib takes some time to run, choose</span>
+<span class="sd">      with care.</span>
+
+<span class="sd">    :param output_folder: string.</span>
+<span class="sd">      Where to store the outputs.</span>
+
+<span class="sd">    :param selected_parameters: dict(string, list(int)) or None.</span>
+<span class="sd">      Which parameters to include in the plots. The string is the name of the</span>
+<span class="sd">      layer, the list of integers contains the parts to include, e.g., for a</span>
+<span class="sd">      convolution layer, specify the name of the layer as key and 0 for</span>
+<span class="sd">      the parameters of the convolution weights, 1 for the biases per channel.</span>
+<span class="sd">      The order and meaning of parameter blobs is determined by caffe. If</span>
+<span class="sd">      None, then all parameters are plotted. Default: None.</span>
+
+<span class="sd">    :param relative: Bool.</span>
+<span class="sd">      If set to True, will give the weights relative to the max absolute weight</span>
+<span class="sd">      in the target parameter blob. Default: False.</span>
+
+<span class="sd">    :param iteroffset: int.</span>
+<span class="sd">      An iteration offset if training is resumed to not overwrite existing</span>
+<span class="sd">      output. Default: 0.</span>
+
+<span class="sd">    :param create_videos: Bool.</span>
+<span class="sd">      If set to True, try to create a video using ffmpeg. Default: True.</span>
+
+<span class="sd">    :param video_frame_rate: int.</span>
+<span class="sd">      The video frame rate.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>  <span class="c"># pylint: disable=too-many-arguments</span>
+                 <span class="n">write_every</span><span class="p">,</span>
+                 <span class="n">output_folder</span><span class="p">,</span>
+                 <span class="n">selected_parameters</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">relative</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                 <span class="n">iteroffset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                 <span class="n">create_videos</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+                 <span class="n">video_frame_rate</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">write_every</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write_every</span> <span class="o">=</span> <span class="n">write_every</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_output_folder</span> <span class="o">=</span> <span class="n">output_folder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_selected_parameters</span> <span class="o">=</span> <span class="n">selected_parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_relative</span> <span class="o">=</span> <span class="n">relative</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_parameters</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_iteroffset</span> <span class="o">=</span> <span class="n">iteroffset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_create_videos</span> <span class="o">=</span> <span class="n">create_videos</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_video_frame_rate</span> <span class="o">=</span> <span class="n">video_frame_rate</span>
+
+    <span class="k">def</span> <span class="nf">_initialize_train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pragma: no cover</span>
+        <span class="k">assert</span> <span class="n">_PLT_AVAILABLE</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s">&quot;Matplotlib must be available to use the GradientMonitor!&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_write_every</span> <span class="o">%</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s">&quot;`write_every` must be a multiple of the batch size!&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_parameters</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_selected_parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_selected_parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="k">assert</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">p_idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_selected_parameters</span><span class="p">[</span><span class="n">name</span><span class="p">]:</span>
+                    <span class="k">assert</span> <span class="n">p_idx</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+                    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">name</span><span class="p">])</span> <span class="o">&gt;</span> <span class="n">p_idx</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_n_parameters</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_selected_parameters</span> <span class="o">=</span> <span class="n">_collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_selected_parameters</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span>
+                    <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">name</span><span class="p">]))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_n_parameters</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
+
+    <span class="c"># pylint: disable=too-many-locals</span>
+    <span class="k">def</span> <span class="nf">_post_train_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pragma: no cover</span>
+        <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_write_every</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">net</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span>
+            <span class="n">maxabsupdates</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">maxabsupdates_flat</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="c"># Create histograms.</span>
+            <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">_plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">nrows</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                                      <span class="n">ncols</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_parameters</span><span class="p">,</span>
+                                      <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_parameters</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+            <span class="n">ax_idx</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">xfmt</span> <span class="o">=</span> <span class="n">_tkr</span><span class="o">.</span><span class="n">FormatStrFormatter</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%.1e</span><span class="s">&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">lname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_selected_parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">maxabsupdates</span><span class="p">[</span><span class="n">lname</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">p_idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_selected_parameters</span><span class="p">[</span><span class="n">lname</span><span class="p">]:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_relative</span><span class="p">:</span>
+                        <span class="n">lgradient</span> <span class="o">=</span> <span class="p">(</span><span class="n">net</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">lname</span><span class="p">][</span><span class="n">p_idx</span><span class="p">]</span><span class="o">.</span><span class="n">diff</span> <span class="o">/</span>
+                                     <span class="n">net</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">lname</span><span class="p">][</span><span class="n">p_idx</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">lgradient</span> <span class="o">=</span> <span class="n">net</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">lname</span><span class="p">][</span><span class="n">p_idx</span><span class="p">]</span><span class="o">.</span><span class="n">diff</span>
+                    <span class="n">maxabsupdates</span><span class="p">[</span><span class="n">lname</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">lgradient</span><span class="p">)))</span>
+                    <span class="n">maxabsupdates_flat</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">lgradient</span><span class="p">)))</span>
+                    <span class="n">axes</span><span class="p">[</span><span class="n">ax_idx</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">lname</span> <span class="o">+</span> <span class="s">&#39;, p</span><span class="si">%d</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">p_idx</span><span class="p">))</span>
+                    <span class="n">axes</span><span class="p">[</span><span class="n">ax_idx</span><span class="p">]</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">lgradient</span><span class="o">.</span><span class="n">flat</span><span class="p">),</span>
+                                      <span class="mi">25</span><span class="p">,</span>
+                                      <span class="n">normed</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                                      <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+                    <span class="n">axes</span><span class="p">[</span><span class="n">ax_idx</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="n">maxabsupdates_flat</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                                                         <span class="n">maxabsupdates_flat</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                                                         <span class="n">num</span><span class="o">=</span><span class="mi">3</span><span class="p">))</span>
+                    <span class="n">axes</span><span class="p">[</span><span class="n">ax_idx</span><span class="p">]</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="bp">False</span><span class="p">)</span>
+                    <span class="n">axes</span><span class="p">[</span><span class="n">ax_idx</span><span class="p">]</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_major_formatter</span><span class="p">(</span><span class="n">xfmt</span><span class="p">)</span>
+                    <span class="n">ax_idx</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">_plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">(</span><span class="n">rect</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">])</span>
+            <span class="n">_plt</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s">&quot;Gradient histograms for iteration </span><span class="si">%d</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iteroffset</span><span class="p">))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_relative</span><span class="p">:</span>
+                <span class="n">ghname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_folder</span> <span class="o">+</span> <span class="s">&#39;gradient_hists_rel_</span><span class="si">%d</span><span class="s">.png&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_iteroffset</span> <span class="o">+</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">])</span> <span class="o">/</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_write_every</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ghname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_folder</span> <span class="o">+</span> <span class="s">&#39;gradient_hists_</span><span class="si">%d</span><span class="s">.png&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_iteroffset</span> <span class="o">+</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">])</span> <span class="o">/</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_write_every</span><span class="p">)</span>
+            <span class="n">_plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">ghname</span><span class="p">)</span>
+            <span class="n">_plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+            <span class="c"># Create the magnitude overview plot.</span>
+            <span class="n">fig</span> <span class="o">=</span> <span class="n">_plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_parameters</span> <span class="o">*</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">))</span>
+            <span class="n">_plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">&quot;Maximum absolute gradient per layer (iteration </span><span class="si">%d</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iteroffset</span><span class="p">))</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">_plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>  <span class="c"># pylint: disable=invalid-name</span>
+            <span class="c"># pylint: disable=invalid-name</span>
+            <span class="n">im</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">maxabsupdates_flat</span><span class="p">)),</span>
+                           <span class="n">interpolation</span><span class="o">=</span><span class="s">&#39;none&#39;</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="bp">False</span><span class="p">)</span>
+            <span class="n">divider</span> <span class="o">=</span> <span class="n">_make_axes_locatable</span><span class="p">(</span><span class="n">ax</span><span class="p">)</span>
+            <span class="n">cax</span> <span class="o">=</span> <span class="n">divider</span><span class="o">.</span><span class="n">append_axes</span><span class="p">(</span><span class="s">&quot;right&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="s">&quot;10%&quot;</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span>
+            <span class="n">_plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="n">cax</span><span class="o">=</span><span class="n">cax</span><span class="p">,</span> <span class="n">ticks</span><span class="o">=</span><span class="n">_np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">maxabsupdates_flat</span><span class="p">),</span>
+                                                          <span class="n">_np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">maxabsupdates_flat</span><span class="p">),</span>
+                                                          <span class="mi">5</span><span class="p">))</span>
+            <span class="n">_plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">(</span><span class="n">rect</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">])</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_relative</span><span class="p">:</span>
+                <span class="n">gmname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_folder</span> <span class="o">+</span> <span class="s">&#39;gradient_magnitude_rel_</span><span class="si">%d</span><span class="s">.png&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_iteroffset</span> <span class="o">+</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">])</span> <span class="o">/</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_write_every</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">gmname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_folder</span> <span class="o">+</span> <span class="s">&#39;gradient_magnitude_</span><span class="si">%d</span><span class="s">.png&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_iteroffset</span> <span class="o">+</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">])</span> <span class="o">/</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_write_every</span><span class="p">)</span>
+            <span class="n">_plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">gmname</span><span class="p">)</span>
+            <span class="n">_plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GradientMonitor.finalize"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.GradientMonitor.finalize">[docs]</a>    <span class="k">def</span> <span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pragma: no cover</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_videos</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_folder</span><span class="p">,</span>
+                                                     <span class="s">&#39;videos&#39;</span><span class="p">)):</span>
+                    <span class="n">_os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_folder</span><span class="p">,</span> <span class="s">&#39;videos&#39;</span><span class="p">))</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_relative</span><span class="p">:</span>
+                    <span class="n">rel_add</span> <span class="o">=</span> <span class="s">&#39;_rel&#39;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">rel_add</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">devnull</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">quiet</span><span class="p">:</span>
+                    <span class="n">_subprocess</span><span class="o">.</span><span class="n">check_call</span><span class="p">([</span>
+                        <span class="s">&#39;ffmpeg&#39;</span><span class="p">,</span>
+                        <span class="s">&#39;-start_number&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                        <span class="s">&#39;-r&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_video_frame_rate</span><span class="p">),</span>
+                        <span class="s">&#39;-i&#39;</span><span class="p">,</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_folder</span><span class="p">,</span>
+                                            <span class="s">&#39;gradient_hists&#39;</span> <span class="o">+</span> <span class="n">rel_add</span> <span class="o">+</span> <span class="s">&#39;_</span><span class="si">%d</span><span class="s">.png&#39;</span><span class="p">),</span>
+                        <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_folder</span><span class="p">,</span>
+                                      <span class="s">&#39;videos&#39;</span><span class="p">,</span>
+                                      <span class="s">&#39;gradient_hists&#39;</span> <span class="o">+</span> <span class="n">rel_add</span> <span class="o">+</span> <span class="s">&#39;.mp4&#39;</span><span class="p">)</span>
+                    <span class="p">],</span> <span class="n">stdout</span><span class="o">=</span><span class="n">quiet</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">quiet</span><span class="p">)</span>
+                    <span class="n">_subprocess</span><span class="o">.</span><span class="n">check_call</span><span class="p">([</span>
+                        <span class="s">&#39;ffmpeg&#39;</span><span class="p">,</span>
+                        <span class="s">&#39;-start_number&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                        <span class="s">&#39;-r&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_video_frame_rate</span><span class="p">),</span>
+                        <span class="s">&#39;-i&#39;</span><span class="p">,</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_folder</span><span class="p">,</span>
+                                            <span class="s">&#39;gradient_magnitude&#39;</span> <span class="o">+</span> <span class="n">rel_add</span> <span class="o">+</span> <span class="s">&#39;_</span><span class="si">%d</span><span class="s">.png&#39;</span><span class="p">),</span>
+                        <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_folder</span><span class="p">,</span>
+                                      <span class="s">&#39;videos&#39;</span><span class="p">,</span>
+                                      <span class="s">&#39;gradient_magnitude&#39;</span> <span class="o">+</span> <span class="n">rel_add</span> <span class="o">+</span> <span class="s">&#39;.mp4&#39;</span><span class="p">)</span>
+                    <span class="p">],</span> <span class="n">stdout</span><span class="o">=</span><span class="n">quiet</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">quiet</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>  <span class="c"># pylint: disable=broad-except</span>
+                <span class="n">_LOGGER</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="s">&quot;Could not create videos! Error: </span><span class="si">%s</span><span class="s">. Is &quot;</span> <span class="o">+</span>
+                    <span class="s">&quot;ffmpeg available on the command line?&quot;</span><span class="p">,</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">ex</span><span class="p">))</span>
+
+</div></div>
+<div class="viewcode-block" id="ActivationMonitor"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.ActivationMonitor">[docs]</a><span class="k">class</span> <span class="nc">ActivationMonitor</span><span class="p">(</span><span class="n">Monitor</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Tools to keep an eye on the net activations.</span>
+
+<span class="sd">    Create plots of the net activations. If ``create_videos`` is set and</span>
+<span class="sd">    ffmpeg is available, automatically creates videos.</span>
+
+<span class="sd">    :param write_every: int.</span>
+<span class="sd">      Write every x iterations. Since matplotlib takes some time to run, choose</span>
+<span class="sd">      with care.</span>
+
+<span class="sd">    :param output_folder: string.</span>
+<span class="sd">      Where to store the outputs.</span>
+
+<span class="sd">    :param selected_blobs: list(string) or None.</span>
+<span class="sd">      Which blobs to include in the plots. If</span>
+<span class="sd">      None, then all parameters are plotted. Default: None.</span>
+
+<span class="sd">    :param iteroffset: int.</span>
+<span class="sd">      An iteration offset if training is resumed to not overwrite existing</span>
+<span class="sd">      output. Default: 0.</span>
+
+<span class="sd">    :param sample: dict(string, NDarray(3D)).</span>
+<span class="sd">      A sample to use that will be forward propagated to obtain the activations.</span>
+<span class="sd">      Must contain one for every input layer of the network. Each sample is not</span>
+<span class="sd">      preprocessed and must fit the input. If None, use the existing values</span>
+<span class="sd">      from the blobs.</span>
+
+<span class="sd">    :param create_videos: Bool.</span>
+<span class="sd">      If set to True, try to create a video using ffmpeg. Default: True.</span>
+
+<span class="sd">    :param video_frame_rate: int.</span>
+<span class="sd">      The video frame rate.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># pylint: disable=too-many-arguments</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>  <span class="c"># pragma: no cover</span>
+                 <span class="n">write_every</span><span class="p">,</span>
+                 <span class="n">output_folder</span><span class="p">,</span>
+                 <span class="n">selected_blobs</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">iteroffset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                 <span class="n">sample</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">create_videos</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+                 <span class="n">video_frame_rate</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">write_every</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write_every</span> <span class="o">=</span> <span class="n">write_every</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_output_folder</span> <span class="o">=</span> <span class="n">output_folder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_selected_blobs</span> <span class="o">=</span> <span class="n">selected_blobs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_parameters</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_iteroffset</span> <span class="o">=</span> <span class="n">iteroffset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_create_videos</span> <span class="o">=</span> <span class="n">create_videos</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_video_frame_rate</span> <span class="o">=</span> <span class="n">video_frame_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sample</span> <span class="o">=</span> <span class="n">sample</span>
+
+    <span class="k">def</span> <span class="nf">_initialize_train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pragma: no cover</span>
+        <span class="k">assert</span> <span class="n">_PLT_AVAILABLE</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s">&quot;Matplotlib must be available to use the ActivationMonitor!&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_write_every</span> <span class="o">%</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s">&quot;`write_every` must be a multiple of the batch size!&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_parameters</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_selected_blobs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_selected_blobs</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">blobs</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="p">(</span>
+                    <span class="s">&quot;The activation monitor should monitor {}, which is not &quot;</span>
+                    <span class="s">&quot;part of the net!&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_n_parameters</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_selected_blobs</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">blobs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">bshape</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bshape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_selected_blobs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_n_parameters</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sample</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">inp_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sample</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="k">assert</span> <span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">inp_name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">==</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_sample</span><span class="p">[</span><span class="n">inp_name</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="p">(</span>
+                            <span class="s">&quot;All provided inputs as `sample` must have the shape &quot;</span>
+                            <span class="s">&quot;of an input blob, starting from its sample &quot;</span>
+                            <span class="s">&quot;dimension. Does not match for </span><span class="si">%s</span><span class="s">: </span><span class="si">%s</span><span class="s"> vs. </span><span class="si">%s</span><span class="s">.&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                                <span class="n">inp_name</span><span class="p">,</span>
+                                <span class="nb">str</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">inp_name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]),</span>
+                                <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sample</span><span class="p">[</span><span class="n">inp_name</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)))</span>
+
+    <span class="c"># pylint: disable=too-many-locals</span>
+    <span class="k">def</span> <span class="nf">_post_train_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pragma: no cover</span>
+        <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_write_every</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">net</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sample</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">bname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sample</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">bname</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sample</span><span class="p">[</span><span class="n">bname</span><span class="p">]</span>
+                    <span class="n">net</span><span class="o">.</span><span class="n">forward</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">bname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_selected_blobs</span><span class="p">:</span>
+                <span class="n">blob</span> <span class="o">=</span> <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">bname</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+                <span class="n">nchannels</span> <span class="o">=</span> <span class="n">blob</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">gridlen</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">nchannels</span><span class="p">)))</span>
+                <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">_plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">nrows</span><span class="o">=</span><span class="n">gridlen</span><span class="p">,</span>
+                                          <span class="n">ncols</span><span class="o">=</span><span class="n">gridlen</span><span class="p">,</span>
+                                          <span class="n">squeeze</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+                <span class="n">bmin</span> <span class="o">=</span> <span class="n">blob</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+                <span class="n">bmax</span> <span class="o">=</span> <span class="n">blob</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">c_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nchannels</span><span class="p">):</span>
+                    <span class="n">ax</span> <span class="o">=</span> <span class="n">axes</span><span class="o">.</span><span class="n">flat</span><span class="p">[</span><span class="n">c_idx</span><span class="p">]</span>  <span class="c"># pylint: disable=invalid-name</span>
+                    <span class="n">im</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">blob</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">c_idx</span><span class="p">],</span>  <span class="c"># pylint: disable=invalid-name</span>
+                                   <span class="n">vmin</span><span class="o">=</span><span class="n">bmin</span><span class="p">,</span>
+                                   <span class="n">vmax</span><span class="o">=</span><span class="n">bmax</span><span class="p">,</span>
+                                   <span class="n">cmap</span><span class="o">=</span><span class="s">&#39;Greys_r&#39;</span><span class="p">,</span>
+                                   <span class="n">interpolation</span><span class="o">=</span><span class="s">&#39;none&#39;</span><span class="p">)</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s">&#39;C</span><span class="si">%d</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">c_idx</span><span class="p">))</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="bp">False</span><span class="p">)</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="bp">False</span><span class="p">)</span>
+                <span class="c"># pylint: disable=undefined-loop-variable</span>
+                <span class="k">for</span> <span class="n">blank_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">c_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">gridlen</span> <span class="o">*</span> <span class="n">gridlen</span><span class="p">):</span>
+                    <span class="n">ax</span> <span class="o">=</span> <span class="n">axes</span><span class="o">.</span><span class="n">flat</span><span class="p">[</span><span class="n">blank_idx</span><span class="p">]</span>  <span class="c"># pylint: disable=invalid-name</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s">&#39;off&#39;</span><span class="p">)</span>
+                <span class="n">_plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">(</span><span class="n">rect</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">])</span>
+                <span class="n">_plt</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s">&quot;Activations in blob </span><span class="si">%s</span><span class="s"> (iteration </span><span class="si">%d</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="n">bname</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iteroffset</span> <span class="o">+</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]))</span>
+                <span class="n">cbax</span><span class="p">,</span> <span class="n">cbkw</span> <span class="o">=</span> <span class="n">_colorbar</span><span class="o">.</span><span class="n">make_axes</span><span class="p">([</span><span class="n">ax</span> <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">axes</span><span class="o">.</span><span class="n">flat</span><span class="p">])</span>
+                <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="n">cax</span><span class="o">=</span><span class="n">cbax</span><span class="p">,</span> <span class="o">**</span><span class="n">cbkw</span><span class="p">)</span>
+                <span class="n">_plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_folder</span> <span class="o">+</span>
+                             <span class="s">&#39;activations_</span><span class="si">%s</span><span class="s">_</span><span class="si">%d</span><span class="s">.png&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                                 <span class="n">bname</span><span class="p">,</span>
+                                 <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_iteroffset</span> <span class="o">+</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">])</span> <span class="o">/</span>
+                                 <span class="bp">self</span><span class="o">.</span><span class="n">_write_every</span><span class="p">))</span>
+                <span class="n">_plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ActivationMonitor.finalize"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.ActivationMonitor.finalize">[docs]</a>    <span class="k">def</span> <span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pragma: no cover</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_videos</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_folder</span><span class="p">,</span>
+                                                     <span class="s">&#39;videos&#39;</span><span class="p">)):</span>
+                    <span class="n">_os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_folder</span><span class="p">,</span> <span class="s">&#39;videos&#39;</span><span class="p">))</span>
+                <span class="k">for</span> <span class="n">bname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_selected_blobs</span><span class="p">:</span>
+                    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">devnull</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">quiet</span><span class="p">:</span>
+                        <span class="n">_subprocess</span><span class="o">.</span><span class="n">check_call</span><span class="p">([</span>
+                            <span class="s">&#39;ffmpeg&#39;</span><span class="p">,</span>
+                            <span class="s">&#39;-start_number&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                            <span class="s">&#39;-r&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_video_frame_rate</span><span class="p">),</span>
+                            <span class="s">&#39;-i&#39;</span><span class="p">,</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_folder</span><span class="p">,</span>
+                                                <span class="s">&#39;activations_&#39;</span> <span class="o">+</span> <span class="n">bname</span> <span class="o">+</span> <span class="s">&#39;_</span><span class="si">%d</span><span class="s">.png&#39;</span><span class="p">),</span>
+                            <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_folder</span><span class="p">,</span>
+                                          <span class="s">&#39;videos&#39;</span><span class="p">,</span>
+                                          <span class="s">&#39;activations_&#39;</span> <span class="o">+</span> <span class="n">bname</span> <span class="o">+</span> <span class="s">&#39;.mp4&#39;</span><span class="p">)</span>
+                        <span class="p">],</span> <span class="n">stdout</span><span class="o">=</span><span class="n">quiet</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">quiet</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>  <span class="c"># pylint: disable=broad-except</span>
+                <span class="n">_LOGGER</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="s">&quot;Could not create videos! Error: </span><span class="si">%s</span><span class="s">. Is &quot;</span> <span class="o">+</span>
+                    <span class="s">&quot;ffmpeg available on the command line?&quot;</span><span class="p">,</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">ex</span><span class="p">))</span>
+
+</div></div>
+<div class="viewcode-block" id="FilterMonitor"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.FilterMonitor">[docs]</a><span class="k">class</span> <span class="nc">FilterMonitor</span><span class="p">(</span><span class="n">Monitor</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Tools to keep an eye on the filters.</span>
+
+<span class="sd">    Create plots of the network filters. Creates filter plots for all</span>
+<span class="sd">    ``selected_parameters``. If ``create_videos`` is set and ffmpeg is</span>
+<span class="sd">    available, automatically creates videos.</span>
+
+<span class="sd">    :param write_every: int.</span>
+<span class="sd">      Write every x iterations. Since matplotlib takes some time to run, choose</span>
+<span class="sd">      with care.</span>
+
+<span class="sd">    :param output_folder: string.</span>
+<span class="sd">      Where to store the outputs.</span>
+
+<span class="sd">    :param selected_parameters: dict(string, list(int)) or None.</span>
+<span class="sd">      Which parameters to include in the plots. The string is the name of the</span>
+<span class="sd">      layer, the list of integers contains the parts to include, e.g., for a</span>
+<span class="sd">      convolution layer, specify the name of the layer as key and 0 for</span>
+<span class="sd">      the parameters of the convolution weights, 1 for the biases per channel.</span>
+<span class="sd">      The order and meaning of parameter blobs is determined by caffe. If</span>
+<span class="sd">      None, then all parameters are plotted. **Only 4D blobs can be plotted!**</span>
+<span class="sd">      Default: None.</span>
+
+<span class="sd">    :param iteroffset: int.</span>
+<span class="sd">      An iteration offset if training is resumed to not overwrite existing</span>
+<span class="sd">      output. Default: 0.</span>
+
+<span class="sd">    :param create_videos: Bool.</span>
+<span class="sd">      If set to True, try to create a video using ffmpeg. Default: True.</span>
+
+<span class="sd">    :param video_frame_rate: int.</span>
+<span class="sd">      The video frame rate.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># pylint: disable=too-many-arguments</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>  <span class="c"># pragma: no cover</span>
+                 <span class="n">write_every</span><span class="p">,</span>
+                 <span class="n">output_folder</span><span class="p">,</span>
+                 <span class="n">selected_parameters</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">iteroffset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                 <span class="n">create_videos</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+                 <span class="n">video_frame_rate</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">write_every</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write_every</span> <span class="o">=</span> <span class="n">write_every</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_output_folder</span> <span class="o">=</span> <span class="n">output_folder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_selected_parameters</span> <span class="o">=</span> <span class="n">selected_parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_parameters</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_iteroffset</span> <span class="o">=</span> <span class="n">iteroffset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_create_videos</span> <span class="o">=</span> <span class="n">create_videos</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_video_frame_rate</span> <span class="o">=</span> <span class="n">video_frame_rate</span>
+
+    <span class="k">def</span> <span class="nf">_initialize_train</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pragma: no cover</span>
+        <span class="k">assert</span> <span class="n">_PLT_AVAILABLE</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s">&quot;Matplotlib must be available to use the FilterMonitor!&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_write_every</span> <span class="o">%</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;batch_size&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s">&quot;`write_every` must be a multiple of the batch size!&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_parameters</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_selected_parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_selected_parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="k">assert</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">p_idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_selected_parameters</span><span class="p">[</span><span class="n">name</span><span class="p">]:</span>
+                    <span class="k">assert</span> <span class="n">p_idx</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+                    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">p_idx</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_n_parameters</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_selected_parameters</span> <span class="o">=</span> <span class="n">_collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_selected_parameters</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">pindex</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">name</span><span class="p">])):</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">pindex</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_selected_parameters</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pindex</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_n_parameters</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">_post_train_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pragma: no cover</span>
+        <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">]</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_write_every</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">net</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;net&#39;</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">pname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_selected_parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="k">for</span> <span class="n">pindex</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_selected_parameters</span><span class="p">[</span><span class="n">pname</span><span class="p">]:</span>
+                    <span class="n">fig</span> <span class="o">=</span> <span class="n">_plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+                    <span class="n">param</span> <span class="o">=</span> <span class="n">net</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">pname</span><span class="p">][</span><span class="n">pindex</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+                    <span class="n">border</span> <span class="o">=</span> <span class="mi">2</span>
+                    <span class="n">collected_weights</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">param</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span>
+                                                   <span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">border</span><span class="p">)</span> <span class="o">+</span>
+                                                   <span class="n">border</span><span class="p">,</span>
+                                                   <span class="n">param</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span>
+                                                   <span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="n">border</span><span class="p">)</span> <span class="o">+</span>
+                                                   <span class="n">border</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;float32&#39;</span><span class="p">)</span>
+                    <span class="n">pmin</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+                    <span class="n">pmax</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+                    <span class="c"># Build up the plot manually because matplotlib is too slow.</span>
+                    <span class="k">for</span> <span class="n">filter_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                        <span class="k">for</span> <span class="n">layer_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                            <span class="n">collected_weights</span><span class="p">[</span><span class="n">border</span> <span class="o">+</span> <span class="n">filter_idx</span> <span class="o">*</span> <span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">border</span><span class="p">):</span>
+                                              <span class="n">border</span> <span class="o">+</span> <span class="n">filter_idx</span> <span class="o">*</span> <span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">border</span><span class="p">)</span> <span class="o">+</span>
+                                              <span class="n">param</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                                              <span class="n">border</span> <span class="o">+</span> <span class="n">layer_idx</span> <span class="o">*</span> <span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="n">border</span><span class="p">):</span>
+                                              <span class="n">border</span> <span class="o">+</span> <span class="n">layer_idx</span> <span class="o">*</span> <span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="n">border</span><span class="p">)</span> <span class="o">+</span>
+                                              <span class="n">param</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span>
+                                                  <span class="p">(</span><span class="n">param</span><span class="p">[</span><span class="n">filter_idx</span><span class="p">,</span> <span class="n">layer_idx</span><span class="p">]</span> <span class="o">-</span> <span class="n">pmin</span><span class="p">)</span>
+                                                  <span class="o">/</span> <span class="p">(</span><span class="n">pmax</span> <span class="o">-</span> <span class="n">pmin</span><span class="p">))</span>
+                    <span class="n">_plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">collected_weights</span><span class="p">,</span>
+                                <span class="n">cmap</span><span class="o">=</span><span class="s">&#39;Greys_r&#39;</span><span class="p">,</span>
+                                <span class="n">interpolation</span><span class="o">=</span><span class="s">&#39;none&#39;</span><span class="p">)</span>
+                    <span class="n">ax</span> <span class="o">=</span> <span class="n">_plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>  <span class="c"># pylint: disable=invalid-name</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="bp">False</span><span class="p">)</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="bp">False</span><span class="p">)</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">((</span>
+                        <span class="s">&quot;Values of layer </span><span class="si">%s</span><span class="s">, param </span><span class="si">%d</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">+</span>
+                        <span class="s">&quot;(iteration </span><span class="si">%d</span><span class="s">, min </span><span class="si">%.1e</span><span class="s">, max </span><span class="si">%.1e</span><span class="s">)&quot;</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span>
+                            <span class="n">pname</span><span class="p">,</span> <span class="n">pindex</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iteroffset</span> <span class="o">+</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">],</span> <span class="n">pmin</span><span class="p">,</span> <span class="n">pmax</span><span class="p">))</span>
+                    <span class="n">_plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_folder</span> <span class="o">+</span>
+                                 <span class="s">&#39;parameters_</span><span class="si">%s</span><span class="s">_</span><span class="si">%d</span><span class="s">_</span><span class="si">%d</span><span class="s">.png&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                                     <span class="n">pname</span><span class="p">,</span>
+                                     <span class="n">pindex</span><span class="p">,</span>
+                                     <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_iteroffset</span> <span class="o">+</span> <span class="n">kwargs</span><span class="p">[</span><span class="s">&#39;iter&#39;</span><span class="p">])</span> <span class="o">/</span>
+                                     <span class="bp">self</span><span class="o">.</span><span class="n">_write_every</span><span class="p">))</span>
+                    <span class="n">_plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+
+<div class="viewcode-block" id="FilterMonitor.finalize"><a class="viewcode-back" href="../../barrista.html#barrista.monitoring.FilterMonitor.finalize">[docs]</a>    <span class="k">def</span> <span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>  <span class="c"># pragma: no cover</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_videos</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_folder</span><span class="p">,</span>
+                                                     <span class="s">&#39;videos&#39;</span><span class="p">)):</span>
+                    <span class="n">_os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_folder</span><span class="p">,</span> <span class="s">&#39;videos&#39;</span><span class="p">))</span>
+                <span class="k">for</span> <span class="n">pname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_selected_parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="k">for</span> <span class="n">pindex</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_selected_parameters</span><span class="p">[</span><span class="n">pname</span><span class="p">]:</span>
+                        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">devnull</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">quiet</span><span class="p">:</span>
+                            <span class="n">_subprocess</span><span class="o">.</span><span class="n">check_call</span><span class="p">([</span>
+                                <span class="s">&#39;ffmpeg&#39;</span><span class="p">,</span>
+                                <span class="s">&#39;-start_number&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                                <span class="s">&#39;-r&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_video_frame_rate</span><span class="p">),</span>
+                                <span class="s">&#39;-i&#39;</span><span class="p">,</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_folder</span><span class="p">,</span>
+                                                    <span class="s">&#39;parameters_&#39;</span> <span class="o">+</span>
+                                                    <span class="n">pname</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
+                                                    <span class="nb">str</span><span class="p">(</span><span class="n">pindex</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
+                                                    <span class="s">&#39;</span><span class="si">%d</span><span class="s">.png&#39;</span><span class="p">),</span>
+                                <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_folder</span><span class="p">,</span>
+                                              <span class="s">&#39;videos&#39;</span><span class="p">,</span>
+                                              <span class="s">&#39;parameters_&#39;</span> <span class="o">+</span>
+                                              <span class="n">pname</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span>
+                                              <span class="nb">str</span><span class="p">(</span><span class="n">pindex</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;.mp4&#39;</span><span class="p">)</span>
+                            <span class="p">],</span> <span class="n">stdout</span><span class="o">=</span><span class="n">quiet</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="n">quiet</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>  <span class="c"># pylint: disable=broad-except</span>
+                <span class="n">_LOGGER</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="s">&quot;Could not create videos! Error: </span><span class="si">%s</span><span class="s">. Is &quot;</span> <span class="o">+</span>
+                    <span class="s">&quot;ffmpeg available on the command line?&quot;</span><span class="p">,</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">ex</span><span class="p">))</span></div></div>
 </pre></div>
 
            </div>

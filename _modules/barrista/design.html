@@ -152,10 +152,10 @@
 <span class="kn">from</span> <span class="nn">.tools</span> <span class="kn">import</span> <span class="n">chunks</span> <span class="k">as</span> <span class="n">_chunks</span><span class="p">,</span> <span class="n">pbufToPyEnum</span> <span class="k">as</span> <span class="n">_pbufToPyEnum</span>
 
 <span class="kn">import</span> <span class="nn">caffe.proto.caffe_pb2</span> <span class="kn">as</span> <span class="nn">_caffe_pb2</span>
-<span class="k">try</span><span class="p">:</span>
+<span class="k">try</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
     <span class="kn">import</span> <span class="nn">caffe.draw</span> <span class="kn">as</span> <span class="nn">_draw</span>
     <span class="kn">import</span> <span class="nn">cv2</span> <span class="kn">as</span> <span class="nn">_cv2</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
     <span class="n">_draw</span> <span class="o">=</span> <span class="bp">None</span>
     <span class="n">_cv2</span> <span class="o">=</span> <span class="bp">None</span>
 <span class="kn">from</span> <span class="nn">.net</span> <span class="kn">import</span> <span class="n">Net</span> <span class="k">as</span> <span class="n">_Net</span>
@@ -173,7 +173,7 @@
 
 <span class="n">_init</span><span class="p">()</span>
 <span class="n">_LOGGER</span> <span class="o">=</span> <span class="n">_logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
-<span class="k">if</span> <span class="n">_draw</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+<span class="k">if</span> <span class="n">_draw</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
     <span class="n">_LOGGER</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&#39;Could not import caffe.draw or cv2! Drawing is not available. &#39;</span> <span class="o">+</span>
                  <span class="s">&#39;Probably this is due to the package pydot not being &#39;</span> <span class="o">+</span>
                  <span class="s">&#39;available.&#39;</span><span class="p">)</span>
@@ -360,7 +360,7 @@
                                                  <span class="n">force_backward</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">force_backward</span><span class="p">,</span>  <span class="c"># noqa</span>
                                                  <span class="n">state</span><span class="o">=</span><span class="n">pbstate</span><span class="p">,</span>
                                                  <span class="n">debug_info</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">debug_info</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
             <span class="n">shapes_to_use</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="k">for</span> <span class="n">shape</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span><span class="p">:</span>
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">4</span><span class="p">:</span>
@@ -412,7 +412,7 @@
         <span class="c"># Check if the user erroneously specified a filename as text.</span>
         <span class="k">if</span> <span class="n">text</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">_os</span><span class="o">.</span><span class="n">linesep</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">text</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>  <span class="c"># pragma: no cover</span>
                     <span class="n">_LOGGER</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&#39;You probably mistakenly specified a filename &#39;</span>
                                  <span class="s">&#39;as text: &quot;</span><span class="si">%s</span><span class="s">&quot;! Trying to recover...&#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
                     <span class="n">filename</span> <span class="o">=</span> <span class="n">text</span>
@@ -454,7 +454,7 @@
                 <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">input_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
             <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">input_dim</span><span class="p">)</span> <span class="o">%</span> <span class="mi">4</span> <span class="o">==</span> <span class="mi">0</span>
             <span class="n">input_shape</span> <span class="o">=</span> <span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">_chunks</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="mi">4</span><span class="p">)))</span>
-        <span class="k">else</span><span class="p">:</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
             <span class="n">input_shape</span> <span class="o">=</span> <span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">([</span><span class="n">bshape</span><span class="o">.</span><span class="n">dim</span> <span class="k">for</span>
                                           <span class="n">bshape</span> <span class="ow">in</span> <span class="n">message</span><span class="o">.</span><span class="n">input_shape</span><span class="p">])</span>
         <span class="n">inputs</span> <span class="o">=</span> <span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
@@ -514,19 +514,20 @@
 <span class="sd">        :returns: 3D numpy array.</span>
 <span class="sd">          Graphic of the visualization as (H, W, C) image in BGR format.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">_draw</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">_cv2</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">_draw</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">_cv2</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&#39;Drawing is not available!&#39;</span><span class="p">)</span>
-        <span class="k">with</span> <span class="n">_NamedTemporaryFile</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s">&#39;w+b&#39;</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s">&#39;.png&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">tmpfile</span><span class="p">:</span>
-            <span class="n">_draw</span><span class="o">.</span><span class="n">draw_net_to_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">to_pbuf_message</span><span class="p">(),</span>
-                                   <span class="n">tmpfile</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                                   <span class="n">rankdir</span><span class="o">=</span><span class="n">layout_dir</span><span class="p">)</span>
-            <span class="n">result_image</span> <span class="o">=</span> <span class="n">_cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">tmpfile</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-            <span class="k">assert</span> <span class="n">result_image</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span>
-        <span class="k">if</span> <span class="n">display</span><span class="p">:</span>
-            <span class="n">_cv2</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">result_image</span><span class="p">)</span>
-            <span class="n">_cv2</span><span class="o">.</span><span class="n">waitKey</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-            <span class="n">_cv2</span><span class="o">.</span><span class="n">destroyWindow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">result_image</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
+            <span class="k">with</span> <span class="n">_NamedTemporaryFile</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s">&#39;w+b&#39;</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s">&#39;.png&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">tmpfile</span><span class="p">:</span>
+                <span class="n">_draw</span><span class="o">.</span><span class="n">draw_net_to_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">to_pbuf_message</span><span class="p">(),</span>
+                                       <span class="n">tmpfile</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                                       <span class="n">rankdir</span><span class="o">=</span><span class="n">layout_dir</span><span class="p">)</span>
+                <span class="n">result_image</span> <span class="o">=</span> <span class="n">_cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">tmpfile</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">assert</span> <span class="n">result_image</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span>
+            <span class="k">if</span> <span class="n">display</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
+                <span class="n">_cv2</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">result_image</span><span class="p">)</span>
+                <span class="n">_cv2</span><span class="o">.</span><span class="n">waitKey</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">_cv2</span><span class="o">.</span><span class="n">destroyWindow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">result_image</span>
 
 </div></div>
 <div class="viewcode-block" id="LayerSpecification"><a class="viewcode-back" href="../../barrista.html#barrista.design.LayerSpecification">[docs]</a><span class="k">class</span> <span class="nc">LayerSpecification</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -604,7 +605,7 @@
         <span class="k">if</span> <span class="n">propagate_down</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">propagate_down</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">_HAS_PROPAGATE_DOWN</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">_HAS_PROPAGATE_DOWN</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;This caffe version does not support the &quot;</span>
                                 <span class="s">&quot;`propagate_down` layer property!&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">propagate_down</span> <span class="o">=</span> <span class="n">propagate_down</span>
@@ -668,7 +669,7 @@
             <span class="n">message</span><span class="o">.</span><span class="n">param</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">_HAS_PROPAGATE_DOWN</span><span class="p">:</span>
             <span class="n">propagate_down</span> <span class="o">=</span> <span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">propagate_down</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
             <span class="n">propagate_down</span> <span class="o">=</span> <span class="bp">None</span>
         <span class="n">loss_param</span> <span class="o">=</span> <span class="p">(</span><span class="bp">None</span> <span class="k">if</span> <span class="s">&#39;loss_param&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fieldnames</span> <span class="k">else</span>
                       <span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">loss_param</span><span class="p">))</span>
@@ -827,7 +828,7 @@
         <span class="n">_obj_type</span> <span class="o">=</span> <span class="bp">None</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">exec</span><span class="p">(</span><span class="s">&#39;_obj_type = _caffe_pb2.&#39;</span> <span class="o">+</span> <span class="n">_param_obj</span><span class="p">)</span>  <span class="c"># pylint: disable=W0122</span>
-        <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">nfe</span><span class="p">:</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">nfe</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
             <span class="k">print</span><span class="p">((</span><span class="s">&quot;[WARNING] Parameter {} not found in caffe proto &quot;</span>
                    <span class="s">&quot;configuration of {}! Adjust your barrista.config! &quot;</span>
                    <span class="s">&quot;Skipping layer!&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_param_obj</span><span class="p">,</span> <span class="n">_layerkey</span><span class="p">))</span>
@@ -842,7 +843,7 @@
                                     <span class="bp">True</span><span class="p">,</span>
                                     <span class="n">_param_obj</span><span class="p">,</span>
                                     <span class="n">_fieldname</span><span class="p">))</span>
-    <span class="k">if</span> <span class="n">_layer_error</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">_layer_error</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
         <span class="k">continue</span>
     <span class="c"># Analyzed the layers. Generating layer objects...</span>
     <span class="n">_layer_prefix</span> <span class="o">=</span> <span class="n">_layerkey</span>

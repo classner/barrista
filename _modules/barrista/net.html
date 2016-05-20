@@ -132,13 +132,13 @@
 
 <span class="kn">import</span> <span class="nn">time</span> <span class="kn">as</span> <span class="nn">_time</span>
 <span class="kn">import</span> <span class="nn">logging</span> <span class="kn">as</span> <span class="nn">_logging</span>
-<span class="k">try</span><span class="p">:</span>
+<span class="k">try</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
     <span class="kn">import</span> <span class="nn">cv2</span> <span class="kn">as</span> <span class="nn">_cv2</span>
     <span class="n">_cv2INTER_CUBIC</span> <span class="o">=</span> <span class="n">_cv2</span><span class="o">.</span><span class="n">INTER_CUBIC</span>
     <span class="n">_cv2INTER_LINEAR</span> <span class="o">=</span> <span class="n">_cv2</span><span class="o">.</span><span class="n">INTER_LINEAR</span>
     <span class="n">_cv2INTER_NEAREST</span> <span class="o">=</span> <span class="n">_cv2</span><span class="o">.</span><span class="n">INTER_NEAREST</span>
     <span class="n">_cv2resize</span> <span class="o">=</span> <span class="n">_cv2</span><span class="o">.</span><span class="n">resize</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
     <span class="n">_cv2</span> <span class="o">=</span> <span class="bp">None</span>
     <span class="n">_cv2INTER_CUBIC</span> <span class="o">=</span> <span class="bp">None</span>
     <span class="n">_cv2INTER_LINEAR</span> <span class="o">=</span> <span class="bp">None</span>
@@ -161,7 +161,7 @@
 
 <span class="n">_init</span><span class="p">()</span>
 <span class="n">_LOGGER</span> <span class="o">=</span> <span class="n">_logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
-<span class="k">if</span> <span class="n">_cv2</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+<span class="k">if</span> <span class="n">_cv2</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
     <span class="n">_LOGGER</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&#39;Could not import cv2! Resizing is not available!&#39;</span><span class="p">)</span>
 
 
@@ -245,7 +245,7 @@
 <span class="sd">        :param filename: string.</span>
 <span class="sd">          The filename of the file to load.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">_caffe</span><span class="o">.</span><span class="n">Net</span><span class="p">,</span> <span class="s">&#39;load_blobs_from&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">_caffe</span><span class="o">.</span><span class="n">Net</span><span class="p">,</span> <span class="s">&#39;load_blobs_from&#39;</span><span class="p">):</span>  <span class="c"># pragma: no cover</span>
             <span class="c"># Older caffe version with barrista patch.</span>
             <span class="n">_caffe</span><span class="o">.</span><span class="n">Net</span><span class="o">.</span><span class="n">load_blobs_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -423,7 +423,7 @@
                     <span class="k">for</span> <span class="n">val_idx</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">results</span><span class="p">):</span>
                         <span class="k">try</span><span class="p">:</span>
                             <span class="n">val</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],)</span>
-                        <span class="k">except</span><span class="p">:</span>
+                        <span class="k">except</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
                             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
                                 <span class="p">(</span><span class="s">&quot;The output shape of the net must be &quot;</span>
                                  <span class="s">&quot;(X, 1, 1) or (X, input_height, input_width) &quot;</span>
@@ -461,7 +461,7 @@
                     <span class="k">for</span> <span class="n">val_idx</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">results</span><span class="p">):</span>
                         <span class="k">try</span><span class="p">:</span>
                             <span class="n">val</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],)</span>
-                        <span class="k">except</span><span class="p">:</span>
+                        <span class="k">except</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
                             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
                                 <span class="p">(</span><span class="s">&quot;The output shape of the net must be (X, 1, 1) to be &quot;</span>  <span class="c"># noqa</span>
                                  <span class="s">&quot;used with the `predict_sliding_window` method. It is &quot;</span>  <span class="c"># noqa</span>
@@ -476,7 +476,7 @@
         <span class="k">return</span> <span class="n">output_images</span>
 </div>
 <div class="viewcode-block" id="Net.predict"><a class="viewcode-back" href="../../barrista.html#barrista.net.Net.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>  <span class="c"># pylint: disable=R0915</span>
-                <span class="n">input_sequence</span><span class="p">,</span>
+                <span class="n">input_sequence</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                 <span class="n">test_callbacks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                 <span class="n">out_blob_names</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                 <span class="n">use_fit_network</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
@@ -495,7 +495,7 @@
 <span class="sd">          the number of channels).</span>
 <span class="sd">        * The method will match the data to the input size of the network and</span>
 <span class="sd">          forward propagate it in batches.</span>
-<span class="sd">        :param input_sequence: iterable(3D numpy arrays) or dict(string: ...).</span>
+<span class="sd">        :param input_sequence: iterable(3D numpy arrays) or dict(string: ...) or None.</span>
 <span class="sd">          The 3D numpy arrays must match in their first dimension with the</span>
 <span class="sd">          second dimension of the network input (number of channels). E.g.,</span>
 <span class="sd">          for a network with input shape [10, 3, 24, 24], you could provide</span>
@@ -505,7 +505,8 @@
 <span class="sd">          you can provide a dictionary of iterables of 3D numpy arrays before,</span>
 <span class="sd">          where the keys are the input blob names to fill. Use the</span>
 <span class="sd">          `input_processing_flags` to specify how preprocessing is</span>
-<span class="sd">          done in any scenario.</span>
+<span class="sd">          done in any scenario. If the input sequence is None, you must provide</span>
+<span class="sd">          a DataMonitor with the callbacks to fill the net inputs.</span>
 <span class="sd">        :param test_callbacks: list(barrista.monitoring.Monitor) or None.</span>
 <span class="sd">          List of callback callables. Will be called pre and post batch</span>
 <span class="sd">          processing. This list will be processed sequentially, meaning that</span>
@@ -578,7 +579,7 @@
                     <span class="s">&quot;Specified input blob not found: {}.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                         <span class="n">input_blob_name</span><span class="p">)</span>
                 <span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">input_sequence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">prednet</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
                 <span class="s">&quot;You did not specify the `input_sequence` as dictionary. &quot;</span>
                 <span class="s">&quot;This only works for networks with one input! Inputs: {}.&quot;</span>
@@ -641,6 +642,9 @@
              <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">covered_inputs</span><span class="p">,</span> <span class="n">prednet</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="n">input_size_spec</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">input_sequence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s">&quot;If you provide the training data via monitor, you must &quot;</span>
+                <span class="s">&quot;provide `input_size_spec`.&quot;</span><span class="p">)</span>
             <span class="n">batch_size</span> <span class="o">=</span> <span class="n">prednet</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span><span class="n">prednet</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">nsamples</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_sequence</span><span class="p">[</span><span class="n">prednet</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
         <span class="k">else</span><span class="p">:</span>
@@ -875,12 +879,16 @@
 <span class="sd">        simply provide X dict and we internally create</span>
 <span class="sd">        the CyclingDataMonitor.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">data_prov_blobs</span> <span class="o">=</span> <span class="p">[</span><span class="n">key</span> <span class="k">for</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span> <span class="ow">in</span> <span class="n">X</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">X</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">data_prov_blobs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data_prov_blobs</span> <span class="o">=</span> <span class="p">[</span><span class="n">key</span> <span class="k">for</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span> <span class="ow">in</span> <span class="n">X</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                               <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">]</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_prov_blobs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">static_inputs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="n">static_data_monitor</span> <span class="o">=</span> <span class="n">_monitoring</span><span class="o">.</span><span class="n">StaticDataMonitor</span><span class="p">(</span>
                     <span class="nb">dict</span><span class="p">(</span><span class="n">item</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">data_prov_blobs</span>
-                         <span class="k">if</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">static_inputs</span><span class="p">))</span>
+                         <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">static_inputs</span><span class="p">))</span>
                 <span class="n">test_callbacks</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">static_data_monitor</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">oversample</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">before_oversample_resize_to</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
@@ -910,7 +918,7 @@
                     <span class="k">if</span> <span class="n">val</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&#39;p&#39;</span><span class="p">):</span>
                         <span class="c"># Go for the resizing monitor.</span>
                         <span class="n">blobinfos</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
-                    <span class="k">else</span><span class="p">:</span>
+                    <span class="k">elif</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">static_inputs</span><span class="p">:</span>
                         <span class="n">plain_inp_proc_flags</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">blobinfos</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="n">res_data_monitor</span> <span class="o">=</span> <span class="n">_monitoring</span><span class="o">.</span><span class="n">ResizingMonitor</span><span class="p">(</span>
@@ -948,7 +956,8 @@
             <span class="n">test_callbacks</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
             <span class="n">read_input_batch_size_from_blob_name</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
             <span class="n">use_fit_phase_for_validation</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
-            <span class="n">allow_test_phase_for_train</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+            <span class="n">allow_test_phase_for_train</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+            <span class="n">shuffle</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;See :py:func:`barrista.solver.SolverInterface.fit`.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">solver</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">iterations</span><span class="o">=</span><span class="n">iterations</span><span class="p">,</span>
                           <span class="n">X</span><span class="o">=</span><span class="n">X</span><span class="p">,</span>
@@ -965,9 +974,10 @@
                           <span class="n">use_fit_phase_for_validation</span><span class="o">=</span><span class="p">(</span>
                               <span class="n">use_fit_phase_for_validation</span>
                           <span class="p">),</span>
-                          <span class="n">allow_test_phase_for_train</span><span class="o">=</span><span class="n">allow_test_phase_for_train</span><span class="p">)</span>
+                          <span class="n">allow_test_phase_for_train</span><span class="o">=</span><span class="n">allow_test_phase_for_train</span><span class="p">,</span>
+                          <span class="n">shuffle</span><span class="o">=</span><span class="n">shuffle</span><span class="p">)</span>
 </div>
-<div class="viewcode-block" id="Net.visualize"><a class="viewcode-back" href="../../barrista.html#barrista.net.Net.visualize">[docs]</a>    <span class="k">def</span> <span class="nf">visualize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="Net.visualize"><a class="viewcode-back" href="../../barrista.html#barrista.net.Net.visualize">[docs]</a>    <span class="k">def</span> <span class="nf">visualize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>  <span class="c"># pragma: no cover</span>
                   <span class="n">layout_dir</span><span class="o">=</span><span class="s">&#39;LR&#39;</span><span class="p">,</span>
                   <span class="n">display</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -987,9 +997,9 @@
 <span class="sd">        :returns: 3D numpy array.</span>
 <span class="sd">          Graphic of the visualization as (H, W, C) image in BGR format.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_specification</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_specification</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_specification</span><span class="o">.</span><span class="n">visualize</span><span class="p">(</span><span class="n">layout_dir</span><span class="p">,</span> <span class="n">display</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;This model has no specification set!&quot;</span><span class="p">)</span></div></div>
 </pre></div>
 

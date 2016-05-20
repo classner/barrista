@@ -159,25 +159,25 @@
 <span class="k">try</span><span class="p">:</span>
     <span class="n">_ADAM_SOLVER_CLASS</span> <span class="o">=</span> <span class="n">_caffe</span><span class="o">.</span><span class="n">AdamSolver</span>
     <span class="n">_ADAM_SOLVER_ENUM</span> <span class="o">=</span> <span class="n">SolverType</span><span class="o">.</span><span class="n">ADAM</span>
-<span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+<span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
     <span class="n">_ADAM_SOLVER_CLASS</span> <span class="o">=</span> <span class="bp">None</span>
     <span class="n">_ADAM_SOLVER_ENUM</span> <span class="o">=</span> <span class="bp">None</span>
 <span class="k">try</span><span class="p">:</span>
     <span class="n">_ADADELTA_SOLVER_CLASS</span> <span class="o">=</span> <span class="n">_caffe</span><span class="o">.</span><span class="n">AdaDeltaSolver</span>
     <span class="n">_ADADELTA_SOLVER_ENUM</span> <span class="o">=</span> <span class="n">SolverType</span><span class="o">.</span><span class="n">ADADELTA</span>
-<span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+<span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
     <span class="n">_ADADELTA_SOLVER_CLASS</span> <span class="o">=</span> <span class="bp">None</span>
     <span class="n">_ADADELTA_SOLVER_ENUM</span> <span class="o">=</span> <span class="bp">None</span>
 <span class="k">try</span><span class="p">:</span>
     <span class="n">_ADAGRAD_SOLVER_CLASS</span> <span class="o">=</span> <span class="n">_caffe</span><span class="o">.</span><span class="n">AdaGradSolver</span>
     <span class="n">_ADAGRAD_SOLVER_ENUM</span> <span class="o">=</span> <span class="n">SolverType</span><span class="o">.</span><span class="n">ADAGRAD</span>
-<span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+<span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
     <span class="n">_ADAGRAD_SOLVER_CLASS</span> <span class="o">=</span> <span class="bp">None</span>
     <span class="n">_ADAGRAD_SOLVER_ENUM</span> <span class="o">=</span> <span class="bp">None</span>
 <span class="k">try</span><span class="p">:</span>
     <span class="n">_RMSPROP_SOLVER_CLASS</span> <span class="o">=</span> <span class="n">_caffe</span><span class="o">.</span><span class="n">RMSPropSolver</span>
     <span class="n">_RMSPROP_SOLVER_ENUM</span> <span class="o">=</span> <span class="n">SolverType</span><span class="o">.</span><span class="n">RMSPROP</span>
-<span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+<span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
     <span class="n">_RMSPROP_SOLVER_CLASS</span> <span class="o">=</span> <span class="bp">None</span>
     <span class="n">_RMSPROP_SOLVER_ENUM</span> <span class="o">=</span> <span class="bp">None</span>
 
@@ -232,7 +232,7 @@
 <span class="sd">        :param step_stepsize: float or None.</span>
 <span class="sd">          The stepsize for the step policy.</span>
 
-<span class="sd">        :param stepvalue: float or None.</span>
+<span class="sd">        :param stepvalue: list(int) or None.</span>
 <span class="sd">          The stepvalue parameter for the multistep policy.</span>
 
 <span class="sd">        :param clip_gradients: float or None.</span>
@@ -326,7 +326,8 @@
             <span class="n">net</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
             <span class="n">read_input_batch_size_from_blob_name</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
             <span class="n">use_fit_phase_for_validation</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
-            <span class="n">allow_test_phase_for_train</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+            <span class="n">allow_test_phase_for_train</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+            <span class="n">shuffle</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="sd">r&quot;&quot;&quot;</span>
 <span class="sd">        fit the network to specific data.</span>
 
@@ -424,6 +425,10 @@
 <span class="sd">          Why is this so important? The ``DropoutLayer`` and ``PoolLayer`` (in</span>
 <span class="sd">          the case of stochastic pooling) are sensitive to this parameter and</span>
 <span class="sd">          results are very different for the two settings.</span>
+
+<span class="sd">        :param shuffle: bool.</span>
+<span class="sd">          If set to True, shuffle the training data every epoch. The test data</span>
+<span class="sd">          is not shuffled. Default: False.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">net</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="kn">from</span> <span class="nn">barrista</span> <span class="kn">import</span> <span class="n">net</span> <span class="k">as</span> <span class="n">_net</span>
@@ -463,7 +468,13 @@
             <span class="n">batch_size</span><span class="p">,</span>
             <span class="n">iterations</span><span class="p">,</span>
             <span class="n">test_interval</span><span class="p">,</span>
-            <span class="n">test_iterations</span><span class="p">)</span>
+            <span class="n">test_iterations</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;stepvalue&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;stepvalue&#39;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="s">&#39;stepvalue&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">val</span> <span class="o">/</span> <span class="n">batch_size</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="s">&#39;stepvalue&#39;</span><span class="p">]]</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_Init_cycling_monitor</span><span class="p">(</span><span class="n">X</span><span class="p">,</span>
                                    <span class="n">X_val</span><span class="p">,</span>
@@ -471,8 +482,8 @@
                                    <span class="n">batch_size</span><span class="p">,</span>
                                    <span class="n">test_interval</span><span class="p">,</span>
                                    <span class="n">train_callbacks</span><span class="p">,</span>
-                                   <span class="n">test_callbacks</span><span class="p">)</span>
-
+                                   <span class="n">test_callbacks</span><span class="p">,</span>
+                                   <span class="n">shuffle</span><span class="p">)</span>
         <span class="n">run_pre</span> <span class="o">=</span> <span class="bp">True</span>
         <span class="n">iteration</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">cbparams</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
@@ -592,16 +603,19 @@
                 <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cb</span><span class="p">,</span> <span class="n">_monitoring</span><span class="o">.</span><span class="n">ParallelMonitor</span><span class="p">):</span>
                     <span class="n">cb</span><span class="o">.</span><span class="n">finalize</span><span class="p">(</span><span class="n">cbparams</span><span class="p">)</span>
             <span class="n">_parallel</span><span class="o">.</span><span class="n">finalize_prebatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cbparams</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;stepvalue&#39;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="s">&#39;stepvalue&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">val</span> <span class="o">*</span> <span class="n">batch_size</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="s">&#39;stepvalue&#39;</span><span class="p">]]</span>
 </div>
 <div class="viewcode-block" id="Solver.step"><a class="viewcode-back" href="../../barrista.html#barrista.solver.Solver.step">[docs]</a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">number_of_batches</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Run ``number_of_batches`` solver steps.&quot;&quot;&quot;</span>
         <span class="n">tmp_hash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Get_parameter_hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Get_parameter_dict</span><span class="p">())</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_hash</span> <span class="o">!=</span> <span class="n">tmp_hash</span><span class="p">:</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_print_warning</span><span class="p">:</span>
-                <span class="k">print</span><span class="p">(</span><span class="s">&#39;WARNING::---------------------------------------------&#39;</span><span class="p">)</span>
-                <span class="k">print</span><span class="p">(</span><span class="s">&#39;you are re-initializing a new solver which will delete&#39;</span><span class="p">)</span>
-                <span class="k">print</span><span class="p">(</span><span class="s">&#39;the weight history of the solver.&#39;</span><span class="p">)</span>
-                <span class="k">print</span><span class="p">(</span><span class="s">&#39;Only use this option if you know what you are doing&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_print_warning</span><span class="p">:</span>  <span class="c"># pragma: no cover</span>
+                <span class="n">_LOGGER</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&#39;WARNING: ---------------------------------------------&#39;</span><span class="p">)</span>
+                <span class="n">_LOGGER</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&#39;you are re-initializing a new solver which will delete&#39;</span><span class="p">)</span>
+                <span class="n">_LOGGER</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&#39;the weight history of the solver.&#39;</span><span class="p">)</span>
+                <span class="n">_LOGGER</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&#39;Only use this option if you know what you are doing!&#39;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_print_warning</span> <span class="o">=</span> <span class="bp">False</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_Update_solver</span><span class="p">()</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_solver</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">number_of_batches</span><span class="p">)</span>
@@ -627,7 +641,7 @@
         <span class="c"># of what is really required without loading the actuall net which</span>
         <span class="c"># might take a bit of time</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="s">&#39;lr_policy&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;fixed&#39;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">True</span>
+            <span class="k">return</span> <span class="s">&#39;base_lr&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="s">&#39;lr_policy&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;step&#39;</span><span class="p">:</span>
             <span class="k">return</span> <span class="s">&#39;gamma&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="s">&#39;lr_policy&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;exp&#39;</span><span class="p">:</span>
@@ -637,8 +651,8 @@
                     <span class="s">&#39;power&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="s">&#39;lr_policy&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;multistep&#39;</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">(</span><span class="s">&#39;stepvalue&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span> <span class="ow">and</span>
-                    <span class="s">&#39;stepsize&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span> <span class="ow">and</span>
-                    <span class="s">&#39;gamma&#39;</span><span class="p">)</span>
+                    <span class="s">&#39;base_lr&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span> <span class="ow">and</span>
+                    <span class="s">&#39;gamma&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="s">&#39;lr_policy&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;poly&#39;</span><span class="p">:</span>
             <span class="k">return</span> <span class="s">&#39;power&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_dict</span><span class="p">[</span><span class="s">&#39;lr_policy&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;sigmoid&#39;</span><span class="p">:</span>
@@ -790,8 +804,22 @@
             <span class="k">if</span> <span class="p">(</span><span class="n">test_interval</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span>
                     <span class="n">test_iterations</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span>
                     <span class="n">X_val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">):</span>
-                <span class="n">test_iterations</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">X_val</span><span class="p">))</span> <span class="o">/</span>
-                                           <span class="nb">float</span><span class="p">(</span><span class="n">batch_size</span><span class="p">))</span> <span class="o">*</span> <span class="n">batch_size</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">X_val</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">X_val</span><span class="o">.</span><span class="n">values</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span> <span class="o">%</span> <span class="n">batch_size</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">_LOGGER</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                            <span class="s">&quot;The number of test samples is not a multiple &quot;</span>
+                            <span class="s">&quot;of the batch size. Test performance estimates &quot;</span>
+                            <span class="s">&quot;will be slightly off.&quot;</span><span class="p">)</span>
+                    <span class="n">test_iterations</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">X_val</span><span class="o">.</span><span class="n">values</span><span class="p">()[</span><span class="mi">0</span><span class="p">]))</span> <span class="o">/</span>
+                                               <span class="nb">float</span><span class="p">(</span><span class="n">batch_size</span><span class="p">))</span> <span class="o">*</span> <span class="n">batch_size</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">X_val</span><span class="p">)</span> <span class="o">%</span> <span class="n">batch_size</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">_LOGGER</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                            <span class="s">&quot;The number of test samples is not a multiple &quot;</span>
+                            <span class="s">&quot;of the batch size. Test performance estimates &quot;</span>
+                            <span class="s">&quot;will be slightly off.&quot;</span><span class="p">)</span>
+                    <span class="n">test_iterations</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">X_val</span><span class="p">))</span> <span class="o">/</span>
+                                               <span class="nb">float</span><span class="p">(</span><span class="n">batch_size</span><span class="p">))</span> <span class="o">*</span> <span class="n">batch_size</span>
             <span class="k">if</span> <span class="n">read_input_batch_size_from_blob_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
                 <span class="n">tmp_batch_size</span> <span class="o">=</span> <span class="n">net</span><span class="o">.</span><span class="n">blobs</span><span class="p">[</span>
                     <span class="n">read_input_batch_size_from_blob_name</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -813,26 +841,34 @@
                            <span class="n">batch_size</span><span class="p">,</span>
                            <span class="n">iterations</span><span class="p">,</span>
                            <span class="n">test_interval</span><span class="p">,</span>
-                           <span class="n">test_iterations</span><span class="p">):</span>
+                           <span class="n">test_iterations</span><span class="p">,</span>
+                           <span class="n">multistep_stepvalue</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Make sure iterations follow all of our rules.&quot;&quot;&quot;</span>
         <span class="c"># namely being a multiple of the batch_size</span>
         <span class="k">assert</span> <span class="n">iterations</span> <span class="o">%</span> <span class="n">batch_size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
-            <span class="s">&#39;error iterations do not match {} {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">iterations</span><span class="p">,</span>
-                                                         <span class="n">batch_size</span><span class="p">))</span>
+            <span class="s">&#39;Error: iterations do not match {} {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">iterations</span><span class="p">,</span>
+                                                          <span class="n">batch_size</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">test_interval</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">assert</span> <span class="n">test_iterations</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
-                <span class="s">&#39;test iterations must be &gt; 0 but is {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="s">&#39;Test iterations must be &gt; 0 but is {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                     <span class="n">test_iterations</span><span class="p">))</span>
         <span class="c"># Set the configurable arguments.</span>
         <span class="k">assert</span> <span class="n">test_iterations</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
-            <span class="s">&#39;test iterations must be &gt;= 0 but is {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="s">&#39;Test iterations must be &gt;= 0 but is {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                 <span class="n">test_iterations</span><span class="p">))</span>
         <span class="k">assert</span> <span class="n">test_interval</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
-            <span class="s">&#39;test interval must be &gt;= 0 but is {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="s">&#39;Test interval must be &gt;= 0 but is {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                 <span class="n">test_iterations</span><span class="p">))</span>
         <span class="k">assert</span> <span class="n">test_interval</span> <span class="o">%</span> <span class="n">batch_size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
-            <span class="s">&#39;the test interval must be a multiple of the batch size: {}, {}&#39;</span><span class="p">,</span>
+            <span class="s">&#39;The test interval must be a multiple of the batch size: {}, {}&#39;</span><span class="p">,</span>
             <span class="n">test_iterations</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">multistep_stepvalue</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">multistep_stepvalue</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="n">val</span> <span class="o">%</span> <span class="n">batch_size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
+                    <span class="s">&quot;The step values must be multiples  of the batch size &quot;</span>
+                    <span class="s">&quot;(is given in sample iterations)! Is </span><span class="si">%d</span><span class="s">, batch size </span><span class="si">%d</span><span class="s">.&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                        <span class="n">val</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">))</span>
+
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_Assert_callbacks</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">net</span><span class="p">,</span> <span class="n">callbacks</span><span class="p">,</span> <span class="n">phase</span><span class="p">):</span>
@@ -862,7 +898,8 @@
                               <span class="n">batch_size</span><span class="p">,</span>
                               <span class="n">test_interval</span><span class="p">,</span>
                               <span class="n">train_callbacks</span><span class="p">,</span>
-                              <span class="n">test_callbacks</span><span class="p">):</span>
+                              <span class="n">test_callbacks</span><span class="p">,</span>
+                              <span class="n">shuffle</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Convencience initialization function.</span>
 
@@ -879,8 +916,9 @@
                     <span class="s">&#39;if we use X we cannot use a data monitor&#39;</span><span class="p">)</span>
             <span class="n">tmp_data_monitor</span> <span class="o">=</span> <span class="n">_monitoring</span><span class="o">.</span><span class="n">CyclingDataMonitor</span><span class="p">(</span>
                 <span class="n">X</span><span class="o">=</span><span class="n">X</span><span class="p">,</span>
-                <span class="n">input_processing_flags</span><span class="o">=</span><span class="n">input_processing_flags</span><span class="p">)</span>
-            <span class="n">train_callbacks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp_data_monitor</span><span class="p">)</span>
+                <span class="n">input_processing_flags</span><span class="o">=</span><span class="n">input_processing_flags</span><span class="p">,</span>
+                <span class="n">shuffle</span><span class="o">=</span><span class="n">shuffle</span><span class="p">)</span>
+            <span class="n">train_callbacks</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">tmp_data_monitor</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">test_interval</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">X_val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="k">assert</span> <span class="n">X_val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span>
@@ -894,7 +932,7 @@
             <span class="n">tmp_data_monitor</span> <span class="o">=</span> <span class="n">_monitoring</span><span class="o">.</span><span class="n">CyclingDataMonitor</span><span class="p">(</span>
                 <span class="n">X</span><span class="o">=</span><span class="n">X_val</span><span class="p">,</span>
                 <span class="n">input_processing_flags</span><span class="o">=</span><span class="n">input_processing_flags</span><span class="p">)</span>
-            <span class="n">test_callbacks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp_data_monitor</span><span class="p">)</span>
+            <span class="n">test_callbacks</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">tmp_data_monitor</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_Init_testnet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_interval</span><span class="p">,</span> <span class="n">use_fit_phase_for_validation</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize the test phase network.&quot;&quot;&quot;</span>

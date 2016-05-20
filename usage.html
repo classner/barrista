@@ -270,6 +270,10 @@ using <a class="reference internal" href="barrista.html#barrista.net.set_mode_cp
 <div class="highlight-python"><div class="highlight"><pre><span class="n">net</span><span class="o">.</span><span class="n">load_blobs_from</span><span class="p">(</span><span class="s">&#39;your/path/to/blobs.caffemodel&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>and to restore a solver, use:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">solver</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="s">&#39;your/path/to/xyz.solverstate&#39;</span><span class="p">,</span> <span class="n">net</span><span class="p">)</span>
+</pre></div>
+</div>
 <p><strong>CAUTION</strong>: The blobs are stored in the <a href="#id1"><span class="problematic" id="id2">``</span></a>.caffemodel``s by name. Blobs will be
 matched to network layers with the same name. If a name does not match, the
 blob is simply ignored! This gives a powerful mechanic for partially loading
@@ -298,7 +302,7 @@ generate outputs:</p>
 <span class="n">checkptr</span> <span class="o">=</span> <span class="n">Checkpointer</span><span class="p">(</span><span class="s">&#39;test_net_&#39;</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span>
 <span class="c"># Run the training.</span>
 <span class="n">net</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span>
-        <span class="n">solver</span><span class="o">.</span><span class="n">SGDSolver</span><span class="p">(</span><span class="n">base_lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">),</span>
+        <span class="n">solver</span><span class="o">.</span><span class="n">SGDSolver</span><span class="p">(</span><span class="n">base_lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">snapshot_prefix</span><span class="o">=</span><span class="s">&#39;test_net_&#39;</span><span class="p">),</span>
         <span class="p">{</span><span class="s">&#39;data&#39;</span><span class="p">:</span> <span class="n">X</span><span class="p">,</span>  <span class="c"># &#39;data&#39; and &#39;annotations&#39; are the input layer names.</span>
          <span class="s">&#39;annotations&#39;</span><span class="p">:</span> <span class="n">Y</span><span class="p">},</span> <span class="c"># optional (if you have, e.g., a DataLayer)</span>
         <span class="n">test_interval</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>  <span class="c"># optional</span>
@@ -318,8 +322,9 @@ you have to do at least 10 training iterations, and one batch will be
 used for the training).</p>
 <p>The <a class="reference internal" href="barrista.html#barrista.monitoring.Checkpointer" title="barrista.monitoring.Checkpointer"><code class="xref py py-class docutils literal"><span class="pre">barrista.monitoring.Checkpointer</span></code></a> is used to write the network
 blobs to a file, which can be loaded later using the function
-<a class="reference internal" href="barrista.html#barrista.net.Net.load_blobs_from" title="barrista.net.Net.load_blobs_from"><code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.load_blobs_from()</span></code></a>. There is, however,
-currently no monitor implemented to store the solverstate.</p>
+<a class="reference internal" href="barrista.html#barrista.net.Net.load_blobs_from" title="barrista.net.Net.load_blobs_from"><code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.load_blobs_from()</span></code></a> as well as the respective
+solverstate. The <code class="docutils literal"><span class="pre">snapshot_prefix</span></code> provided to the solver and the
+checkpointer prefix must match for this to work correctly.</p>
 </div>
 <div class="section" id="getting-predictions">
 <h3>Getting predictions<a class="headerlink" href="#getting-predictions" title="Permalink to this headline">¶</a></h3>
@@ -402,7 +407,7 @@ just as expected, while maintaining a high level of convenience:</p>
 <a class="reference internal" href="barrista.html#barrista.net.Net.fit" title="barrista.net.Net.fit"><code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.fit()</span></code></a>
 method is called, and output softmaxed values when it&#8217;s
 <a class="reference internal" href="barrista.html#barrista.net.Net.predict" title="barrista.net.Net.predict"><code class="xref py py-func docutils literal"><span class="pre">barrista.net.Net.predict()</span></code></a> method is called. You can find an example
-for this in the file <code class="docutils literal"><span class="pre">barrista/example.py</span></code>.</p>
+for this in the file <code class="docutils literal"><span class="pre">barrista/examples/showcase.py</span></code>.</p>
 </div>
 </div>
 
