@@ -345,6 +345,9 @@ class CyclingDataMonitor(DataMonitor, ParallelMonitor):
       2012). The parameter gives the sigma for the normal distribution that is
       sampled to obtain the weights for scaled pixel principal components per
       blob.
+
+    :param shuffle: Bool.
+      If set to True, shuffle the data every epoch. Default: False.
     """
 
     # pylint: disable=too-many-arguments
@@ -353,7 +356,8 @@ class CyclingDataMonitor(DataMonitor, ParallelMonitor):
                  only_preload=None,
                  input_processing_flags=None,
                  virtual_batch_size=None,
-                 color_data_augmentation_sigmas=None):
+                 color_data_augmentation_sigmas=None,
+                 shuffle=False):
         """See class documentation."""
         if only_preload is None:
             only_preload = []
@@ -397,6 +401,8 @@ class CyclingDataMonitor(DataMonitor, ParallelMonitor):
         self._color_data_augmentation_weights = dict()
         # pylint: disable=invalid-name
         self._color_data_augmentation_components = dict()
+        self._shuffle = shuffle
+        self._sample_order = None
 
     def get_parallel_blob_names(self):
         return list(self._X.keys())
@@ -453,6 +459,10 @@ class CyclingDataMonitor(DataMonitor, ParallelMonitor):
             assert isinstance(value, _np.ndarray) or isinstance(value, list), (
                 'data must be a numpy nd array or list ({})'.format(type(value))
             )
+        self._sample_order = list(range(self._len_data))
+        if self._shuffle:
+            _np.random.seed(1)
+            self._sample_order = _np.random.permutation(self._sample_order)
         self._initialized = True
 
     def _pre_fit(self, kwargs):
@@ -493,12 +503,17 @@ class CyclingDataMonitor(DataMonitor, ParallelMonitor):
 
     def _pre_batch(self, net, kwargs):  # pylint: disable=C0111, W0613, R0912
         # this will simply cycle through the data.
-        samples_ids = [idx % self._len_data for idx in
+        samples_ids = [self._sample_order[idx % self._len_data]
+                       for idx in
                        range(self._sample_pointer,
                              self._sample_pointer + self._batch_size)]
         # updating the sample pointer for the next time
+        old_sample_pointer = self._sample_pointer
         self._sample_pointer = (
             (self._sample_pointer + len(samples_ids)) % self._len_data)
+        if self._shuffle and old_sample_pointer > self._sample_pointer:
+            # Epoch ended. Reshuffle.
+            self._sample_order = _np.random.permutation(self._sample_order)
 
         if len(self.only_preload) > 0:
             sample_dict = dict()
@@ -1323,6 +1338,9 @@ class JSONLogger(Monitor):  # pylint: disable=R0903
         self._write_every = write_every
         self._logging = logging
         self._create_plot = create_plot
+        if self._create_plot:
+            assert _PLT_AVAILABLE, (
+                "Matplotlib must be available to use plotting!")
 
     def _initialize_train(self, kwargs):
         self._initialize(kwargs)

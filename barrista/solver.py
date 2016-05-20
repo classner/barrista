@@ -199,7 +199,8 @@ class Solver(object):
             net=None,
             read_input_batch_size_from_blob_name=None,
             use_fit_phase_for_validation=False,
-            allow_test_phase_for_train=False):
+            allow_test_phase_for_train=False,
+            shuffle=False):
         r"""
         fit the network to specific data.
 
@@ -297,6 +298,10 @@ class Solver(object):
           Why is this so important? The ``DropoutLayer`` and ``PoolLayer`` (in
           the case of stochastic pooling) are sensitive to this parameter and
           results are very different for the two settings.
+
+        :param shuffle: bool.
+          If set to True, shuffle the training data every epoch. The test data
+          is not shuffled. Default: False.
         """
         if net is not None:
             from barrista import net as _net
@@ -340,13 +345,18 @@ class Solver(object):
             self._parameter_dict.get('stepvalue')
         )
 
+        if self._parameter_dict.get('stepvalue') is not None:
+            self._parameter_dict['stepvalue'] = [
+                val / batch_size for val in self._parameter_dict['stepvalue']]
+
         self._Init_cycling_monitor(X,
                                    X_val,
                                    input_processing_flags,
                                    batch_size,
                                    test_interval,
                                    train_callbacks,
-                                   test_callbacks)
+                                   test_callbacks,
+                                   shuffle)
         run_pre = True
         iteration = 0
         cbparams = dict()
@@ -466,16 +476,19 @@ class Solver(object):
                 if not isinstance(cb, _monitoring.ParallelMonitor):
                     cb.finalize(cbparams)
             _parallel.finalize_prebatch(self, cbparams)
+            if self._parameter_dict.get('stepvalue') is not None:
+                self._parameter_dict['stepvalue'] = [
+                    val * batch_size for val in self._parameter_dict['stepvalue']]
 
     def step(self, number_of_batches):
         """Run ``number_of_batches`` solver steps."""
         tmp_hash = self.Get_parameter_hash(self.Get_parameter_dict())
         if self._parameter_hash != tmp_hash:
             if self._print_warning:  # pragma: no cover
-                print('WARNING::---------------------------------------------')
-                print('you are re-initializing a new solver which will delete')
-                print('the weight history of the solver.')
-                print('Only use this option if you know what you are doing')
+                _LOGGER.warn('WARNING: ---------------------------------------------')
+                _LOGGER.warn('you are re-initializing a new solver which will delete')
+                _LOGGER.warn('the weight history of the solver.')
+                _LOGGER.warn('Only use this option if you know what you are doing!')
                 self._print_warning = False
             self._Update_solver()
         return self._solver.step(number_of_batches)
@@ -758,7 +771,8 @@ class Solver(object):
                               batch_size,
                               test_interval,
                               train_callbacks,
-                              test_callbacks):
+                              test_callbacks,
+                              shuffle):
         """
         Convencience initialization function.
 
@@ -775,7 +789,8 @@ class Solver(object):
                     'if we use X we cannot use a data monitor')
             tmp_data_monitor = _monitoring.CyclingDataMonitor(
                 X=X,
-                input_processing_flags=input_processing_flags)
+                input_processing_flags=input_processing_flags,
+                shuffle=shuffle)
             train_callbacks.insert(0, tmp_data_monitor)
 
         if test_interval > 0 and X_val is not None:

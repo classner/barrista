@@ -159,6 +159,7 @@ def _model(result_folder,
                                    os.path.join(out_folder, 'model.py'))
         model = modelmod.MODEL
         if not no_solver and lr_decay_sched is not None:
+            batch_size = model.blobs['data'].shape[0]
             # pylint: disable=protected-access
             optimizer._parameter_dict['stepvalue'] = [
                 round_to_mbsize(val * epoch_size, batch_size)
@@ -304,7 +305,7 @@ def cli(result_folder,
                              'test': ['test_loss', 'test_accuracy']},
                             base_iter=base_iter,
                             write_every=round_to_mbsize(10000, batch_size),
-                            create_plot=True)
+                            create_plot=monitor)
     progr_ind = mnt.ProgressIndicator()
     cropper = RandCropMonitor('data', _MEAN)
     if monitor:
@@ -353,7 +354,7 @@ def cli(result_folder,
                   progr_ind,
                   cropper,
                   logger],
-#              test_initialization=True,
+              shuffle=True
              )
 
 
