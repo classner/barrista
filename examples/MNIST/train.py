@@ -10,6 +10,7 @@ import glob
 import logging
 
 import click
+from natsort import natsorted
 import barrista.solver as sv
 import barrista.net as bnet
 import barrista.monitoring as mnt
@@ -25,27 +26,45 @@ if not os.path.exists(RESULT_FOLDER):
     os.mkdir(RESULT_FOLDER)
 
 
-# pylint: disable=too-many-arguments, too-many-locals
+# pylint: disable=too-many-arguments, too-many-locals, too-many-branches
+# pylint: disable=too-many-statements
 def _model(result_folder,
            epoch_size,
            model_name=None,
            epoch=None,
-           optimizer_name='adam',
+           write_every=10,
+           optimizer_name='sgd',
            lr_param=0.01,
+           lr_decay_sched=None,
+           lr_decay_ratio=0.1,
            mom_param=0.9,
            wd_param=1E-4,
            no_solver=False,
            allow_overwrite=False):
     """Get a model and optimizer either loaded or created."""
+    if epoch is not None:
+        write_every = min(write_every, epoch)
     optimizer_name = str(optimizer_name)
     out_folder = os.path.join('results', result_folder)
     if optimizer_name == 'sgd':
+        if lr_decay_sched is not None and lr_decay_sched != '':
+            lr_policy = 'multistep'
+            # Each value must be multiplied with the epoch size (possibly
+            # rounded). This is done later once the batch size is known.
+            lr_decay_sched = [int(val) for val in lr_decay_sched.split(',')]
+        else:
+            lr_policy = 'fixed'
         optimizer = sv.SGDSolver(base_lr=lr_param,
                                  momentum=mom_param,
                                  weight_decay=wd_param,
+                                 lr_policy=lr_policy,
+                                 gamma=lr_decay_ratio,
+                                 stepvalue=lr_decay_sched,
                                  snapshot_prefix=os.path.join(
                                      str(out_folder), 'model'))
     else:
+        assert lr_decay_sched is not None, (
+            "LR decay schedule only supported for SGD!")
         optimizer = sv.AdamSolver(base_lr=lr_param,  # pylint: disable=redefined-variable-type
                                   weight_decay=wd_param,
                                   snapshot_prefix=os.path.join(
@@ -66,25 +85,32 @@ def _model(result_folder,
             '_modelmod',
             os.path.join('results', result_folder, 'model.py'))
         model = modelmod.MODEL
-        checkpoint_step = epoch_size / model.blobs['data'].shape[0]
+        batch_size = model.blobs['data'].shape[0]
+        checkpoint_step = round_to_mbsize(epoch_size * write_every, batch_size) / batch_size
         if epoch is None:
             # Use the last one.
-            epoch = 1
-            while os.path.exists(os.path.join('results',
-                                              result_folder,
-                                              'model_iter_%d.caffemodel' % (
-                                                  epoch * checkpoint_step))):
-                epoch += 1
-            epoch -= 1
-        cmfilename = os.path.join('results',
-                                  result_folder,
-                                  'model_iter_%d.caffemodel' % (
-                                      epoch * checkpoint_step))
-        ssfilename = os.path.join('results',
-                                  result_folder,
-                                  'model_iter_%d.solverstate' % (
-                                      epoch * checkpoint_step))
-
+            modelfiles = glob.glob(os.path.join('results',
+                                                result_folder,
+                                                'model_iter_*.caffemodel'))
+            if len(modelfiles) == 0:
+                raise Exception("No model found to resume from!")
+            lastm = natsorted(modelfiles)[-1]
+            batch_iters = int(os.path.basename(lastm).split('.')[0][11:])
+            base_iter = batch_iters * batch_size
+            cmfilename = lastm
+            ssfilename = cmfilename[:-10] + 'solverstate'
+        else:
+            assert epoch % write_every == 0, (
+                "Writing every %d epochs. Please use a multiple of it!")
+            cmfilename = os.path.join('results',
+                                      result_folder,
+                                      'model_iter_%d.caffemodel' % (
+                                          epoch / write_every * checkpoint_step))
+            ssfilename = os.path.join('results',
+                                      result_folder,
+                                      'model_iter_%d.solverstate' % (
+                                          epoch / write_every * checkpoint_step))
+            base_iter = epoch * epoch_size
         assert os.path.exists(cmfilename), (
             "Could not find model parameter file at %s!" % (cmfilename))
         assert os.path.exists(ssfilename), (
@@ -94,8 +120,12 @@ def _model(result_folder,
         model.load_blobs_from(str(cmfilename))
         if not no_solver:
             _LOGGER.info("Loading solverstate from %s...", ssfilename)
+            if lr_decay_sched is not None:
+                # pylint: disable=protected-access
+                optimizer._parameter_dict['stepvalue'] = [
+                    round_to_mbsize(val * epoch_size, batch_size)
+                    for val in lr_decay_sched]
             optimizer.restore(str(ssfilename), model)
-        base_iter = epoch * epoch_size
     else:
         # Create the result folder.
         assert model_name is not None, (
@@ -126,12 +156,25 @@ def _model(result_folder,
         modelmod = imp.load_source('_modelmod',
                                    os.path.join(out_folder, 'model.py'))
         model = modelmod.MODEL
+        if not no_solver and lr_decay_sched is not None:
+            batch_size = model.blobs['data'].shape[0]
+            # pylint: disable=protected-access
+            optimizer._parameter_dict['stepvalue'] = [
+                round_to_mbsize(val * epoch_size, batch_size)
+                for val in lr_decay_sched]
         base_iter = 0
     if no_solver:
         return model, None, out_folder, base_iter
     else:
         return model, optimizer, out_folder, base_iter
 
+
+def round_to_mbsize(value, batch_size):
+    """Round value to multiple of batch size, if required."""
+    if value % batch_size == 0:
+        return value
+    else:
+        return value + batch_size - value % batch_size
 
 @click.command()
 @click.argument("result_folder", type=click.STRING)  # pylint: disable=no-member
@@ -141,14 +184,21 @@ def _model(result_folder,
               help='Epoch to start from, if training is resumed.')
 @click.option("--num_epoch", type=click.INT, default=3,
               help='Final number of epochs to reach. Default: 3.')
-@click.option("--optimizer_name", type=click.Choice(['adam', 'sgd']), default='adam',
-              help='Optimizer to use. Default: adam.')
+@click.option("--optimizer_name", type=click.Choice(['adam', 'sgd']),
+              default='sgd',
+              help='Optimizer to use. Default: sgd.')
 @click.option("--lr_param", type=click.FLOAT, default=0.001,
               help='The base learning rate to use. Default: 0.001.')
+@click.option("--lr_decay_sched", type=click.STRING, default='90,135',
+              help='Scheduled learning rate changes.')
+@click.option("--lr_decay_ratio", type=float, default=0.1,
+              help='Ratio for the change.')
 @click.option("--mom_param", type=click.FLOAT, default=0.9,
               help='The momentum to use if SGD is the optimizer. Default: 0.9.')
 @click.option("--wd_param", type=click.FLOAT, default=0.0001,
               help='The weight decay to use. Default: 0.0001.')
+@click.option("--monitor", type=click.BOOL, default=False, is_flag=True,
+              help='Use extended monitoring (slows down training).')
 @click.option("--allow_overwrite", type=click.BOOL, default=False, is_flag=True,
               help='Allow reuse of an existing result directory.')
 @click.option("--use_cpu", type=click.BOOL, default=False, is_flag=True,
@@ -158,10 +208,13 @@ def cli(result_folder,
         model_name=None,
         epoch=None,
         num_epoch=3,
-        optimizer_name='adam',
+        optimizer_name='sgd',
         lr_param=0.001,
+        lr_decay_sched='90,135',
+        lr_decay_ratio=0.1,
         mom_param=0.9,
         wd_param=0.0001,
+        monitor=False,
         allow_overwrite=False,
         use_cpu=False):
     """Train a model."""
@@ -179,47 +232,57 @@ def cli(result_folder,
         tr_data.shape[0],
         model_name,
         epoch,
+        1,
         optimizer_name,
         lr_param,
+        lr_decay_sched,
+        lr_decay_ratio,
         mom_param,
         wd_param,
         False,
         allow_overwrite)
+    batch_size = model.blobs['data'].shape[0]
     logger = mnt.JSONLogger(str(out_folder),
                             'model',
                             {'train': ['train_loss', 'train_accuracy'],
                              'test': ['test_loss', 'test_accuracy']},
                             base_iter=base_iter,
-                            write_every=10000,
-                            create_plot=True)
+                            write_every=round_to_mbsize(50000, batch_size),
+                            create_plot=monitor)
     progr_ind = mnt.ProgressIndicator()
 
-    model.fit(num_epoch * tr_data.shape[0],
+    if monitor:
+        extra_monitors = [
+            mnt.ActivationMonitor(round_to_mbsize(10000, batch_size),
+                                  os.path.join(str(out_folder),
+                                               'visualizations' + os.sep)),
+            mnt.ActivationMonitor(round_to_mbsize(10000, batch_size),
+                                  os.path.join(str(out_folder),
+                                               'visualizations' + os.sep),
+                                  sample={'data': tr_data[0]}),
+            mnt.FilterMonitor(round_to_mbsize(10000, batch_size),
+                              os.path.join(str(out_folder),
+                                           'visualizations' + os.sep)),
+            mnt.GradientMonitor(round_to_mbsize(10000, batch_size),
+                                os.path.join(str(out_folder),
+                                             'visualizations' + os.sep),
+                                relative=True),
+        ]
+    else:
+        extra_monitors = []
+    model.fit(round_to_mbsize(num_epoch * tr_data.shape[0], batch_size),
               optimizer,
               X={'data': tr_data, 'labels': tr_labels},
               X_val={'data': te_data, 'labels': te_labels},
-              test_interval=tr_data.shape[0],
+              test_interval=round_to_mbsize(tr_data.shape[0], batch_size),
               train_callbacks=[
                   progr_ind,
                   logger,
-                  mnt.GradientMonitor(10000,
-                                      os.path.join(str(out_folder),
-                                                   'visualizations' + os.sep),
-                                      relative=False),
-                  mnt.GradientMonitor(10000,
-                                      os.path.join(str(out_folder),
-                                                   'visualizations' + os.sep),
-                                      relative=True),
-                  mnt.ActivationMonitor(10000,
-                                        os.path.join(str(out_folder),
-                                                     'visualizations' + os.sep),
-                                        sample={'data': tr_data[0]}),
-                  mnt.FilterMonitor(10000,
-                                    os.path.join(str(out_folder),
-                                                 'visualizations' + os.sep)),
                   mnt.Checkpointer(os.path.join(str(out_folder),
                                                 'model'),
-                                   tr_data.shape[0])],
+                                   round_to_mbsize(tr_data.shape[0], batch_size),
+								   base_iterations=base_iter),
+			  ] + extra_monitors,
               test_callbacks=[
                   progr_ind,
                   logger])

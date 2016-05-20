@@ -142,7 +142,11 @@ Loading parameters
 
 With this, the blobs can be loaded as::
 
-    net.load_blobs_from('your/path/to/blobs.caffemodel')
+  net.load_blobs_from('your/path/to/blobs.caffemodel')
+
+and to restore a solver, use::
+
+  solver.restore('your/path/to/xyz.solverstate', net)
 
 **CAUTION**: The blobs are stored in the ``.caffemodel``s by name. Blobs will be
 matched to network layers with the same name. If a name does not match, the
@@ -175,7 +179,7 @@ generate outputs::
     checkptr = Checkpointer('test_net_', 50)
     # Run the training.
     net.fit(100,
-            solver.SGDSolver(base_lr=0.01),
+            solver.SGDSolver(base_lr=0.01, snapshot_prefix='test_net_'),
             {'data': X,  # 'data' and 'annotations' are the input layer names.
              'annotations': Y}, # optional (if you have, e.g., a DataLayer)
             test_interval=50,  # optional
@@ -196,8 +200,9 @@ used for the training).
 
 The :py:class:`barrista.monitoring.Checkpointer` is used to write the network
 blobs to a file, which can be loaded later using the function
-:py:func:`barrista.net.Net.load_blobs_from`. There is, however,
-currently no monitor implemented to store the solverstate.
+:py:func:`barrista.net.Net.load_blobs_from` as well as the respective
+solverstate. The ``snapshot_prefix`` provided to the solver and the
+checkpointer prefix must match for this to work correctly.
 
 Getting predictions
 ~~~~~~~~~~~~~~~~~~~
@@ -284,4 +289,4 @@ Once instantiated, this net will output loss and accuracy when it's
 :py:func:`barrista.net.Net.fit`
 method is called, and output softmaxed values when it's
 :py:func:`barrista.net.Net.predict` method is called. You can find an example
-for this in the file ``barrista/example.py``.
+for this in the file ``barrista/examples/showcase.py``.
