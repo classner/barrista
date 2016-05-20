@@ -914,11 +914,20 @@ class MonitoringTestCase(unittest.TestCase):
 
     def test_GradientMonitor(self):
         """Test the ``GradientMonitor``."""
+        try:
+            import matplotlib.pyplot as plt
+            _ = plt.figure()
+        except RuntimeError:
+            return
+        except ImportError:
+            return
         import barrista.design as design
         import numpy as np
+        import os
         from barrista.design import (ConvolutionLayer, ReLULayer,
                                      SoftmaxWithLossLayer, InnerProductLayer)
         from barrista.monitoring import GradientMonitor
+        from barrista.tools import TemporaryDirectory
         from barrista import solver as _solver
         netspec = design.NetSpecification([[10, 3, 3, 3], [10]],
                                           inputs=['data', 'annotations'],
@@ -929,7 +938,6 @@ class MonitoringTestCase(unittest.TestCase):
                        'Convolution_pad': 0,
                        'Convolution_weight_filler': design.PROTODETAIL.FillerParameter(
                            type='xavier')}
-
         layers.append(ConvolutionLayer(**conv_params))
         layers.append(ReLULayer())
         layers.append(InnerProductLayer(
@@ -943,15 +951,142 @@ class MonitoringTestCase(unittest.TestCase):
         # For fit.
         solver = _solver.SGDSolver(
             base_lr=0.01)
-
         X = {'data': np.zeros((10, 3, 3, 3), dtype='float32'),
              'annotations': np.ones((10, 1), dtype='float32')}
         X['data'][:, 0, 0, 0] = 1.
+        with TemporaryDirectory() as tmpdir:
+            net.fit(100,
+                    solver,
+                    X,
+                    train_callbacks=[GradientMonitor(10, tmpdir + os.sep)])
+            for idx in range(10):
+                self.assertTrue(os.path.exists(os.path.join(
+                    tmpdir,
+                    'gradient_hists_{}.png'.format(idx))))
+                self.assertTrue(os.path.exists(os.path.join(
+                    tmpdir,
+                    'gradient_magnitude_{}.png'.format(idx))))
+            net.fit(100,
+                    solver,
+                    X,
+                    train_callbacks=[GradientMonitor(10,
+                                                     tmpdir + os.sep,
+                                                     relative=True)])
+            for idx in range(10):
+                self.assertTrue(os.path.exists(os.path.join(
+                    tmpdir,
+                    'gradient_hists_rel_{}.png'.format(idx))))
+                self.assertTrue(os.path.exists(os.path.join(
+                    tmpdir,
+                    'gradient_magnitude_rel_{}.png'.format(idx))))
 
-        net.fit(100,
-                solver,
-                X,
-                train_callbacks=[GradientMonitor(10, './')])
+
+    def test_ActivationMonitor(self):
+        """Test the ``ActivationMonitor``."""
+        try:
+            import matplotlib.pyplot as plt
+            _ = plt.figure()
+        except RuntimeError:
+            return
+        except ImportError:
+            return
+        import barrista.design as design
+        import numpy as np
+        import os
+        from barrista.design import (ConvolutionLayer, ReLULayer,
+                                     SoftmaxWithLossLayer, InnerProductLayer)
+        from barrista.monitoring import ActivationMonitor
+        from barrista.tools import TemporaryDirectory
+        from barrista import solver as _solver
+        netspec = design.NetSpecification([[10, 3, 3, 3], [10]],
+                                          inputs=['data', 'annotations'],
+                                          phase=design.PROTODETAIL.TRAIN)
+        layers = []
+        conv_params = {'name': 'conv',
+                       'Convolution_kernel_size': 3,
+                       'Convolution_num_output': 32,
+                       'Convolution_pad': 0,
+                       'Convolution_weight_filler': design.PROTODETAIL.FillerParameter(
+                           type='xavier')}
+        layers.append(ConvolutionLayer(**conv_params))
+        layers.append(ReLULayer())
+        layers.append(InnerProductLayer(
+            InnerProduct_num_output=2,
+            name='net_out',
+            InnerProduct_weight_filler=design.PROTODETAIL.FillerParameter(
+                type='xavier')))
+        layers.append(SoftmaxWithLossLayer(bottoms=['net_out', 'annotations']))
+        netspec.layers.extend(layers)
+        net = netspec.instantiate()
+        # For fit.
+        solver = _solver.SGDSolver(
+            base_lr=0.01)
+        X = {'data': np.zeros((10, 3, 3, 3), dtype='float32'),
+             'annotations': np.ones((10, 1), dtype='float32')}
+        X['data'][:, 0, 0, 0] = 1.
+        with TemporaryDirectory() as tmpdir:
+            net.fit(100,
+                    solver,
+                    X,
+                    train_callbacks=[ActivationMonitor(10, tmpdir + os.sep)])
+            for idx in range(10):
+                self.assertTrue(os.path.exists(os.path.join(
+                    tmpdir,
+                    'activations_conv_{}.png'.format(idx))))
+
+
+    def test_FilterMonitor(self):
+        """Test the ``FilterMonitor``."""
+        try:
+            import matplotlib.pyplot as plt
+            _ = plt.figure()
+        except RuntimeError:
+            return
+        except ImportError:
+            return
+        import barrista.design as design
+        import numpy as np
+        import os
+        from barrista.design import (ConvolutionLayer, ReLULayer,
+                                     SoftmaxWithLossLayer, InnerProductLayer)
+        from barrista.monitoring import FilterMonitor
+        from barrista.tools import TemporaryDirectory
+        from barrista import solver as _solver
+        netspec = design.NetSpecification([[10, 3, 3, 3], [10]],
+                                          inputs=['data', 'annotations'],
+                                          phase=design.PROTODETAIL.TRAIN)
+        layers = []
+        conv_params = {'name': 'conv',
+                       'Convolution_kernel_size': 3,
+                       'Convolution_num_output': 32,
+                       'Convolution_pad': 0,
+                       'Convolution_weight_filler': design.PROTODETAIL.FillerParameter(
+                           type='xavier')}
+        layers.append(ConvolutionLayer(**conv_params))
+        layers.append(ReLULayer())
+        layers.append(InnerProductLayer(
+            InnerProduct_num_output=2,
+            name='net_out',
+            InnerProduct_weight_filler=design.PROTODETAIL.FillerParameter(
+                type='xavier')))
+        layers.append(SoftmaxWithLossLayer(bottoms=['net_out', 'annotations']))
+        netspec.layers.extend(layers)
+        net = netspec.instantiate()
+        # For fit.
+        solver = _solver.SGDSolver(
+            base_lr=0.01)
+        X = {'data': np.zeros((10, 3, 3, 3), dtype='float32'),
+             'annotations': np.ones((10, 1), dtype='float32')}
+        X['data'][:, 0, 0, 0] = 1.
+        with TemporaryDirectory() as tmpdir:
+            net.fit(100,
+                    solver,
+                    X,
+                    train_callbacks=[FilterMonitor(10, tmpdir + os.sep)])
+            for idx in range(10):
+                self.assertTrue(os.path.exists(os.path.join(
+                    tmpdir,
+                    'parameters_conv_0_{}.png'.format(idx))))
 
 
 class NetTestCase(unittest.TestCase):

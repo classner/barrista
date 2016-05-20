@@ -1616,7 +1616,7 @@ class GradientMonitor(Monitor):
                     axes[ax_idx].yaxis.set_visible(False)
                     axes[ax_idx].xaxis.set_major_formatter(xfmt)
                     ax_idx += 1
-            _plt.tight_layout()
+            _plt.tight_layout(rect=[0, 0.03, 1, 0.95])
             _plt.suptitle("Gradient histograms for iteration %d" % (
                 kwargs['iter'] + self._iteroffset))
             if self._relative:
@@ -1643,6 +1643,7 @@ class GradientMonitor(Monitor):
             _plt.colorbar(im, cax=cax, ticks=_np.linspace(_np.min(maxabsupdates_flat),
                                                           _np.max(maxabsupdates_flat),
                                                           5))
+            _plt.tight_layout(rect=[0, 0.03, 1, 0.95])
             if self._relative:
                 gmname = self._output_folder + 'gradient_magnitude_rel_%d.png' % (
                     (self._iteroffset + kwargs['iter']) /
