@@ -260,12 +260,12 @@ class OversamplingDataMonitor(DataMonitor, ParallelMonitor):
                 'data key has no corresponding network blob {} {}'.format(
                     key, str(list(net.blobs.keys()))))
 
-    def _pre_test(self, kwargs):
+    def _pre_test(self, kwargs):  # pragma: no cover
         net = kwargs['testnet']
         self._batch_size = net.blobs[
             list(self._blobinfos.keys())[0]].data.shape[0]
 
-    def _pre_test_batch(self, kwargs):
+    def _pre_test_batch(self, kwargs):  # pragma: no cover
         for blob_name in list(self._blobinfos):
             assert blob_name in kwargs['data_orig'], (
                 "The unchanged data must be provided by another DataProvider, "
@@ -1223,7 +1223,7 @@ class ProgressIndicator(Monitor):  # pragma: no cover
             self.pbar.finish()
 
 
-def _sorted_ar_from_dict(inf, key):
+def _sorted_ar_from_dict(inf, key):  # pragma: no cover
     iters = []
     vals = []
     for values in inf:
@@ -1235,7 +1235,7 @@ def _sorted_ar_from_dict(inf, key):
     return arr[sortperm, :]
 
 
-def _draw_perfplot(phases, categories, ars, outfile):
+def _draw_perfplot(phases, categories, ars, outfile):  # pragma: no cover
     """Draw the performance plots."""
     fig, axes = _plt.subplots(nrows=len(categories), sharex=True)
     for category_idx, category in enumerate(categories):
@@ -1360,7 +1360,7 @@ class JSONLogger(Monitor):  # pylint: disable=R0903
         self._post('train', kwargs)
 
     def _post(self, phase_name, kwargs):  # pylint: disable=C0111
-        if phase_name not in self._logging:
+        if phase_name not in self._logging:  # pragma: no cover
             return
         if phase_name == 'train':
             kwargs['iter'] += kwargs['batch_size']
@@ -1368,7 +1368,7 @@ class JSONLogger(Monitor):  # pylint: disable=R0903
                     kwargs['iter'] % self._write_every == 0):
                 with open(self.json_filename, 'w') as outf:
                     self.json_package.dump(self.dict, outf)
-                if self._create_plot:
+                if self._create_plot:  # pragma: no cover
                     categories = set()
                     arrs = dict()
                     for plot_phase_name in ['train', 'test']:
@@ -1392,7 +1392,7 @@ class JSONLogger(Monitor):  # pylint: disable=R0903
         """Write the json file."""
         with open(self.json_filename, 'w') as outf:
             self.json_package.dump(self.dict, outf)
-        if self._create_plot:
+        if self._create_plot:  # pragma: no cover
             categories = set()
             arrs = dict()
             for phase_name in ['train', 'test']:
@@ -1616,7 +1616,7 @@ class GradientMonitor(Monitor):
                     axes[ax_idx].yaxis.set_visible(False)
                     axes[ax_idx].xaxis.set_major_formatter(xfmt)
                     ax_idx += 1
-            _plt.tight_layout()
+            _plt.tight_layout(rect=[0, 0.03, 1, 0.95])
             _plt.suptitle("Gradient histograms for iteration %d" % (
                 kwargs['iter'] + self._iteroffset))
             if self._relative:
@@ -1643,6 +1643,7 @@ class GradientMonitor(Monitor):
             _plt.colorbar(im, cax=cax, ticks=_np.linspace(_np.min(maxabsupdates_flat),
                                                           _np.max(maxabsupdates_flat),
                                                           5))
+            _plt.tight_layout(rect=[0, 0.03, 1, 0.95])
             if self._relative:
                 gmname = self._output_folder + 'gradient_magnitude_rel_%d.png' % (
                     (self._iteroffset + kwargs['iter']) /
@@ -1654,7 +1655,7 @@ class GradientMonitor(Monitor):
             _plt.savefig(gmname)
             _plt.close(fig)
 
-    def finalize(self, kwargs):
+    def finalize(self, kwargs):  # pragma: no cover
         if self._create_videos:
             try:
                 if not _os.path.exists(_os.path.join(self._output_folder,
@@ -1729,7 +1730,7 @@ class ActivationMonitor(Monitor):
     """
 
     # pylint: disable=too-many-arguments
-    def __init__(self,
+    def __init__(self,  # pragma: no cover
                  write_every,
                  output_folder,
                  selected_blobs=None,
@@ -1820,7 +1821,7 @@ class ActivationMonitor(Monitor):
                                  self._write_every))
                 _plt.close(fig)
 
-    def finalize(self, kwargs):
+    def finalize(self, kwargs):  # pragma: no cover
         if self._create_videos:
             try:
                 if not _os.path.exists(_os.path.join(self._output_folder,
@@ -1882,7 +1883,7 @@ class FilterMonitor(Monitor):
     """
 
     # pylint: disable=too-many-arguments
-    def __init__(self,
+    def __init__(self,  # pragma: no cover
                  write_every,
                  output_folder,
                  selected_parameters=None,
@@ -1965,7 +1966,7 @@ class FilterMonitor(Monitor):
                                      self._write_every))
                     _plt.close(fig)
 
-    def finalize(self, kwargs):
+    def finalize(self, kwargs):  # pragma: no cover
         if self._create_videos:
             try:
                 if not _os.path.exists(_os.path.join(self._output_folder,
