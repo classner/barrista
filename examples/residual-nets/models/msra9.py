@@ -59,7 +59,6 @@ def ResBlock(n_in, in_name, n_out, stride=1):
         Scale_bias_term=True
     ))
     sum_in = [in_name, 'resblock{}_scale2'.format(_l_idx)]
-    # 'resblock{}_scale2'.format(_l_idx)]
     if n_in != n_out:
         layers.append(_ds.ConvolutionLayer(
             name='resblock{}_sidepath'.format(_l_idx),

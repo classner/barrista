@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""A reimplementation of the 50-layer MSRA residual net."""
+"""A reimplementation of the 20-layer MSRA residual net."""
 # pylint: disable=wrong-import-position, invalid-name, no-member
 
 import logging as _logging
@@ -59,7 +59,6 @@ def ResBlock(n_in, in_name, n_out, stride=1):
         Scale_bias_term=True
     ))
     sum_in = [in_name, 'resblock{}_scale2'.format(_l_idx)]
-    # 'resblock{}_scale2'.format(_l_idx)]
     if n_in != n_out:
         layers.append(_ds.ConvolutionLayer(
             name='resblock{}_sidepath'.format(_l_idx),
