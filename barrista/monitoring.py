@@ -1657,6 +1657,7 @@ class GradientMonitor(Monitor):
 
     def finalize(self, kwargs):  # pragma: no cover
         if self._create_videos:
+            _LOGGER.debug("Creating gradient videos...")
             try:
                 if not _os.path.exists(_os.path.join(self._output_folder,
                                                      'videos')):
@@ -1668,6 +1669,7 @@ class GradientMonitor(Monitor):
                 with open(_os.devnull, 'w') as quiet:
                     _subprocess.check_call([
                         'ffmpeg',
+                        '-y',
                         '-start_number', str(0),
                         '-r', str(self._video_frame_rate),
                         '-i', _os.path.join(self._output_folder,
@@ -1678,6 +1680,7 @@ class GradientMonitor(Monitor):
                     ], stdout=quiet, stderr=quiet)
                     _subprocess.check_call([
                         'ffmpeg',
+                        '-y',
                         '-start_number', str(0),
                         '-r', str(self._video_frame_rate),
                         '-i', _os.path.join(self._output_folder,
@@ -1691,6 +1694,7 @@ class GradientMonitor(Monitor):
                     "Could not create videos! Error: %s. Is " +
                     "ffmpeg available on the command line?",
                     str(ex))
+            _LOGGER.debug("Done.")
 
 
 class ActivationMonitor(Monitor):
@@ -1823,6 +1827,7 @@ class ActivationMonitor(Monitor):
 
     def finalize(self, kwargs):  # pragma: no cover
         if self._create_videos:
+            _LOGGER.debug("Creating activation videos...")
             try:
                 if not _os.path.exists(_os.path.join(self._output_folder,
                                                      'videos')):
@@ -1831,6 +1836,7 @@ class ActivationMonitor(Monitor):
                     with open(_os.devnull, 'w') as quiet:
                         _subprocess.check_call([
                             'ffmpeg',
+                            '-y',
                             '-start_number', str(0),
                             '-r', str(self._video_frame_rate),
                             '-i', _os.path.join(self._output_folder,
@@ -1844,6 +1850,7 @@ class ActivationMonitor(Monitor):
                     "Could not create videos! Error: %s. Is " +
                     "ffmpeg available on the command line?",
                     str(ex))
+            _LOGGER.debug("Done.")
 
 
 class FilterMonitor(Monitor):
@@ -1968,6 +1975,7 @@ class FilterMonitor(Monitor):
 
     def finalize(self, kwargs):  # pragma: no cover
         if self._create_videos:
+            _LOGGER.debug("Creating filter videos...")
             try:
                 if not _os.path.exists(_os.path.join(self._output_folder,
                                                      'videos')):
@@ -1977,6 +1985,7 @@ class FilterMonitor(Monitor):
                         with open(_os.devnull, 'w') as quiet:
                             _subprocess.check_call([
                                 'ffmpeg',
+                                '-y',
                                 '-start_number', str(0),
                                 '-r', str(self._video_frame_rate),
                                 '-i', _os.path.join(self._output_folder,
@@ -1995,3 +2004,4 @@ class FilterMonitor(Monitor):
                     "Could not create videos! Error: %s. Is " +
                     "ffmpeg available on the command line?",
                     str(ex))
+            _LOGGER.debug("Done.")

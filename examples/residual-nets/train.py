@@ -77,7 +77,7 @@ def _model(result_folder,
             "This result path already exists! "
             "If you still want to use it, add the flag `--allow_overwrite`.")
         logging.basicConfig(
-            level=logging.DEBUG,
+            level=logging.INFO,
             format=LOGFORMAT,
             filename=os.path.join('results', result_folder, 'train.log'),
             filemode='a')
@@ -139,7 +139,7 @@ def _model(result_folder,
         os.mkdir(out_folder)
         os.mkdir(os.path.join(out_folder, 'visualizations'))
         logging.basicConfig(
-            level=logging.DEBUG,
+            level=logging.INFO,
             format=LOGFORMAT,
             filename=os.path.join(out_folder, 'train.log'),
             filemode='w')
@@ -313,10 +313,6 @@ def cli(result_folder,
             mnt.ActivationMonitor(round_to_mbsize(10000, batch_size),
                                   os.path.join(str(out_folder),
                                                'visualizations' + os.sep),
-                                  selected_blobs=['data']),
-            mnt.ActivationMonitor(round_to_mbsize(10000, batch_size),
-                                  os.path.join(str(out_folder),
-                                               'visualizations' + os.sep),
                                   selected_blobs=['resblock3_out', 'avpool'],
                                   sample={'data': tr_data[0]}),
             mnt.FilterMonitor(round_to_mbsize(10000, batch_size),
@@ -349,7 +345,7 @@ def cli(result_folder,
                                                 'model'),
                                    round_to_mbsize(50000 * 10, batch_size),
                                    base_iterations=base_iter),
-              ] + extra_monitors,
+                  ] + extra_monitors,
               test_callbacks=[
                   progr_ind,
                   cropper,
