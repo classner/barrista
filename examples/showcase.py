@@ -106,7 +106,9 @@ with TemporaryDirectory() as tmpdir:
                              # checkptr,
                              perforce],
             test_callbacks=[progress,
-                            perforce])
+                            perforce]
+    )
+    print("Fitting done!")
     # Note the flexibility you have with the monitors: they may be used for any
     # task! By using a different JSON logger for batch- and test-callbacks, you
     # can collect the performance in different logs.
@@ -115,7 +117,7 @@ with TemporaryDirectory() as tmpdir:
     # of the trained net, but in the `predict` layout.
     results = net.predict(np.zeros((100, 3, 51, 51), dtype='float32'),
                           test_callbacks=[ProgressIndicator()])
-
+    print("Predicting done!")
     # Reloading a model.
     # net.load_blobs_from(os.path.join(tmpdir, 'test_net_50.caffemodel'))
 

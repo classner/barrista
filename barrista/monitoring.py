@@ -976,83 +976,6 @@ class RotatingMirroringMonitor(ParallelMonitor, Monitor):
                             :, tuple(new_layer_order)]
 
 
-# Is covered in example.py, which is run in a subprocess and not detected by
-# coverage.py.
-# pylint: disable=R0903
-class _LossIndicator(object):  # pragma: no cover
-
-    r"""
-    A plugin indicator for the ``progressbar`` package.
-
-    This must be used in conjunction with the
-    :py:class:`barrista.monitoring.ProgressIndicator`. If available, it
-    outputs current loss, accuracy, test loss and test accuracy.
-
-    :param progress_indicator:
-      :py:class:`barrista.monitoring.ProgressIndicator`. The information
-      source to use.
-    """
-
-    def __init__(self, progress_indicator):
-        self.progress_indicator = progress_indicator
-
-    def __call__(self, pbar, stats):
-        r"""Compatibility with new versions of ``progressbar2``."""
-        return self.update(pbar)
-
-    def update(self, pbar):  # pylint: disable=W0613
-        """The update method to implement by the ``progressbar`` interface."""
-        if self.progress_indicator.loss is not None:
-            ret_val = 'Loss: {0:.4f}'.format(self.progress_indicator.loss)
-        else:
-            ret_val = 'Loss: -----'
-        if self.progress_indicator.accuracy is not None:
-            ret_val += '|Accy: {0:.4f}'.format(
-                self.progress_indicator.accuracy)
-        if self.progress_indicator.test_loss is not None:
-            ret_val += '|TLoss: {0:.4f}'.format(
-                self.progress_indicator.test_loss)
-        if self.progress_indicator.test_accuracy is not None:
-            ret_val += '|TAccy: {0:.4f}'.format(
-                self.progress_indicator.test_accuracy)
-        return ret_val
-
-
-# Is covered in example.py, which is run in a subprocess and not detected by
-# coverage.py.
-# pylint: disable=R0903
-class _SpeedIndicator(object):  # pragma: no cover
-
-    r"""
-    A plugin indicator for the ``progressbar`` package.
-
-    :param progress_indicator:
-      :py:class:`barrista.monitoring.ProgressIndicator`. The information
-      source to use.
-    """
-
-    def __init__(self, progress_indicator):
-        self._progress_indicator = progress_indicator
-        self._active = True
-        self._last_ret = None
-
-    def __call__(self, pbar, stats):
-        r"""Compatibility with new versions of ``progressbar2``."""
-        return self.update(pbar)
-
-    def update(self, pbar):  # pylint: disable=W0613
-        """The update method to implement by the ``progressbar`` interface."""
-        if not self._active:
-            if self._last_ret is not None:
-                return self._last_ret
-            else:
-                return ''
-        # pylint: disable=protected-access
-        ret_val = '|%.2f smpl./s' % (self._progress_indicator._smplps)
-        self._last_ret = ret_val
-        return ret_val
-
-
 class ResultExtractor(Monitor):  # pylint: disable=R0903
 
     r"""
@@ -1157,53 +1080,44 @@ class ProgressIndicator(Monitor):  # pragma: no cover
         self.test_loss = None
         self.accuracy = None
         self.test_accuracy = None
-        from progressbar import ETA, Percentage, Bar, ProgressBar
-        self.widgets = [Bar(), Percentage(), ' ', ETA()]
-        self.pbarclass = ProgressBar
+        import tqdm
+        self.pbarclass = tqdm.tqdm
         self.pbar = None
-        self._speed_indicator = None
-        self._last_update = _time.time()
-        self._smplps = 0
+        self.last_iter = 0
+
+    def _perf_string(self):
+        pstr = ''
+        if self.loss is not None:
+            pstr += 'ls: {0:.4f}|'.format(self.loss)
+        if self.accuracy is not None:
+            pstr += 'ac: {0:.4f}|'.format(self.accuracy)
+        if self.test_loss is not None:
+            pstr += 'tls: {0:.4f}|'.format(self.test_loss)
+        if self.test_accuracy is not None:
+            pstr += 'tac: {0:.4f}|'.format(self.test_accuracy)
+        return pstr
 
     def _post_train_batch(self, kwargs):
         if self.pbar is None:
-            self._speed_indicator = _SpeedIndicator(self)
-            if 'train_loss' in list(kwargs.keys()):
-                widgets = [_LossIndicator(self),
-                           self._speed_indicator] + self.widgets
-            else:
-                widgets = [self._speed_indicator] + self.widgets
-            self.pbar = self.pbarclass(maxval=kwargs['max_iter'],
-                                       widgets=widgets)
-            self.pbar.start()
+            self.pbar = self.pbarclass(total=kwargs['max_iter'])
         if 'train_loss' in list(kwargs.keys()):
             self.loss = kwargs['train_loss']
         if 'train_accuracy' in list(kwargs.keys()):
             self.accuracy = kwargs['train_accuracy']
-        self._smplps = float(kwargs['batch_size']) / (
-            _time.time() - self._last_update)
-        self._last_update = _time.time()
-        self.pbar.update(value=kwargs['iter'])
+        self.pbar.set_description(self._perf_string())
+        self.pbar.update(kwargs['iter'] + kwargs['batch_size'] - self.last_iter)
+        self.last_iter = kwargs['iter'] + kwargs['batch_size']
 
     def _post_test_batch(self, kwargs):
         if self.pbar is None:
-            self._speed_indicator = _SpeedIndicator(self)
-            if 'test_loss' in list(kwargs.keys()):
-                widgets = [_LossIndicator(self),
-                           self._speed_indicator] + self.widgets
-            else:
-                widgets = [self._speed_indicator] + self.widgets
-            self.pbar = self.pbarclass(maxval=kwargs['max_iter'],
-                                       widgets=widgets)
-            self.pbar.start()
+            self.pbar = self.pbarclass(total=kwargs['max_iter'])
         if 'test_loss' in list(kwargs.keys()):
             self.test_loss = kwargs['test_loss']
         if 'test_accuracy' in list(kwargs.keys()):
             self.test_accuracy = kwargs['test_accuracy']
-        self._smplps = float(kwargs['batch_size']) / (
-            _time.time() - self._last_update)
-        self._last_update = _time.time()
-        self.pbar.update(value=kwargs['iter'])
+        self.pbar.set_description(self._perf_string())
+        self.pbar.update(kwargs['iter'] - self.last_iter)
+        self.last_iter = kwargs['iter']
 
     def _post_test(self, kwargs):
         # Write the mean if possible.
@@ -1212,15 +1126,14 @@ class ProgressIndicator(Monitor):  # pragma: no cover
                 self.test_loss = kwargs['test_loss']
             if 'test_accuracy' in list(kwargs.keys()):
                 self.test_accuracy = kwargs['test_accuracy']
-            self.pbar.update(value=kwargs['iter'])
+            self.pbar.set_description(self._perf_string())
+            self.pbar.update(kwargs['iter'] - self.last_iter)
+            self.last_iter = kwargs['iter']
 
     def finalize(self, kwargs):  # pylint: disable=W0613
         """Call ``progressbar.finish()``."""
-        if self._speed_indicator is not None:
-            # pylint: disable=protected-access
-            self._speed_indicator._active = False
         if self.pbar is not None:
-            self.pbar.finish()
+            self.pbar.close()
 
 
 def _sorted_ar_from_dict(inf, key):  # pragma: no cover

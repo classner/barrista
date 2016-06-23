@@ -1,5 +1,6 @@
 numpy
 scipy
+tqdm
 natsort
 protobuf
 progressbar
