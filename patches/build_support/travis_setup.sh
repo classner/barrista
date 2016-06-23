@@ -78,4 +78,5 @@ else
 	  pip install --pre protobuf
     pip install coveralls
     pip install coverage
+    pip install tqdm
 fi
