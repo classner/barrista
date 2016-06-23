@@ -3,7 +3,6 @@
 # pylint: disable=F0401, E1101, too-many-lines, wrong-import-order
 import logging as _logging
 import os as _os
-import time as _time
 import subprocess as _subprocess
 import collections as _collections
 import numpy as _np
