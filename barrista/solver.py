@@ -322,12 +322,13 @@ class Solver(object):
         train_callbacks = self._Assert_callbacks(self._net,
                                                  train_callbacks,
                                                  'train')
-        test_callbacks = self._Assert_callbacks(self._net,
-                                                test_callbacks,
-                                                'test')
 
         testnet = self._Init_testnet(test_interval,
                                      use_fit_phase_for_validation)
+        if testnet is not None:
+            test_callbacks = self._Assert_callbacks(testnet,
+                                                    test_callbacks,
+                                                    'test')
 
         batch_size, test_iterations = self._Get_batch_size(
             self._net,
@@ -474,7 +475,11 @@ class Solver(object):
         finally:
             for cb in set(train_callbacks + test_callbacks):
                 if not isinstance(cb, _monitoring.ParallelMonitor):
-                    cb.finalize(cbparams)
+                    try:
+                        cb.finalize(cbparams)
+                    except Exception as ex:
+                        _LOGGER.fatal(str(ex))
+                        continue
             _parallel.finalize_prebatch(self, cbparams)
             if self._parameter_dict.get('stepvalue') is not None:
                 self._parameter_dict['stepvalue'] = [

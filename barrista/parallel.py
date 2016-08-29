@@ -5,10 +5,13 @@ from __future__ import print_function
 
 import logging as _logging
 import warnings as _warnings
-import multiprocessing as _multiprocessing
+_DEBUG_SERIAL = False
+if _DEBUG_SERIAL:
+    import multiprocessing.dummy as _multiprocessing
+else:
+    import multiprocessing as _multiprocessing
 from multiprocessing import Array as _mpa
 from multiprocessing import log_to_stderr as _log_to_stderr
-#import multiprocessing.dummy as _multiprocessing
 import numpy as _np
 
 import barrista.monitoring as _monitoring
@@ -127,7 +130,7 @@ def init_prebatch(self,  # pylint: disable=too-many-locals
         assert self._parallel_test_filler is None
         assert self._parallel_batch_res_test is None
     parallelcbs = [cb for cb in callbacks
-                   if isinstance(cb, _monitoring.ParallelMonitor)]
+                   if isinstance(cb, _monitoring.ParallelMonitor) and not _DEBUG_SERIAL]
     nublobnames = []
     for cb in parallelcbs:
         nublobnames.extend(cb.get_parallel_blob_names())
@@ -154,7 +157,7 @@ def init_prebatch(self,  # pylint: disable=too-many-locals
             _warnings.simplefilter('ignore', RuntimeWarning)
             dummynet.blobs[bname].shape[...] = bsh
     filler_cbs = [cb for cb in callbacks
-                  if isinstance(cb, _monitoring.ParallelMonitor)]
+                  if isinstance(cb, _monitoring.ParallelMonitor) and not _DEBUG_SERIAL]
     if train_mode:
         self._train_net_dummy = dummynet
         self._parallel_train_filler = _multiprocessing.Pool(
@@ -202,7 +205,7 @@ def run_prebatch(self,  # pylint: disable=too-many-branches, too-many-arguments
         cbs_orig = cbparams['callback_signal']
         cbparams['callback_signal'] = callback_signal
         for cb in [cb for cb in callbacks
-                   if not isinstance(cb, _monitoring.ParallelMonitor)]:
+                   if not isinstance(cb, _monitoring.ParallelMonitor) or _DEBUG_SERIAL]:
             cb(cbparams)
         cbparams['callback_signal'] = cbs_orig
         # For the parallel workers.
@@ -221,7 +224,7 @@ def run_prebatch(self,  # pylint: disable=too-many-branches, too-many-arguments
     if not dummy._filled:
         # Run the callbacks.
         for cb in [callb for callb in callbacks
-                   if not isinstance(callb, _monitoring.ParallelMonitor)]:
+                   if not isinstance(callb, _monitoring.ParallelMonitor) or _DEBUG_SERIAL]:
             cb(cbparams)
         if train_mode:
             self._parallel_batch_res_train =\
@@ -261,7 +264,7 @@ def run_prebatch(self,  # pylint: disable=too-many-branches, too-many-arguments
                 run_cbs, args=(ncbparams,))
     # Execute the serially-to-execute monitors.
     for cb in callbacks:
-        if not isinstance(cb, _monitoring.ParallelMonitor):
+        if not isinstance(cb, _monitoring.ParallelMonitor) or _DEBUG_SERIAL:
             cb(cbparams)
 
 def finalize_prebatch(self, cbparams):
