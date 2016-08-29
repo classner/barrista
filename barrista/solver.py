@@ -285,7 +285,7 @@ class Solver(object):
           an LMDB).
 
         :param use_fit_phase_for_validation: bool.
-          If set to True, use do not change the phase of the net for running
+          If set to True, do not change the phase of the net for running
           a validation step during training. This can be helpful to reduce
           memory consumption. This ignores the TEST phase of the net completely,
           but it's not necessary to use it if the data is provided by the
@@ -322,12 +322,14 @@ class Solver(object):
         train_callbacks = self._Assert_callbacks(self._net,
                                                  train_callbacks,
                                                  'train')
-        test_callbacks = self._Assert_callbacks(self._net,
-                                                test_callbacks,
-                                                'test')
 
         testnet = self._Init_testnet(test_interval,
                                      use_fit_phase_for_validation)
+        if testnet is not None:
+            test_callbacks = self._Assert_callbacks(testnet,
+                                                    test_callbacks,
+                                                    'test')
+
 
         batch_size, test_iterations = self._Get_batch_size(
             self._net,
@@ -394,7 +396,7 @@ class Solver(object):
             while iteration <= iterations:
                 cbparams['iter'] = iteration
                 # Check whether to test the net.
-                if ((
+                if ((  # pylint: disable=too-many-boolean-expressions
                         test_interval > 0 and
                         iteration % test_interval == 0 and iteration > 0
                     ) or (
@@ -795,7 +797,8 @@ class Solver(object):
 
         if test_interval > 0 and X_val is not None:
             assert X_val is not None
-            assert len(list(X_val.values())) == len(list(X.values()))
+            if X is not None:
+                assert len(list(X_val.values())) == len(list(X.values()))
 
             # safety measure, we do not want to have two different data
             # monitors in the same callback list
