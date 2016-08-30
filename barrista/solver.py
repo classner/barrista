@@ -329,6 +329,8 @@ class Solver(object):
             test_callbacks = self._Assert_callbacks(testnet,
                                                     test_callbacks,
                                                     'test')
+        else:
+            test_callbacks = []
 
         batch_size, test_iterations = self._Get_batch_size(
             self._net,
