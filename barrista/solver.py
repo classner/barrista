@@ -329,6 +329,8 @@ class Solver(object):
             test_callbacks = self._Assert_callbacks(testnet,
                                                     test_callbacks,
                                                     'test')
+        else:
+            test_callbacks = []
 
         batch_size, test_iterations = self._Get_batch_size(
             self._net,
@@ -477,7 +479,7 @@ class Solver(object):
                 if not isinstance(cb, _monitoring.ParallelMonitor):
                     try:
                         cb.finalize(cbparams)
-                    except Exception as ex:
+                    except Exception as ex:  # pylint: disable=broad-except
                         _LOGGER.fatal(str(ex))
                         continue
             _parallel.finalize_prebatch(self, cbparams)
