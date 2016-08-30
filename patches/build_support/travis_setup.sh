@@ -63,7 +63,7 @@ export PATH=$CONDA_DIR/bin:$PATH
 #fi
 
 pushd .
-wget https://github.com/google/protobuf/archive/v3.0.0-alpha-3.1.tar.gz -O protobuf-3.tar.gz
+wget https://github.com/google/protobuf/archive/3.0.0-GA.tar.gz -O protobuf-3.tar.gz
 tar -C /tmp -xzvf protobuf-3.tar.gz
 cd /tmp/protobuf-3*/
 ./autogen.sh
