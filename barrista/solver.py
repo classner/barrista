@@ -330,7 +330,6 @@ class Solver(object):
                                                     test_callbacks,
                                                     'test')
 
-
         batch_size, test_iterations = self._Get_batch_size(
             self._net,
             testnet,
@@ -476,7 +475,11 @@ class Solver(object):
         finally:
             for cb in set(train_callbacks + test_callbacks):
                 if not isinstance(cb, _monitoring.ParallelMonitor):
-                    cb.finalize(cbparams)
+                    try:
+                        cb.finalize(cbparams)
+                    except Exception as ex:
+                        _LOGGER.fatal(str(ex))
+                        continue
             _parallel.finalize_prebatch(self, cbparams)
             if self._parameter_dict.get('stepvalue') is not None:
                 self._parameter_dict['stepvalue'] = [
