@@ -477,7 +477,7 @@ class Solver(object):
                 if not isinstance(cb, _monitoring.ParallelMonitor):
                     try:
                         cb.finalize(cbparams)
-                    except Exception as ex:
+                    except Exception as ex:  # pylint: disable=broad-except
                         _LOGGER.fatal(str(ex))
                         continue
             _parallel.finalize_prebatch(self, cbparams)
