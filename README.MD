@@ -3,6 +3,12 @@
 [![Requirements Status](https://requires.io/github/classner/barrista/requirements.svg?branch=unstable)](https://requires.io/github/classner/barrista/requirements/?branch=unstable)
 [![Coverage Status](https://coveralls.io/repos/github/classner/barrista/badge.svg?branch=unstable)](https://coveralls.io/github/classner/barrista?branch=unstable)
 
+# Unmaintained
+
+With the rise of the company-backed wide-spread deep learning toolkits, we do
+not maintain barrista any more. It will not work with recent versions of caffe
+(please use the version that is linked as sub-repository).
+
 
 # The Barrista
 
